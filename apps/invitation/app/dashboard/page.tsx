@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_ENDPOINTS, getAuthToken, removeAuthToken } from '@/lib/api-config';
 
 interface Event {
   id: string;
@@ -27,18 +28,18 @@ export default function DashboardPage() {
   }, []);
 
   const checkAuth = () => {
-    const token = localStorage.getItem('client_token');
+    const token = getAuthToken();
     if (!token) {
       router.push('/dashboard/login');
     }
   };
 
   const fetchEvents = async () => {
-    const token = localStorage.getItem('client_token');
+    const token = getAuthToken();
     if (!token) return;
 
     try {
-      const res = await fetch('/api/guestbook/events', {
+      const res = await fetch(API_ENDPOINTS.guestbook.events, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -54,7 +55,7 @@ export default function DashboardPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('client_token');
+    removeAuthToken();
     localStorage.removeItem('client_user');
     router.push('/dashboard/login');
   };

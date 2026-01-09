@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_ENDPOINTS, getAuthToken } from '@/lib/api-config';
 
 type WizardStep = 1 | 2 | 3;
 
@@ -13,16 +14,16 @@ interface EventFormData {
   venue_name: string;
   venue_address: string;
   timezone: string;
-  
+
   // Step 2: Module Selection
   has_invitation: boolean;
   has_guestbook: boolean;
-  
+
   // Step 3: Invitation Config
   invitation_rsvp_enabled: boolean;
   invitation_max_guests: number;
   invitation_auto_qr: boolean;
-  
+
   // Step 3: Guestbook Config
   guestbook_checkin_mode: 'qr_scan' | 'manual' | 'both';
   guestbook_offline_support: boolean;
@@ -35,7 +36,7 @@ export default function CreateEventWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [formData, setFormData] = useState<EventFormData>({
     event_name: '',
     event_date: '',
@@ -83,7 +84,7 @@ export default function CreateEventWizard() {
   const handleNext = () => {
     if (currentStep === 1 && !validateStep1()) return;
     if (currentStep === 2 && !validateStep2()) return;
-    
+
     if (currentStep < 3) {
       setCurrentStep((currentStep + 1) as WizardStep);
     }
@@ -101,8 +102,8 @@ export default function CreateEventWizard() {
     setError('');
 
     try {
-      const token = localStorage.getItem('client_token');
-      
+      const token = getAuthToken();
+
       const payload = {
         name: formData.event_name,
         event_date: formData.event_date,
@@ -125,7 +126,7 @@ export default function CreateEventWizard() {
         seating_mode: formData.has_guestbook ? formData.guestbook_seating_mode : 'no_seat',
       };
 
-      const res = await fetch('/api/guestbook/events', {
+      const res = await fetch(API_ENDPOINTS.guestbook.events, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,27 +162,24 @@ export default function CreateEventWizard() {
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
             <div className={`flex items-center ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                }`}>
                 {currentStep > 1 ? '✓' : '1'}
               </div>
               <span className="ml-2 font-medium hidden sm:inline">Informasi Event</span>
             </div>
             <div className={`w-16 sm:w-24 h-1 mx-2 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
             <div className={`flex items-center ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                }`}>
                 {currentStep > 2 ? '✓' : '2'}
               </div>
               <span className="ml-2 font-medium hidden sm:inline">Pilih Modul</span>
             </div>
             <div className={`w-16 sm:w-24 h-1 mx-2 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
             <div className={`flex items-center ${currentStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                }`}>
                 3
               </div>
               <span className="ml-2 font-medium hidden sm:inline">Konfigurasi</span>
@@ -212,7 +210,7 @@ export default function CreateEventWizard() {
           >
             Batal
           </button>
-          
+
           <div className="flex gap-3">
             {currentStep > 1 && (
               <button
@@ -223,10 +221,10 @@ export default function CreateEventWizard() {
                 ← Kembali
               </button>
             )}
-            
+
             {currentStep < 3 ? (
-              <button 
-                onClick={handleNext} 
+              <button
+                onClick={handleNext}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition"
               >
                 Lanjut →
@@ -352,11 +350,10 @@ function Step2Content({ formData, updateFormData }: any) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div
-          className={`border-2 rounded-lg p-6 cursor-pointer transition ${
-            formData.has_invitation 
-              ? 'border-blue-500 bg-blue-50' 
+          className={`border-2 rounded-lg p-6 cursor-pointer transition ${formData.has_invitation
+              ? 'border-blue-500 bg-blue-50'
               : 'border-gray-200 hover:border-gray-300'
-          }`}
+            }`}
           onClick={() => updateFormData({ has_invitation: !formData.has_invitation })}
         >
           <div className="flex items-start justify-between mb-4">
@@ -401,11 +398,10 @@ function Step2Content({ formData, updateFormData }: any) {
         </div>
 
         <div
-          className={`border-2 rounded-lg p-6 cursor-pointer transition ${
-            formData.has_guestbook 
-              ? 'border-blue-500 bg-blue-50' 
+          className={`border-2 rounded-lg p-6 cursor-pointer transition ${formData.has_guestbook
+              ? 'border-blue-500 bg-blue-50'
               : 'border-gray-200 hover:border-gray-300'
-          }`}
+            }`}
           onClick={() => updateFormData({ has_guestbook: !formData.has_guestbook })}
         >
           <div className="flex items-start justify-between mb-4">
@@ -475,7 +471,7 @@ function Step3Content({ formData, updateFormData }: any) {
             <span className="text-2xl mr-2">📧</span>
             Konfigurasi Invitation
           </h3>
-          
+
           <div className="space-y-4">
             <label className="flex items-start">
               <input
@@ -528,7 +524,7 @@ function Step3Content({ formData, updateFormData }: any) {
             <span className="text-2xl mr-2">📖</span>
             Konfigurasi Guestbook
           </h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

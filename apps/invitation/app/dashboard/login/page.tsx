@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_ENDPOINTS, setAuthToken } from '@/lib/api-config';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/client/auth', {
+      const res = await fetch(API_ENDPOINTS.auth.clientLogin, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -25,13 +26,14 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success && data.token) {
-        localStorage.setItem('client_token', data.token);
+        setAuthToken(data.token);
         localStorage.setItem('client_user', JSON.stringify(data.user));
         router.push('/dashboard');
       } else {
         setError(data.error || 'Login failed');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
