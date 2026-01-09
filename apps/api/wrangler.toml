@@ -2,6 +2,11 @@ name = "kirimkata-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# Custom Domain
+routes = [
+	{ pattern = "api.kirimkata.com", custom_domain = true }
+]
+
 # Environment variables (non-sensitive)
 [vars]
 ENVIRONMENT = "production"
