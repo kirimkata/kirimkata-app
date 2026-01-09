@@ -9,7 +9,7 @@ ENVIRONMENT = "production"
 # R2 Bucket for media storage
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
-bucket_name = "kirimkata-media"
+bucket_name = "kirimkata-wedding-media"
 
 # Secrets (set via: wrangler secret put <KEY>)
 # - SUPABASE_URL
