@@ -100,6 +100,16 @@ export async function comparePassword(
 }
 
 /**
+ * Hash password using encryption
+ */
+export async function hashPassword(
+    password: string,
+    encryptionKeyHex: string
+): Promise<string> {
+    return encrypt(password, encryptionKeyHex);
+}
+
+/**
  * Generate random string
  */
 export function generateRandomString(length: number = 32): string {
