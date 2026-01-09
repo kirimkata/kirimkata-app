@@ -1,0 +1,8 @@
+# Local development environment variables
+# Copy this file to .dev.vars and fill in your actual values
+
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+JWT_SECRET=your_jwt_secret_key_here
+ENCRYPTION_KEY=your_64_character_hex_encryption_key_here
+

@@ -1,0 +1,15 @@
+{
+  "name": "kirimkata-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:invitation": "pnpm --filter ./apps/invitation dev",
+    "build:invitation": "pnpm --filter ./apps/invitation build",
+    "start:invitation": "pnpm --filter ./apps/invitation start",
+    "lint:invitation": "pnpm --filter ./apps/invitation lint",
+    "dev:guestbook": "pnpm --filter ./apps/guestbook dev",
+    "build:guestbook": "pnpm --filter ./apps/guestbook build",
+    "start:guestbook": "pnpm --filter ./apps/guestbook start",
+    "lint:guestbook": "pnpm --filter ./apps/guestbook lint"
+  }
+}

@@ -1,0 +1,31 @@
+{
+    "name": "@kirimkata/api",
+    "version": "1.0.0",
+    "description": "Unified API service for Kirimkata Guestbook and Invitation apps",
+    "main": "src/index.ts",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy",
+        "tail": "wrangler tail",
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "hono",
+        "cloudflare-workers",
+        "api"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "hono": "^4.0.0",
+        "@hono/zod-validator": "^0.2.1",
+        "@supabase/supabase-js": "^2.39.0",
+        "zod": "^3.22.4",
+        "jose": "^5.2.0"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20240117.0",
+        "wrangler": "^3.22.0",
+        "typescript": "^5.3.3"
+    }
+}
