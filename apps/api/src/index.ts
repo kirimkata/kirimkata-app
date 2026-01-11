@@ -17,6 +17,9 @@ import guestbookGuestsRoutes from './routes/v1/guestbook-guests';
 import guestbookBenefitsRoutes from './routes/v1/guestbook-benefits';
 import guestbookSeatingRoutes from './routes/v1/guestbook-seating';
 import guestbookCheckinRoutes from './routes/v1/guestbook-checkin';
+import guestbookAdvancedRoutes from './routes/v1/guestbook-advanced';
+import guestbookQrRoutes from './routes/v1/guestbook-qr';
+import guestbookExportRoutes from './routes/v1/guestbook-export';
 import sharedRoutes from './routes/v1/shared';
 
 // Create main Hono app
@@ -53,6 +56,11 @@ app.route('/v1/guestbook/guests', guestbookGuestsRoutes);
 app.route('/v1/guestbook/benefits', guestbookBenefitsRoutes);
 app.route('/v1/guestbook/seating', guestbookSeatingRoutes);
 app.route('/v1/guestbook/checkin', guestbookCheckinRoutes);
+
+// Guestbook advanced features (Phase 2)
+app.route('/v1/guestbook/advanced', guestbookAdvancedRoutes);
+app.route('/v1/guestbook/qr', guestbookQrRoutes);
+app.route('/v1/guestbook/export', guestbookExportRoutes);
 
 // Shared routes
 app.route('/v1/shared', sharedRoutes);
