@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { createWish, listWishes, type AttendanceStatus } from '@/lib/repositories/wishesRepository';
 import { useInViewSlideIn } from '@/hooks/useInViewAnimation';
 import { typographyConfig, getTypographyStyle } from '@/config/fontConfig';
+
+type AttendanceStatus = 'hadir' | 'tidak-hadir' | 'masih-ragu';
 
 const LottiePlayer = dynamic(
   () => import('@lottiefiles/react-lottie-player').then((m) => m.Player),
@@ -83,18 +84,27 @@ export default function WishesSection({ invitationSlug, onSubmit, messages }: Wi
 
   const loadWishes = async () => {
     try {
-      const rows = await listWishes(invitationSlug);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
+      const response = await fetch(`${apiUrl}/v1/wishes/${invitationSlug}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch wishes');
+      }
+      
+      const data = await response.json();
+      const wishes = data.wishes || [];
+      
       setItems(
-        rows.map((row) => ({
-          id: row.id,
-          name: row.name,
-          message: row.message,
-          attendance: row.attendance,
-          timeAgo: formatTimeAgo(row.createdAt),
+        wishes.map((wish: any) => ({
+          id: wish.id,
+          name: wish.name,
+          message: wish.message,
+          attendance: wish.attendance,
+          timeAgo: formatTimeAgo(wish.createdAt),
         })),
       );
     } catch (error) {
-      console.error('Failed to load wishes from Supabase', error);
+      console.error('Failed to load wishes from API', error);
     }
   };
 
@@ -126,13 +136,24 @@ export default function WishesSection({ invitationSlug, onSubmit, messages }: Wi
         onSubmit({ name, message });
       }
 
-      await createWish({
-        invitationSlug,
-        name,
-        message,
-        attendance: attendance as any,
-        guestCount: parseInt(guestCount, 10) || 1,
+      // Submit wish to Cloudflare Workers API
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
+      const response = await fetch(`${apiUrl}/v1/wishes/${invitationSlug}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          message,
+          attendance: attendance as AttendanceStatus,
+          guest_count: parseInt(guestCount, 10) || 1,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit wish');
+      }
 
       await loadWishes();
       setShowSentAnimation(true);

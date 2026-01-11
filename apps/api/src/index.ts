@@ -10,6 +10,7 @@ import checkinRoutes from './routes/v1/checkin';
 import clientRoutes from './routes/v1/client';
 import mediaRoutes from './routes/v1/media';
 import adminRoutes from './routes/v1/admin';
+import wishesRoutes from './routes/v1/wishes';
 import guestbookEventsRoutes from './routes/v1/guestbook-events';
 import guestbookGuestTypesRoutes from './routes/v1/guestbook-guest-types';
 import guestbookGuestsRoutes from './routes/v1/guestbook-guests';
@@ -41,6 +42,9 @@ app.route('/v1/checkin', checkinRoutes);
 app.route('/v1/client', clientRoutes);
 app.route('/v1/media', mediaRoutes);
 app.route('/v1/admin', adminRoutes);
+
+// Public routes (no authentication required)
+app.route('/v1/wishes', wishesRoutes);
 
 // Guestbook routes
 app.route('/v1/guestbook/events', guestbookEventsRoutes);

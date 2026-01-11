@@ -32,14 +32,26 @@ export function useWishesData(invitationSlug: string): UseWishesDataReturn {
             setIsLoading(true);
             setError(null);
 
-            const response = await fetch(`/api/wishes/${invitationSlug}`);
+            // Use Cloudflare Workers API endpoint
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
+            const response = await fetch(`${apiUrl}/v1/wishes/${invitationSlug}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch wishes');
             }
 
             const data = await response.json();
-            setWishes(data.wishes || []);
+            
+            // Transform API response to match expected format
+            const transformedWishes = (data.wishes || []).map((wish: any) => ({
+                id: String(wish.id),
+                name: wish.name,
+                message: wish.message,
+                attendance: wish.attendance,
+                createdAt: wish.createdAt,
+            }));
+            
+            setWishes(transformedWishes);
             setTotalCount(data.total || 0);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
