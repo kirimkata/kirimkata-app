@@ -71,7 +71,7 @@ export default function SeatingManagementPage() {
 
   const fetchData = async () => {
     const token = localStorage.getItem('client_token');
-    
+
     try {
       // Fetch event
       const eventRes = await fetch(`/api/guestbook/events/${eventId}`, {
@@ -126,10 +126,10 @@ export default function SeatingManagementPage() {
       });
     } else {
       setEditingConfig(null);
-      const defaultType = event?.seating_mode === 'table_based' ? 'table' 
+      const defaultType = event?.seating_mode === 'table_based' ? 'table'
         : event?.seating_mode === 'numbered_seat' ? 'seat'
-        : event?.seating_mode === 'zone_based' ? 'zone' : 'table';
-      
+          : event?.seating_mode === 'zone_based' ? 'zone' : 'table';
+
       setFormData({
         seating_type: defaultType,
         name: '',
@@ -152,9 +152,9 @@ export default function SeatingManagementPage() {
       const url = editingConfig
         ? `/api/guestbook/seating/${editingConfig.id}`
         : '/api/guestbook/seating';
-      
+
       const method = editingConfig ? 'PUT' : 'POST';
-      
+
       const payload = editingConfig
         ? formData
         : { ...formData, event_id: eventId };
@@ -300,23 +300,121 @@ export default function SeatingManagementPage() {
     }
   };
 
+  const containerStyle = {
+    padding: '32px',
+    fontFamily: 'Segoe UI, sans-serif'
+  };
+
+  const cardStyle = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    padding: '24px'
+  };
+
+  const buttonStyle = (variant: 'primary' | 'secondary' | 'danger' | 'outline' | 'text') => {
+    const base = {
+      padding: '8px 16px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none',
+      transition: 'all 0.2s',
+      fontFamily: 'inherit'
+    };
+
+    switch (variant) {
+      case 'primary':
+        return { ...base, backgroundColor: '#2563eb', color: 'white' };
+      case 'danger':
+        return { ...base, backgroundColor: 'transparent', color: '#dc2626', padding: '4px 8px' };
+      case 'outline':
+        return { ...base, backgroundColor: 'white', border: '1px solid #2563eb', color: '#2563eb' };
+      case 'text':
+        return { ...base, backgroundColor: 'transparent', color: '#2563eb', padding: '4px 8px' };
+      case 'secondary':
+      default:
+        return { ...base, backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' };
+    }
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box' as const
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '8px'
+  };
+
+  const thStyle = {
+    padding: '12px 24px',
+    textAlign: 'left' as const,
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#6b7280',
+    textTransform: 'uppercase' as const,
+    backgroundColor: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb'
+  };
+
+  const tdStyle = {
+    padding: '16px 24px',
+    fontSize: '14px',
+    color: '#111827',
+    borderBottom: '1px solid #e5e7eb',
+    whiteSpace: 'nowrap' as const
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e5e7eb',
+          borderTopColor: '#2563eb',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}} />
       </div>
     );
   }
 
   if (event?.seating_mode === 'no_seat') {
     return (
-      <div className="p-8">
-        <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div style={{ padding: '32px' }}>
+        <div style={{
+          textAlign: 'center',
+          padding: '48px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '2px dashed #d1d5db'
+        }}>
+          <svg style={{ margin: '0 auto', width: '48px', height: '48px', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Seating Not Enabled</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 style={{ marginTop: '8px', fontSize: '14px', fontWeight: '500', color: '#111827' }}>Seating Not Enabled</h3>
+          <p style={{ marginTop: '4px', fontSize: '14px', color: '#6b7280' }}>
             This event is configured with "No Seating" mode. To enable seating, please update the event settings.
           </p>
         </div>
@@ -325,30 +423,30 @@ export default function SeatingManagementPage() {
   }
 
   return (
-    <div className="p-8">
+    <div style={containerStyle}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Seating Management</h1>
-          <p className="text-gray-600 mt-2">
-            Mode: <span className="font-semibold">{getSeatingModeLabel(event?.seating_mode || '')}</span>
+          <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Seating Management</h1>
+          <p style={{ color: '#4b5563', marginTop: '8px', margin: 0 }}>
+            Mode: <span style={{ fontWeight: '600' }}>{getSeatingModeLabel(event?.seating_mode || '')}</span>
           </p>
         </div>
-        <div className="flex gap-3">
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={() => setShowBulkModal(true)}
-            className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center"
+            style={buttonStyle('outline')}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Bulk Create
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center"
+            style={buttonStyle('primary')}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add {getSeatingTypeLabel(formData.seating_type)}
@@ -358,43 +456,43 @@ export default function SeatingManagementPage() {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Capacity</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_capacity}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Total Capacity</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginTop: '8px', margin: 0 }}>{stats.total_capacity}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#2563eb' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Assigned</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.assigned_seats}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Assigned</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginTop: '8px', margin: 0 }}>{stats.assigned_seats}</p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#16a34a' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Available</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.available_seats}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Available</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginTop: '8px', margin: 0 }}>{stats.available_seats}</p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg">
-                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#fff7ed', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#ea580c' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -405,19 +503,19 @@ export default function SeatingManagementPage() {
 
       {/* Auto-Assign Button */}
       {seatingConfigs.length > 0 && stats && stats.available_seats > 0 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+        <div style={{ marginBottom: '24px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <h3 className="text-sm font-semibold text-blue-900">Auto-Assign Guests</h3>
-              <p className="text-sm text-blue-800 mt-1">
+              <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a8a', margin: 0 }}>Auto-Assign Guests</h3>
+              <p style={{ fontSize: '14px', color: '#1e40af', marginTop: '4px', margin: 0 }}>
                 Automatically assign unassigned guests to available seats based on guest types and capacity.
               </p>
             </div>
             <button
               onClick={handleAutoAssign}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center whitespace-nowrap"
+              style={{ ...buttonStyle('primary'), whiteSpace: 'nowrap' }}
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Auto-Assign
@@ -427,85 +525,98 @@ export default function SeatingManagementPage() {
       )}
 
       {/* Seating List */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
             {getSeatingTypeLabel(event?.seating_mode === 'table_based' ? 'table' : event?.seating_mode === 'numbered_seat' ? 'seat' : 'zone')} List
           </h2>
         </div>
-        
+
         {seatingConfigs.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restrictions</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th style={thStyle}>Name</th>
+                  <th style={thStyle}>Type</th>
+                  <th style={thStyle}>Capacity</th>
+                  <th style={thStyle}>Restrictions</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody style={{ backgroundColor: 'white' }}>
                 {seatingConfigs.map((config) => (
-                  <tr key={config.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{config.name}</div>
+                  <tr key={config.id} style={{ borderBottom: '1px solid #e5e7eb', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <td style={tdStyle}>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{config.name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                    <td style={tdStyle}>
+                      <span style={{ padding: '2px 8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', color: '#1f2937', borderRadius: '4px' }}>
                         {getSeatingTypeLabel(config.seating_type)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {config.capacity} seats
+                    <td style={tdStyle}>
+                      <div style={{ fontSize: '14px', color: '#111827' }}>{config.capacity} seats</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td style={tdStyle}>
                       {config.allowed_guest_type_ids.length > 0 ? (
-                        <div className="flex gap-1">
+                        <div style={{ display: 'flex', gap: '4px' }}>
                           {config.allowed_guest_type_ids.slice(0, 2).map((typeId) => {
                             const guestType = guestTypes.find(gt => gt.id === typeId);
                             return guestType ? (
                               <span
                                 key={typeId}
-                                className="px-2 py-1 text-xs font-medium rounded"
-                                style={{ backgroundColor: guestType.color_code + '20', color: guestType.color_code }}
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: '12px',
+                                  fontWeight: '500',
+                                  borderRadius: '4px',
+                                  backgroundColor: guestType.color_code + '20',
+                                  color: guestType.color_code
+                                }}
                               >
                                 {guestType.display_name}
                               </span>
                             ) : null;
                           })}
                           {config.allowed_guest_type_ids.length > 2 && (
-                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
+                            <span style={{ padding: '2px 8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '4px' }}>
                               +{config.allowed_guest_type_ids.length - 2}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500">All types</span>
+                        <span style={{ fontSize: '14px', color: '#6b7280' }}>All types</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${
-                        config.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                    <td style={tdStyle}>
+                      <span style={{
+                        padding: '2px 8px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        borderRadius: '4px',
+                        backgroundColor: config.is_active ? '#dcfce7' : '#f3f4f6',
+                        color: config.is_active ? '#166534' : '#1f2937'
+                      }}>
                         {config.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenModal(config)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(config.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          onClick={() => handleOpenModal(config)}
+                          style={buttonStyle('text')}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(config.id)}
+                          style={buttonStyle('danger')}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -513,18 +624,18 @@ export default function SeatingManagementPage() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div style={{ textAlign: 'center', padding: '48px' }}>
+            <svg style={{ margin: '0 auto', marginBottom: '8px', width: '48px', height: '48px', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No seating configured</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating seating configurations.</p>
-            <div className="mt-6">
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>No seating configured</h3>
+            <p style={{ marginTop: '4px', fontSize: '14px', color: '#6b7280' }}>Get started by creating seating configurations.</p>
+            <div style={{ marginTop: '24px' }}>
               <button
                 onClick={() => handleOpenModal()}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                style={buttonStyle('primary')}
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 Add Seating
@@ -536,37 +647,37 @@ export default function SeatingManagementPage() {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '448px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                 {editingConfig ? 'Edit Seating' : 'Add Seating'}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                style={{ backgroundColor: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{error}</p>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
+                <p style={{ fontSize: '14px', color: '#991b1b', margin: 0 }}>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type <span className="text-red-500">*</span>
+                <label style={labelStyle}>
+                  Type <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <select
                   value={formData.seating_type}
                   onChange={(e) => setFormData({ ...formData, seating_type: e.target.value as any })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   disabled={!!editingConfig}
                 >
                   <option value="table">Table</option>
@@ -576,41 +687,41 @@ export default function SeatingManagementPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name <span className="text-red-500">*</span>
+                <label style={labelStyle}>
+                  Name <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Table 1, Seat A1, VIP Zone"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Capacity <span className="text-red-500">*</span>
+                <label style={labelStyle}>
+                  Capacity <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.capacity}
                   onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Maximum number of guests</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Maximum number of guests</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={labelStyle}>
                   Guest Type Restrictions
                 </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px' }}>
                   {guestTypes.map((type) => (
-                    <label key={type.id} className="flex items-center">
+                    <label key={type.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={formData.allowed_guest_type_ids.includes(type.id)}
@@ -627,33 +738,38 @@ export default function SeatingManagementPage() {
                             });
                           }
                         }}
-                        className="w-4 h-4 text-blue-600 rounded"
+                        style={{ width: '16px', height: '16px', accentColor: '#2563eb', marginRight: '8px' }}
                       />
-                      <span className="ml-2 text-sm text-gray-700 flex items-center">
+                      <span style={{ fontSize: '14px', color: '#374151', display: 'flex', alignItems: 'center' }}>
                         <span
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: type.color_code }}
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: type.color_code,
+                            marginRight: '8px'
+                          }}
                         ></span>
                         {type.display_name}
                       </span>
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Leave empty to allow all guest types</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Leave empty to allow all guest types</p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div style={{ display: 'flex', gap: '12px', paddingTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  style={{ ...buttonStyle('secondary'), flex: 1 }}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                  style={{ ...buttonStyle('primary'), flex: 1, opacity: isSubmitting ? 0.5 : 1 }}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Saving...' : editingConfig ? 'Update' : 'Create'}
@@ -666,35 +782,35 @@ export default function SeatingManagementPage() {
 
       {/* Bulk Create Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Bulk Create</h2>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '448px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Bulk Create</h2>
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                style={{ backgroundColor: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{error}</p>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
+                <p style={{ fontSize: '14px', color: '#991b1b', margin: 0 }}>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleBulkCreate} className="space-y-4">
+            <form onSubmit={handleBulkCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={labelStyle}>
                   Type
                 </label>
                 <select
                   value={bulkForm.seating_type}
                   onChange={(e) => setBulkForm({ ...bulkForm, seating_type: e.target.value as any })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                 >
                   <option value="table">Table</option>
                   <option value="seat">Seat</option>
@@ -703,7 +819,7 @@ export default function SeatingManagementPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={labelStyle}>
                   Prefix
                 </label>
                 <input
@@ -711,14 +827,14 @@ export default function SeatingManagementPage() {
                   value={bulkForm.prefix}
                   onChange={(e) => setBulkForm({ ...bulkForm, prefix: e.target.value })}
                   placeholder="e.g., Table, Seat"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label style={labelStyle}>
                     Start Number
                   </label>
                   <input
@@ -726,13 +842,13 @@ export default function SeatingManagementPage() {
                     min="1"
                     value={bulkForm.start_number}
                     onChange={(e) => setBulkForm({ ...bulkForm, start_number: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={inputStyle}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label style={labelStyle}>
                     Count
                   </label>
                   <input
@@ -741,14 +857,14 @@ export default function SeatingManagementPage() {
                     max="100"
                     value={bulkForm.count}
                     onChange={(e) => setBulkForm({ ...bulkForm, count: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={inputStyle}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label style={labelStyle}>
                   Capacity per {getSeatingTypeLabel(bulkForm.seating_type)}
                 </label>
                 <input
@@ -756,32 +872,32 @@ export default function SeatingManagementPage() {
                   min="1"
                   value={bulkForm.capacity}
                   onChange={(e) => setBulkForm({ ...bulkForm, capacity: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   required
                 />
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-sm text-gray-700">
-                  <strong>Preview:</strong> Will create {bulkForm.count} {getSeatingTypeLabel(bulkForm.seating_type).toLowerCase()}s:
+              <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '12px' }}>
+                <p style={{ fontSize: '14px', color: '#374151', margin: 0 }}>
+                  <strong style={{ fontWeight: '600' }}>Preview:</strong> Will create {bulkForm.count} {getSeatingTypeLabel(bulkForm.seating_type).toLowerCase()}s:
                 </p>
-                <p className="text-sm text-gray-600 mt-1">
+                <p style={{ fontSize: '14px', color: '#4b5563', marginTop: '4px' }}>
                   {bulkForm.prefix} {bulkForm.start_number}, {bulkForm.prefix} {bulkForm.start_number + 1}, ... {bulkForm.prefix} {bulkForm.start_number + bulkForm.count - 1}
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div style={{ display: 'flex', gap: '12px', paddingTop: '16px' }}>
                 <button
                   type="button"
                   onClick={() => setShowBulkModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  style={{ ...buttonStyle('secondary'), flex: 1 }}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                  style={{ ...buttonStyle('primary'), flex: 1, opacity: isSubmitting ? 0.5 : 1 }}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Creating...' : 'Create All'}

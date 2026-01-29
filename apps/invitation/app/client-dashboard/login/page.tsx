@@ -17,7 +17,9 @@ export default function ClientLoginPage() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/client/auth', {
+            const { API_ENDPOINTS } = await import('@/lib/api-config');
+
+            const response = await fetch(API_ENDPOINTS.auth.clientLogin, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -27,7 +29,7 @@ export default function ClientLoginPage() {
 
             const data = await response.json();
 
-            if (!response.ok) {
+            if (!response.ok || !data.success) {
                 setError(data.error || 'Login failed');
                 setLoading(false);
                 return;
@@ -40,6 +42,7 @@ export default function ClientLoginPage() {
             // Redirect to client dashboard (event selection page)
             router.push('/client-dashboard');
         } catch (err) {
+            console.error('Login error:', err);
             setError('An error occurred. Please try again.');
             setLoading(false);
         }

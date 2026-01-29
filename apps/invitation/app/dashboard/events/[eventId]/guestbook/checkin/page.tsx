@@ -59,12 +59,12 @@ export default function CheckInPage() {
 
   const fetchGuestTypes = async () => {
     const token = localStorage.getItem('client_token');
-    
+
     try {
       const res = await fetch(`/api/guestbook/guest-types?event_id=${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setGuestTypes(data.data || []);
@@ -76,12 +76,12 @@ export default function CheckInPage() {
 
   const fetchStats = async () => {
     const token = localStorage.getItem('client_token');
-    
+
     try {
       const res = await fetch(`/api/guestbook/checkin/stats?event_id=${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setStats(data.data);
@@ -151,7 +151,7 @@ export default function CheckInPage() {
         setSearchQuery('');
         setSearchResults([]);
         await fetchStats();
-        
+
         setTimeout(() => setMessage(null), 3000);
       } else {
         setMessage({ type: 'error', text: data.error || 'Check-in failed' });
@@ -209,28 +209,96 @@ export default function CheckInPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e5e7eb',
+          borderTopColor: '#2563eb',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}} />
       </div>
     );
   }
 
+  const containerStyle = {
+    padding: '32px',
+    fontFamily: 'Segoe UI, sans-serif'
+  };
+
+  const cardStyle = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    padding: '24px'
+  };
+
+  const buttonStyle = (variant: 'primary' | 'secondary' | 'danger') => {
+    const base = {
+      padding: '8px 16px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none',
+      transition: 'all 0.2s',
+      fontFamily: 'inherit'
+    };
+
+    switch (variant) {
+      case 'primary':
+        return { ...base, backgroundColor: '#2563eb', color: 'white' };
+      case 'danger':
+        return { ...base, backgroundColor: '#dc2626', color: 'white' };
+      case 'secondary':
+      default:
+        return { ...base, backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' };
+    }
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '16px',
+    outline: 'none',
+    boxSizing: 'border-box' as const
+  };
+
   return (
-    <div className="p-8">
+    <div style={containerStyle}>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Guest Check-In</h1>
-        <p className="text-gray-600 mt-2">Scan QR code or search manually</p>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Guest Check-In</h1>
+        <p style={{ color: '#4b5563', marginTop: '8px', margin: 0 }}>Scan QR code or search manually</p>
       </div>
 
       {/* Message Banner */}
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-        }`}>
-          <p className={`text-sm font-medium ${
-            message.type === 'success' ? 'text-green-800' : 'text-red-800'
-          }`}>
+        <div style={{
+          marginBottom: '24px',
+          padding: '16px',
+          borderRadius: '8px',
+          backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
+          border: `1px solid ${message.type === 'success' ? '#bbf7d0' : '#fecaca'}`
+        }}>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: message.type === 'success' ? '#166534' : '#991b1b',
+            margin: 0
+          }}>
             {message.text}
           </p>
         </div>
@@ -238,57 +306,57 @@ export default function CheckInPage() {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Guests</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_guests}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Total Guests</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginTop: '8px', margin: 0 }}>{stats.total_guests}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#eff6ff', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#2563eb' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Checked In</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">{stats.checked_in}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Checked In</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#16a34a', marginTop: '8px', margin: 0 }}>{stats.checked_in}</p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#16a34a' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Not Checked In</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">{stats.not_checked_in}</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Not Checked In</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#ea580c', marginTop: '8px', margin: 0 }}>{stats.not_checked_in}</p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg">
-                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#fff7ed', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#ea580c' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="text-sm font-medium text-gray-600">Check-In Rate</p>
-                <p className="text-3xl font-bold text-purple-600 mt-2">{stats.check_in_rate}%</p>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#4b5563', margin: 0 }}>Check-In Rate</p>
+                <p style={{ fontSize: '30px', fontWeight: 'bold', color: '#9333ea', marginTop: '8px', margin: 0 }}>{stats.check_in_rate}%</p>
               </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ padding: '12px', backgroundColor: '#faf5ff', borderRadius: '8px' }}>
+                <svg style={{ width: '32px', height: '32px', color: '#9333ea' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
@@ -298,95 +366,122 @@ export default function CheckInPage() {
       )}
 
       {/* Mode Selector */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="flex gap-4">
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '16px' }}>
           <button
             onClick={() => setMode('qr')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition ${
-              mode === 'qr'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            style={{
+              flex: 1,
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              backgroundColor: mode === 'qr' ? '#2563eb' : '#f3f4f6',
+              color: mode === 'qr' ? 'white' : '#374151',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <div className="flex items-center justify-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-              </svg>
-              QR Code Scanner
-            </div>
+            <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+            QR Code Scanner
           </button>
           <button
             onClick={() => setMode('manual')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition ${
-              mode === 'manual'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            style={{
+              flex: 1,
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              backgroundColor: mode === 'manual' ? '#2563eb' : '#f3f4f6',
+              color: mode === 'manual' ? 'white' : '#374151',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <div className="flex items-center justify-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Manual Search
-            </div>
+            <svg style={{ width: '20px', height: '20px', marginRight: '8px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Manual Search
           </button>
         </div>
       </div>
 
       {/* QR Scanner Mode */}
       {mode === 'qr' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-32 h-32 bg-blue-50 rounded-full mb-6">
-              <svg className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">QR Code Scanner</h3>
-            <p className="text-gray-600 mb-6">
-              Position the QR code within the frame to scan
+        <div style={{ ...cardStyle, padding: '32px', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '128px',
+            height: '128px',
+            backgroundColor: '#eff6ff',
+            borderRadius: '50%',
+            marginBottom: '24px'
+          }}>
+            <svg style={{ width: '64px', height: '64px', color: '#2563eb' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>QR Code Scanner</h3>
+          <p style={{ color: '#4b5563', marginBottom: '24px' }}>
+            Position the QR code within the frame to scan
+          </p>
+          <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '32px', marginBottom: '24px' }}>
+            <p style={{ fontSize: '14px', color: '#6b7280' }}>
+              QR Scanner component will be integrated here
             </p>
-            <div className="bg-gray-50 rounded-lg p-8 mb-6">
-              <p className="text-sm text-gray-500">
-                QR Scanner component will be integrated here
-              </p>
-              <p className="text-xs text-gray-400 mt-2">
-                Using html5-qrcode library for camera access
-              </p>
-            </div>
-            <div className="text-sm text-gray-600">
-              <p className="font-medium mb-2">Instructions:</p>
-              <ul className="text-left inline-block space-y-1">
-                <li>• Allow camera access when prompted</li>
-                <li>• Hold QR code steady in frame</li>
-                <li>• Wait for automatic detection</li>
-                <li>• Guest will be checked in automatically</li>
-              </ul>
-            </div>
+            <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
+              Using html5-qrcode library for camera access
+            </p>
+          </div>
+          <div style={{ fontSize: '14px', color: '#4b5563' }}>
+            <p style={{ fontWeight: '500', marginBottom: '8px' }}>Instructions:</p>
+            <ul style={{ textAlign: 'left', display: 'inline-block', padding: 0, listStyle: 'none' }}>
+              <li style={{ marginBottom: '4px' }}>• Allow camera access when prompted</li>
+              <li style={{ marginBottom: '4px' }}>• Hold QR code steady in frame</li>
+              <li style={{ marginBottom: '4px' }}>• Wait for automatic detection</li>
+              <li>• Guest will be checked in automatically</li>
+            </ul>
           </div>
         </div>
       )}
 
       {/* Manual Search Mode */}
       {mode === 'manual' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div style={cardStyle}>
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
               Search Guest
             </label>
-            <div className="flex gap-3">
+            <div style={{ display: 'flex', gap: '12px' }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Enter name, phone, or email..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                style={inputStyle}
               />
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !searchQuery.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  ...buttonStyle('primary'),
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  opacity: isSearching || !searchQuery.trim() ? 0.5 : 1,
+                  cursor: isSearching || !searchQuery.trim() ? 'not-allowed' : 'pointer'
+                }}
               >
                 {isSearching ? 'Searching...' : 'Search'}
               </button>
@@ -395,27 +490,36 @@ export default function CheckInPage() {
 
           {/* Search Results */}
           {searchResults.length > 0 ? (
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-gray-700">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
                 Found {searchResults.length} guest(s)
               </h3>
               {searchResults.map((guest) => (
                 <div
                   key={guest.id}
-                  className={`border rounded-lg p-4 transition ${
-                    guest.is_checked_in
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-gray-200 hover:border-blue-500 cursor-pointer'
-                  }`}
+                  style={{
+                    border: `1px solid ${guest.is_checked_in ? '#bbf7d0' : '#e5e7eb'}`,
+                    borderRadius: '8px',
+                    padding: '16px',
+                    transition: 'all 0.2s',
+                    backgroundColor: guest.is_checked_in ? '#f0fdf4' : 'transparent',
+                    cursor: guest.is_checked_in ? 'default' : 'pointer',
+                    ':hover': {
+                      borderColor: '#3b82f6'
+                    }
+                  } as any}
                   onClick={() => !guest.is_checked_in && handleSelectGuest(guest)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="text-lg font-semibold text-gray-900">{guest.guest_name}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>{guest.guest_name}</h4>
                         <span
-                          className="px-2 py-1 text-xs font-medium rounded"
                           style={{
+                            padding: '2px 8px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            borderRadius: '4px',
                             backgroundColor: getGuestTypeColor(guest.guest_type_id) + '20',
                             color: getGuestTypeColor(guest.guest_type_id)
                           }}
@@ -423,28 +527,31 @@ export default function CheckInPage() {
                           {getGuestTypeName(guest.guest_type_id)}
                         </span>
                         {guest.is_checked_in && (
-                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          <span style={{ padding: '2px 8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px' }}>
                             ✓ Checked In
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div style={{ fontSize: '14px', color: '#4b5563' }}>
                         {guest.guest_phone && <span>{guest.guest_phone}</span>}
-                        {guest.guest_group && <span className="ml-4">Group: {guest.guest_group}</span>}
+                        {guest.guest_group && <span style={{ marginLeft: '16px' }}>Group: {guest.guest_group}</span>}
                         {guest.max_companions > 0 && (
-                          <span className="ml-4">Companions: {guest.actual_companions}/{guest.max_companions}</span>
+                          <span style={{ marginLeft: '16px' }}>Companions: {guest.actual_companions}/{guest.max_companions}</span>
                         )}
                       </div>
                       {guest.is_checked_in && guest.checked_in_at && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
                           Checked in at: {new Date(guest.checked_in_at).toLocaleString()}
                         </div>
                       )}
                     </div>
                     {!guest.is_checked_in && (
                       <button
-                        onClick={() => handleSelectGuest(guest)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectGuest(guest);
+                        }}
+                        style={buttonStyle('primary')}
                       >
                         Check In
                       </button>
@@ -454,8 +561,8 @@ export default function CheckInPage() {
               ))}
             </div>
           ) : searchQuery && !isSearching ? (
-            <div className="text-center py-12 text-gray-500">
-              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div style={{ textAlign: 'center', padding: '48px', color: '#6b7280' }}>
+              <svg style={{ margin: '0 auto', marginBottom: '16px', width: '48px', height: '48px', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <p>No guests found matching "{searchQuery}"</p>
@@ -466,23 +573,23 @@ export default function CheckInPage() {
 
       {/* Check-In Confirmation Modal */}
       {showConfirmModal && selectedGuest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Check-In</h2>
-            
-            <div className="mb-6">
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedGuest.guest_name}</h3>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>Type: {getGuestTypeName(selectedGuest.guest_type_id)}</p>
-                  {selectedGuest.guest_phone && <p>Phone: {selectedGuest.guest_phone}</p>}
-                  {selectedGuest.guest_group && <p>Group: {selectedGuest.guest_group}</p>}
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '448px', padding: '24px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', marginBottom: '16px', margin: '0 0 16px 0' }}>Confirm Check-In</h2>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px', margin: '0 0 4px 0' }}>{selectedGuest.guest_name}</h3>
+                <div style={{ fontSize: '14px', color: '#4b5563' }}>
+                  <p style={{ margin: 0 }}>Type: {getGuestTypeName(selectedGuest.guest_type_id)}</p>
+                  {selectedGuest.guest_phone && <p style={{ margin: 0 }}>Phone: {selectedGuest.guest_phone}</p>}
+                  {selectedGuest.guest_group && <p style={{ margin: 0 }}>Group: {selectedGuest.guest_group}</p>}
                 </div>
               </div>
 
               {selectedGuest.max_companions > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                     Number of Companions (Max: {selectedGuest.max_companions})
                   </label>
                   <input
@@ -491,26 +598,26 @@ export default function CheckInPage() {
                     max={selectedGuest.max_companions}
                     value={companionCount}
                     onChange={(e) => setCompanionCount(Math.min(selectedGuest.max_companions, Math.max(0, parseInt(e.target.value) || 0)))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={inputStyle}
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 onClick={() => {
                   setShowConfirmModal(false);
                   setSelectedGuest(null);
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                style={{ ...buttonStyle('secondary'), flex: 1 }}
                 disabled={isProcessing}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCheckIn}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                style={{ ...buttonStyle('primary'), flex: 1, opacity: isProcessing ? 0.5 : 1 }}
                 disabled={isProcessing}
               >
                 {isProcessing ? 'Processing...' : 'Confirm Check-In'}

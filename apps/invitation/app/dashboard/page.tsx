@@ -62,95 +62,228 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f9fafb',
+        fontFamily: 'Segoe UI, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            border: '4px solid #e5e7eb',
+            borderTopColor: '#2563eb',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+          <p style={{ marginTop: '16px', color: '#4b5563' }}>Loading...</p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f9fafb',
+      fontFamily: 'Segoe UI, sans-serif'
+    }}>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">KirimKata Dashboard</h1>
-              <p className="text-sm text-gray-600">Manage your events</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-            >
-              Logout
-            </button>
+      <header style={{
+        backgroundColor: 'white',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        borderBottom: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          padding: '16px 24px', // px-6 py-4 equivalent
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#111827',
+              margin: 0
+            }}>KirimKata Dashboard</h1>
+            <p style={{
+              fontSize: '14px',
+              color: '#4b5563',
+              margin: '4px 0 0 0'
+            }}>Manage your events</p>
           </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              color: '#374151',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            Logout
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main style={{
+        maxWidth: '1280px',
+        margin: '0 auto',
+        padding: '32px 24px'
+      }}>
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px'
+        }}>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">My Events</h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <h2 style={{
+              fontSize: '30px',
+              fontWeight: 'bold',
+              color: '#111827',
+              margin: 0
+            }}>My Events</h2>
+            <p style={{
+              marginTop: '4px',
+              fontSize: '14px',
+              color: '#4b5563'
+            }}>
               Create and manage your invitation and guestbook events
             </p>
           </div>
           <Link
             href="/dashboard/events/new"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '8px 16px',
+              backgroundColor: '#2563eb',
+              color: 'white',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <span style={{ marginRight: '8px', fontSize: '18px' }}>+</span>
             Create New Event
           </Link>
         </div>
 
         {/* Events Grid */}
         {events.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No events</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new event.</p>
-            <div className="mt-6">
+          <div style={{
+            textAlign: 'center',
+            padding: '48px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '2px dashed #d1d5db'
+          }}>
+            <div style={{ color: '#9ca3af', marginBottom: '8px' }}>
+              <svg style={{ width: '48px', height: '48px', margin: '0 auto' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827', margin: '8px 0' }}>No events</h3>
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 24px' }}>Get started by creating a new event.</p>
+            <div>
               <Link
                 href="/dashboard/events/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '8px 16px',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
                 Create Event
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '24px'
+          }}>
             {events.map((event) => (
               <Link
                 key={event.id}
                 href={`/dashboard/events/${event.id}/overview`}
-                className="block bg-white rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+                style={{
+                  display: 'block',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
               >
-                <div className="p-6">
+                <div style={{ padding: '24px' }}>
                   {/* Event Name */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    marginBottom: '8px',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
                     {event.event_name}
                   </h3>
 
                   {/* Event Date */}
-                  <div className="flex items-center text-sm text-gray-600 mb-3">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    color: '#4b5563',
+                    marginBottom: '12px'
+                  }}>
+                    <span style={{ marginRight: '8px' }}>📅</span>
                     {new Date(event.event_date).toLocaleDateString('id-ID', {
                       weekday: 'long',
                       year: 'numeric',
@@ -162,37 +295,76 @@ export default function DashboardPage() {
 
                   {/* Venue */}
                   {event.venue_name && (
-                    <div className="flex items-center text-sm text-gray-600 mb-4">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="line-clamp-1">{event.venue_name}</span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '14px',
+                      color: '#4b5563',
+                      marginBottom: '16px'
+                    }}>
+                      <span style={{ marginRight: '8px' }}>📍</span>
+                      <span style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>{event.venue_name}</span>
                     </div>
                   )}
 
                   {/* Module Badges */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                     {event.has_invitation && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: '#f3e8ff',
+                        color: '#6b21a8'
+                      }}>
                         📧 Invitation
                       </span>
                     )}
                     {event.has_guestbook && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: '#dcfce7',
+                        color: '#166534'
+                      }}>
                         📖 Guestbook
                       </span>
                     )}
                     {!event.is_active && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: '#f3f4f6',
+                        color: '#1f2937'
+                      }}>
                         Inactive
                       </span>
                     )}
                   </div>
 
                   {/* Action Button */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                  <div style={{ paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#2563eb'
+                    }}>
                       Manage Event →
                     </span>
                   </div>

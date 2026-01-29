@@ -47,13 +47,13 @@ export default function GuestTypesPage() {
 
   const fetchData = async () => {
     const token = localStorage.getItem('client_token');
-    
+
     try {
       // Fetch guest types
       const typesRes = await fetch(`/api/guestbook/guest-types?event_id=${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (typesRes.ok) {
         const typesData = await typesRes.json();
         setGuestTypes(typesData.data || []);
@@ -63,7 +63,7 @@ export default function GuestTypesPage() {
       const statsRes = await fetch(`/api/guestbook/guest-types/stats?event_id=${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData.data || []);
@@ -112,9 +112,9 @@ export default function GuestTypesPage() {
       const url = editingType
         ? `/api/guestbook/guest-types/${editingType.id}`
         : '/api/guestbook/guest-types';
-      
+
       const method = editingType ? 'PUT' : 'POST';
-      
+
       const payload = editingType
         ? formData
         : { ...formData, event_id: eventId };
@@ -168,21 +168,84 @@ export default function GuestTypesPage() {
     }
   };
 
-  const predefinedColors = [
-    { name: 'Green', value: '#10b981' },
-    { name: 'Blue', value: '#3b82f6' },
-    { name: 'Purple', value: '#8b5cf6' },
-    { name: 'Pink', value: '#ec4899' },
-    { name: 'Orange', value: '#f59e0b' },
-    { name: 'Red', value: '#ef4444' },
-    { name: 'Teal', value: '#14b8a6' },
-    { name: 'Indigo', value: '#6366f1' },
-  ];
+  const containerStyle = {
+    padding: '32px',
+    fontFamily: 'Segoe UI, sans-serif'
+  };
+
+  const cardStyle = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    padding: '24px',
+    transition: 'box-shadow 0.2s'
+  };
+
+  const buttonStyle = (variant: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon') => {
+    const base = {
+      padding: '8px 16px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none',
+      transition: 'all 0.2s',
+      fontFamily: 'inherit'
+    };
+
+    switch (variant) {
+      case 'primary':
+        return { ...base, backgroundColor: '#2563eb', color: 'white' };
+      case 'danger':
+        return { ...base, backgroundColor: 'transparent', color: '#dc2626', padding: '8px' };
+      case 'ghost':
+        return { ...base, backgroundColor: 'transparent', color: '#4b5563', padding: '8px' };
+      case 'icon': // Special for the color picker buttons
+        return { ...base, padding: 0 };
+      case 'secondary':
+      default:
+        return { ...base, backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' };
+    }
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box' as const
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '8px'
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e5e7eb',
+          borderTopColor: '#2563eb',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}} />
       </div>
     );
   }
@@ -210,7 +273,7 @@ export default function GuestTypesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {guestTypes.map((type) => {
           const typeStat = stats.find(s => s.guest_type_id === type.id);
-          
+
           return (
             <div
               key={type.id}
@@ -228,7 +291,7 @@ export default function GuestTypesPage() {
                     <p className="text-sm text-gray-500">{type.type_name}</p>
                   </div>
                 </div>
-                
+
                 {/* Actions */}
                 <div className="flex gap-2">
                   <button
@@ -267,7 +330,7 @@ export default function GuestTypesPage() {
                     <span className="text-gray-600">Not Checked In</span>
                     <span className="font-semibold text-orange-600">{typeStat.not_checked_in}</span>
                   </div>
-                  
+
                   {/* Progress Bar */}
                   {typeStat.total_guests > 0 && (
                     <div className="mt-4">
@@ -379,11 +442,10 @@ export default function GuestTypesPage() {
                       key={color.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, color_code: color.value })}
-                      className={`h-10 rounded-lg border-2 transition ${
-                        formData.color_code === color.value
+                      className={`h-10 rounded-lg border-2 transition ${formData.color_code === color.value
                           ? 'border-gray-900 ring-2 ring-gray-900'
                           : 'border-gray-200 hover:border-gray-400'
-                      }`}
+                        }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
                     />
