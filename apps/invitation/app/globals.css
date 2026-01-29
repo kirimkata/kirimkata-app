@@ -152,6 +152,10 @@
 /* Reset & Base Styles */
 * {
   box-sizing: border-box;
+}
+
+/* Only apply reset to invitation pages, not dashboard pages */
+body:not(.dashboard-page) * {
   padding: 0;
   margin: 0;
   -webkit-user-select: none;
@@ -203,13 +207,13 @@ body.invitation-page {
   overscroll-behavior: none;
 }
 
-h1,
-h2,
-h3,
-h4,
+/* Default headings should inherit font-family (Segoe UI), not execute Tangerine */
 .font-signature {
   font-family: var(--font-heading);
 }
+
+/* Headings will now naturally inherit Segoe UI from body, 
+   so no specific override is needed for dashboard pages */
 
 a {
   color: inherit;
@@ -435,6 +439,7 @@ main {
 [style*="overflow-y: scroll"] {
   max-height: calc(var(--vh, 1vh) * 100);
 }
+
 /* Invitation pages only - lock viewport for parallax/animations */
 [data-page="invitation"] {
   min-height: 100vh;
