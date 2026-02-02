@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { weddingRegistrationRepo } from '@/lib/repositories/weddingRegistrationRepository';
+import { greetingSectionRepo } from '@/lib/repositories/greetingSectionRepository';
+import { loveStoryRepo } from '@/lib/repositories/loveStoryRepository';
+import { galleryRepo } from '@/lib/repositories/galleryRepository';
+import { weddingGiftRepo } from '@/lib/repositories/weddingGiftRepository';
+import { closingRepo } from '@/lib/repositories/closingRepository';
+import { backgroundMusicRepo } from '@/lib/repositories/backgroundMusicRepository';
+import { themeSettingsRepo } from '@/lib/repositories/themeSettingsRepository';
+import { invitationCompiler } from '@/lib/services/invitationCompilerService';
 
-// Raw data type dari form
+// Raw data type dari form (updated with new fields)
 interface RawWeddingData {
     slug: string;
+    eventType: 'islam' | 'kristen' | 'katolik' | 'hindu' | 'buddha' | 'custom';
+    customEvent1Label?: string;
+    customEvent2Label?: string;
     brideName: string;
     brideFullName: string;
     brideFatherName?: string;
@@ -13,214 +25,122 @@ interface RawWeddingData {
     groomFatherName?: string;
     groomMotherName?: string;
     groomInstagram?: string;
-    weddingDate: string;
+    event1Date: string;
+    event2SameDate: boolean;
+    event2Date?: string;
     timezone: 'WIB' | 'WITA' | 'WIT';
-    akadTime: string;
-    akadEndTime?: string;
-    akadVenueName?: string;
-    akadVenueAddress?: string;
-    akadVenueCity?: string;
-    akadVenueProvince?: string;
-    akadMapsUrl?: string;
-    receptionSameVenue: boolean;
-    receptionDate?: string;
-    receptionTime?: string;
-    receptionEndTime?: string;
-    receptionVenueName?: string;
-    receptionVenueAddress?: string;
-    receptionVenueCity?: string;
-    receptionVenueProvince?: string;
-    receptionMapsUrl?: string;
+    event1Time: string;
+    event1EndTime?: string;
+    event1VenueName?: string;
+    event1VenueAddress?: string;
+    event1VenueCity?: string;
+    event1VenueProvince?: string;
+    event1MapsUrl?: string;
+    event2SameVenue: boolean;
+    event2Time?: string;
+    event2EndTime?: string;
+    event2VenueName?: string;
+    event2VenueAddress?: string;
+    event2VenueCity?: string;
+    event2VenueProvince?: string;
+    event2MapsUrl?: string;
 }
 
-// Helper: Format tanggal ke Indonesia
-function formatDateToIndonesian(isoDate: string): string {
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
+/**
+ * Create default settings for all modules
+ */
+async function createDefaultSettings(registrationId: string, rawData: RawWeddingData) {
+    const coupleNames = `${rawData.brideName} & ${rawData.groomName}`;
 
-    const date = new Date(isoDate);
-    const dayName = days[date.getDay()];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-
-    return `${dayName}, ${day} ${month} ${year}`;
-}
-
-// Helper: Format waktu
-function formatTimeLabel(time: string, endTime: string | undefined, timezone: string): string {
-    const [hour, minute] = time.split(':');
-    const formattedStart = `${hour}.${minute}`;
-    const formattedEnd = endTime ? endTime.replace(':', '.') : 'Selesai';
-
-    if (endTime) {
-        return `${formattedStart} - ${formattedEnd} ${timezone}`;
-    }
-    return `${formattedStart} ${timezone} - Selesai`;
-}
-
-// Helper: Get timezone offset
-function getTimezoneOffset(timezone: string): string {
-    const offsets: Record<string, string> = {
-        'WIB': '+07:00',
-        'WITA': '+08:00',
-        'WIT': '+09:00'
-    };
-    return offsets[timezone] || '+07:00';
-}
-
-// Helper: Generate countdown datetime
-function generateCountdownDateTime(date: string, time: string, timezone: string): string {
-    return `${date}T${time}:00${getTimezoneOffset(timezone)}`;
-}
-
-// Transform raw data ke format template
-function transformRawDataToTemplateFormat(raw: RawWeddingData) {
-    // Auto-generate dari raw data
-    const coupleNames = `${raw.brideName} & ${raw.groomName}`;
-    const fullDateLabel = formatDateToIndonesian(raw.weddingDate);
-    const countdownDateTime = generateCountdownDateTime(raw.weddingDate, raw.akadTime, raw.timezone);
-
-    // Reception venue: sama atau beda?
-    const receptionVenue = raw.receptionSameVenue ? {
-        venueName: raw.akadVenueName || '',
-        venueAddress: raw.akadVenueAddress || '',
-        mapsUrl: raw.akadMapsUrl || '',
-    } : {
-        venueName: raw.receptionVenueName || '',
-        venueAddress: raw.receptionVenueAddress || '',
-        mapsUrl: raw.receptionMapsUrl || '',
-    };
-
-    // Build full address (with city & province)
-    const akadFullAddress = [
-        raw.akadVenueAddress,
-        raw.akadVenueCity,
-        raw.akadVenueProvince
-    ].filter(Boolean).join(', ');
-
-    const receptionFullAddress = raw.receptionSameVenue
-        ? akadFullAddress
-        : [
-            raw.receptionVenueAddress,
-            raw.receptionVenueCity,
-            raw.receptionVenueProvince
-        ].filter(Boolean).join(', ');
-
-    // Format waktu
-    const akadTimeLabel = formatTimeLabel(raw.akadTime, raw.akadEndTime, raw.timezone);
-    const receptionTimeLabel = formatTimeLabel(
-        raw.receptionTime || '12:00',
-        raw.receptionEndTime,
-        raw.timezone
-    );
-
-    // Location label untuk metadata
-    const locationLabel = raw.akadVenueCity && raw.akadVenueProvince
-        ? `${raw.akadVenueCity}, ${raw.akadVenueProvince}`
-        : '';
-
-    return {
-        // Client Profile (untuk SEO & metadata)
-        client_profile: {
-            slug: raw.slug,
-            coupleNames,
-            weddingDateLabel: fullDateLabel,
-            locationLabel,
-            shortDescription: `Undangan Pernikahan ${raw.brideFullName} dan ${raw.groomFullName}.`,
-            metaTitle: `Wedding ${coupleNames}`,
-            metaDescription: `Undangan digital pernikahan ${raw.brideFullName} & ${raw.groomFullName} — ${fullDateLabel}${locationLabel ? ', ' + locationLabel : ''}.`,
-        },
-
-        // Bride data
-        bride: {
-            name: raw.brideName,
-            fullName: raw.brideFullName,
-            fatherName: raw.brideFatherName || '',
-            motherName: raw.brideMotherName || '',
-            instagram: raw.brideInstagram || '',
-        },
-
-        // Groom data
-        groom: {
-            name: raw.groomName,
-            fullName: raw.groomFullName,
-            fatherName: raw.groomFatherName || '',
-            motherName: raw.groomMotherName || '',
-            instagram: raw.groomInstagram || '',
-        },
-
-        // Event data
-        event: {
-            fullDateLabel,
-            isoDate: raw.weddingDate,
-            countdownDateTime,
-            eventTitle: `The Wedding of ${coupleNames}`,
-        },
-
-        // Event Cloud (detail acara)
-        event_cloud: {
-            holyMatrimony: {
-                title: 'Akad',
-                dateLabel: fullDateLabel,
-                timeLabel: akadTimeLabel,
-                venueName: raw.akadVenueName || '',
-                venueAddress: akadFullAddress,
-                mapsUrl: raw.akadMapsUrl || '',
-                mapsLabel: 'Google Maps',
+    await Promise.all([
+        // Default greeting sections
+        greetingSectionRepo.bulkCreate([
+            {
+                registration_id: registrationId,
+                section_type: 'opening_verse',
+                title: 'Bismillahirrahmanirrahim',
+                subtitle: 'Dengan memohon rahmat dan ridho Allah SWT',
+                display_order: 0,
             },
-            reception: {
-                title: 'Resepsi',
-                dateLabel: raw.receptionDate ? formatDateToIndonesian(raw.receptionDate) : fullDateLabel,
-                timeLabel: receptionTimeLabel,
-                venueName: receptionVenue.venueName,
-                venueAddress: receptionFullAddress,
-                mapsUrl: receptionVenue.mapsUrl,
-                mapsLabel: 'Google Maps',
+            {
+                registration_id: registrationId,
+                section_type: 'main_greeting',
+                title: 'Undangan Pernikahan',
+                subtitle: `Turut mengundang Bapak/Ibu/Saudara/i dalam acara pernikahan kami`,
+                bride_text: rawData.brideName,
+                groom_text: rawData.groomName,
+                display_order: 1,
             },
-        },
-
-        // Closing (auto-generate)
-        closing: {
-            photoSrc: '', // Will be filled later from gallery
-            namesScript: coupleNames,
-            messageLines: [
-                'Kami sangat menantikan kehadiran Anda untuk berbagi kebahagiaan di hari istimewa kami.',
-                'Kehadiran dan doa restu Anda merupakan kebahagiaan bagi kami.',
-            ],
-        },
-
-        // Initialize empty sections (to be filled later)
-        love_story: {
-            mainTitle: 'Our Love Story',
-            blocks: [],
-        },
-        gallery: {
-            mainTitle: 'Our Moments',
-            middleImages: [],
-            youtubeEmbedUrl: '',
-            showYoutube: false,
-        },
-        wedding_gift: {
-            title: 'Wedding Gift',
-            subtitle: 'Doa restu Anda adalah hadiah terindah bagi kami. Namun jika ingin memberi hadiah, dapat melalui:',
-            buttonLabel: 'Kirim Hadiah',
-            bankAccounts: [],
-            physicalGift: {
-                recipientName: '',
-                phone: '',
-                addressLines: [],
+            {
+                registration_id: registrationId,
+                section_type: 'countdown_title',
+                title: 'Menghitung Hari',
+                subtitle: 'Hari yang ditunggu akan segera tiba',
+                display_order: 2,
             },
-        },
-        background_music: {
-            src: '',
-            title: '',
-            artist: '',
-        },
-    };
+        ]),
+
+        // Default love story settings
+        loveStoryRepo.upsertSettings({
+            registration_id: registrationId,
+            main_title: 'Cerita Cinta Kami',
+            overlay_opacity: 0.3,
+            is_enabled: false,
+        }),
+
+        // Default gallery settings
+        galleryRepo.upsertSettings({
+            registration_id: registrationId,
+            main_title: 'Galeri Foto',
+            background_color: '#f5f5f5',
+            top_row_images: [],
+            middle_images: [],
+            bottom_grid_images: [],
+            show_youtube: false,
+            is_enabled: false,
+        }),
+
+        // Default wedding gift settings
+        weddingGiftRepo.upsertSettings({
+            registration_id: registrationId,
+            title: 'Amplop Digital',
+            subtitle: 'Doa restu Anda adalah hadiah terindah. Namun jika ingin memberi hadiah:',
+            button_label: 'Kirim Hadiah',
+            background_overlay_opacity: 0.5,
+            is_enabled: false,
+        }),
+
+        // Default closing settings
+        closingRepo.upsertSettings({
+            registration_id: registrationId,
+            background_color: '#ffffff',
+            names_script: coupleNames,
+            message_line1: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami',
+            message_line2: 'apabila Bapak/Ibu/Saudara/i berkenan hadir',
+            message_line3: 'untuk memberikan doa restu kepada kami',
+            is_enabled: true,
+        }),
+
+        // Default background music settings
+        backgroundMusicRepo.upsertSettings({
+            registration_id: registrationId,
+            audio_url: '',
+            loop: true,
+            register_as_background_audio: true,
+            is_enabled: false,
+        }),
+
+        // Default theme settings
+        themeSettingsRepo.upsertSettings({
+            registration_id: registrationId,
+            theme_key: 'simple2',
+            enable_gallery: false,
+            enable_love_story: false,
+            enable_wedding_gift: false,
+            enable_wishes: true,
+            enable_closing: true,
+        }),
+    ]);
 }
 
 export async function POST(request: NextRequest) {
@@ -228,50 +148,93 @@ export async function POST(request: NextRequest) {
         const rawData: RawWeddingData = await request.json();
 
         // Validate required fields
-        if (!rawData.slug || !rawData.brideName || !rawData.brideFullName ||
-            !rawData.groomName || !rawData.groomFullName || !rawData.weddingDate) {
+        if (
+            !rawData.slug ||
+            !rawData.brideName ||
+            !rawData.brideFullName ||
+            !rawData.groomName ||
+            !rawData.groomFullName ||
+            !rawData.event1Date
+        ) {
             return NextResponse.json(
                 { success: false, error: 'Data wajib tidak lengkap' },
                 { status: 400 }
             );
         }
 
-        // Transform raw data to template format
-        const templateData = transformRawDataToTemplateFormat(rawData);
+        // Check if slug is available
+        const slugAvailable = await weddingRegistrationRepo.isSlugAvailable(rawData.slug);
+        if (!slugAvailable) {
+            return NextResponse.json(
+                { success: false, error: 'URL sudah digunakan. Silakan pilih URL lain.' },
+                { status: 409 }
+            );
+        }
 
-        // TODO: Save to database
-        // const supabase = createClient();
-        // await supabase.from('invitation_contents').insert({
-        //   slug: templateData.client_profile.slug,
-        //   client_profile: templateData.client_profile,
-        //   bride: templateData.bride,
-        //   groom: templateData.groom,
-        //   event: templateData.event,
-        //   event_cloud: templateData.event_cloud,
-        //   love_story: templateData.love_story,
-        //   gallery: templateData.gallery,
-        //   wedding_gift: templateData.wedding_gift,
-        //   closing: templateData.closing,
-        //   background_music: templateData.background_music,
-        // });
+        // 1. Save to wedding_registrations table
+        // TODO: Get client_id from authentication
+        const clientId = '00000000-0000-0000-0000-000000000000'; // Temporary, should come from auth
 
-        // For now, just log and return success
-        console.log('Raw Data:', rawData);
-        console.log('Transformed Data:', JSON.stringify(templateData, null, 2));
+        const registration = await weddingRegistrationRepo.create({
+            client_id: clientId,
+            slug: rawData.slug,
+            event_type: rawData.eventType,
+            custom_event1_label: rawData.customEvent1Label,
+            custom_event2_label: rawData.customEvent2Label,
+            bride_name: rawData.brideName,
+            bride_full_name: rawData.brideFullName,
+            bride_father_name: rawData.brideFatherName,
+            bride_mother_name: rawData.brideMotherName,
+            bride_instagram: rawData.brideInstagram,
+            groom_name: rawData.groomName,
+            groom_full_name: rawData.groomFullName,
+            groom_father_name: rawData.groomFatherName,
+            groom_mother_name: rawData.groomMotherName,
+            groom_instagram: rawData.groomInstagram,
+            event1_date: rawData.event1Date,
+            event2_same_date: rawData.event2SameDate,
+            event2_date: rawData.event2Date,
+            timezone: rawData.timezone,
+            event1_time: rawData.event1Time,
+            event1_end_time: rawData.event1EndTime,
+            event1_venue_name: rawData.event1VenueName,
+            event1_venue_address: rawData.event1VenueAddress,
+            event1_venue_city: rawData.event1VenueCity,
+            event1_venue_province: rawData.event1VenueProvince,
+            event1_maps_url: rawData.event1MapsUrl,
+            event2_same_venue: rawData.event2SameVenue,
+            event2_time: rawData.event2Time,
+            event2_end_time: rawData.event2EndTime,
+            event2_venue_name: rawData.event2VenueName,
+            event2_venue_address: rawData.event2VenueAddress,
+            event2_venue_city: rawData.event2VenueCity,
+            event2_venue_province: rawData.event2VenueProvince,
+            event2_maps_url: rawData.event2MapsUrl,
+        });
+
+        console.log('✅ Wedding registration created:', registration.id);
+
+        // 2. Create default settings for all modules
+        await createDefaultSettings(registration.id, rawData);
+        console.log('✅ Default settings created');
+
+        // 3. Compile to JSON cache
+        const compiledData = await invitationCompiler.compileAndCache(rawData.slug);
+        console.log('✅ Invitation compiled and cached');
 
         return NextResponse.json({
             success: true,
-            message: 'Data berhasil disimpan',
+            message: 'Undangan berhasil dibuat!',
             data: {
                 slug: rawData.slug,
-                transformedData: templateData,
-            }
+                registrationId: registration.id,
+                previewUrl: `/${rawData.slug}`,
+            },
         });
-
     } catch (error: any) {
-        console.error('Error saving wedding data:', error);
+        console.error('❌ Error creating wedding registration:', error);
         return NextResponse.json(
-            { success: false, error: error.message || 'Internal server error' },
+            { success: false, error: error.message || 'Terjadi kesalahan. Silakan coba lagi.' },
             { status: 500 }
         );
     }

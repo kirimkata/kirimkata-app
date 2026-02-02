@@ -271,31 +271,39 @@ export async function fetchFullInvitationContent(slug: string): Promise<FullInvi
   try {
     const supabase = getSupabaseClient();
 
+    // Try to read from cache
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
       .eq('slug', slug)
-      .limit(1);
+      .single();
 
-    if (error) {
-      console.error('Error fetching invitation content from Supabase', error);
-      return buildFullContentFromGeneralMock(slug);
+    if (data && !error) {
+      // Cache hit! Map and return
+      console.log(`✅ Cache hit for slug: ${slug}`);
+      try {
+        return mapRowToFullContent(data as InvitationContentRow);
+      } catch (mapError) {
+        console.error('Error mapping cached content, will recompile:', mapError);
+        // If mapping fails, treat as cache miss
+      }
     }
 
-    const row = (data && data[0]) as InvitationContentRow | undefined;
-    if (!row) {
-      console.warn(`No invitation_contents row found for slug "${slug}", falling back to general mock`);
-      return buildFullContentFromGeneralMock(slug);
-    }
+    // Cache miss or mapping error - compile from source tables
+    console.log(`⚠️ Cache miss for ${slug}, compiling from normalized tables...`);
 
-    try {
-      return mapRowToFullContent(row);
-    } catch (mapError) {
-      console.error('Error mapping invitation content row, falling back to general mock', mapError);
-      return buildFullContentFromGeneralMock(slug);
-    }
-  } catch (clientError) {
-    console.warn('Supabase client is not available or misconfigured, falling back to general mock', clientError);
+    // Dynamically import to avoid circular dependency
+    const { invitationCompiler } = await import('../services/invitationCompilerService');
+    const compiled = await invitationCompiler.compileAndCache(slug);
+
+    console.log(`✅ Successfully compiled and cached: ${slug}`);
+    return compiled;
+
+  } catch (clientError: any) {
+    console.error('Error in fetchFullInvitationContent:', clientError);
+
+    // Last resort: fallback to mock data
+    console.warn(`⚠️ Falling back to mock data for slug: ${slug}`);
     return buildFullContentFromGeneralMock(slug);
   }
 }
