@@ -1,4 +1,3 @@
-```javascript
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -37,7 +36,7 @@ export default function ClientsPage() {
         const token = localStorage.getItem('admin_token');
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ token } `,
+            'Authorization': `Bearer ${token}`,
         };
     };
 
@@ -148,7 +147,7 @@ export default function ClientsPage() {
         }
 
         try {
-            const response = await fetch(`${ API_ENDPOINTS.admin.clients }?id = ${ id } `, {
+            const response = await fetch(`${API_ENDPOINTS.admin.clients}?id=${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders(),
             });
@@ -286,169 +285,169 @@ export default function ClientsPage() {
             </div>
 
             <style jsx>{`
-    .table - container {
-    background - color: white;
-    border - radius: 0.5rem;
-    box - shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow - x: auto;
-    -webkit - overflow - scrolling: touch;
-}
-
-                .clients - table {
-    width: 100 %;
-    border - collapse: collapse;
-    min - width: 600px;
-}
-
-                .clients - table thead {
-    background - color: #f9fafb;
-}
-
-                .clients - table th {
-    padding: 1rem;
-    text - align: left;
-    font - weight: 600;
-    color: #374151;
-    white - space: nowrap;
-}
-
-                .clients - table th.actions - col {
-    text - align: right;
-}
-
-                .clients - table td {
-    padding: 1rem;
-    color: #6b7280;
-    border - top: 1px solid #e5e7eb;
-}
-
-                .clients - table td.username - col {
-    color: #111827;
-    font - weight: 500;
-}
-
-                .clients - table td.empty - state {
-    padding: 2rem;
-    text - align: center;
-    color: #6b7280;
-}
-
-                .clients - table td.actions - col {
-    text - align: right;
-    white - space: nowrap;
-}
-
-                .quota - col {
-    text - align: center;
-    font - weight: 600;
-    color: #3b82f6;
-}
-
-                .btn - quota,
-                .btn - edit,
-                .btn - delete {
-        padding: 0.5rem 1rem;
-        color: white;
-        border: none;
-        border- radius: 0.25rem;
-cursor: pointer;
-font - family: 'Segoe UI', sans - serif;
-font - size: 0.875rem;
-transition: all 0.2s ease;
+                .table-container {
+                    background-color: white;
+                    border-radius: 0.5rem;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
                 }
 
-                .btn - quota {
-    background - color: #10b981;
-    margin - right: 0.5rem;
-}
-
-                .btn - quota:hover {
-    background - color: #059669;
-}
-
-                .btn - edit {
-    background - color: #3b82f6;
-    margin - right: 0.5rem;
-}
-
-                .btn - edit:hover {
-    background - color: #2563eb;
-}
-
-                .btn - delete {
-    background- color: #dc2626;
+                .clients-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 600px;
                 }
 
-                .btn - delete:hover {
-    background - color: #b91c1c;
-}
+                .clients-table thead {
+                    background-color: #f9fafb;
+                }
 
-/* Mobile Responsive */
-@media(max - width: 767px) {
-                    .clients - table {
-        min - width: 100 %;
-        font - size: 0.75rem;
-    }
+                .clients-table th {
+                    padding: 1rem;
+                    text-align: left;
+                    font-weight: 600;
+                    color: #374151;
+                    white-space: nowrap;
+                }
 
-                    .clients - table th,
-                    .clients - table td {
-        padding: 0.5rem 0.375rem;
-    }
+                .clients-table th.actions-col {
+                    text-align: right;
+                }
 
-                    .clients - table th {
-        font - size: 0.7rem;
-    }
+                .clients-table td {
+                    padding: 1rem;
+                    color: #6b7280;
+                    border-top: 1px solid #e5e7eb;
+                }
 
-                    .username - col {
-        max - width: 80px;
-        overflow: hidden;
-        text - overflow: ellipsis;
-        white - space: nowrap;
-    }
+                .clients-table td.username-col {
+                    color: #111827;
+                    font-weight: 500;
+                }
 
-                    .email - col {
-        max - width: 100px;
-        overflow: hidden;
-        text - overflow: ellipsis;
-        white - space: nowrap;
-    }
+                .clients-table td.empty-state {
+                    padding: 2rem;
+                    text-align: center;
+                    color: #6b7280;
+                }
 
-                    .slug - col {
-        max - width: 80px;
-        overflow: hidden;
-        text - overflow: ellipsis;
-        white - space: nowrap;
-    }
+                .clients-table td.actions-col {
+                    text-align: right;
+                    white-space: nowrap;
+                }
 
-                    .date - col {
-        font - size: 0.7rem;
-    }
+                .quota-col {
+                    text-align: center;
+                    font-weight: 600;
+                    color: #3b82f6;
+                }
 
-                    .btn - quota,
-                    .btn - edit,
-                    .btn - delete {
-            padding: 0.375rem 0.5rem;
-            font- size: 0.7rem;
-    margin - right: 0.25rem;
-}
+                .btn-quota,
+                .btn-edit,
+                .btn-delete {
+                    padding: 0.5rem 1rem;
+                    color: white;
+                    border: none;
+                    border-radius: 0.25rem;
+                    cursor: pointer;
+                    font-family: 'Segoe UI', sans-serif;
+                    font-size: 0.875rem;
+                    transition: all 0.2s ease;
+                }
 
-                    .btn - delete {
-    margin- right: 0;
+                .btn-quota {
+                    background-color: #10b981;
+                    margin-right: 0.5rem;
+                }
+
+                .btn-quota:hover {
+                    background-color: #059669;
+                }
+
+                .btn-edit {
+                    background-color: #3b82f6;
+                    margin-right: 0.5rem;
+                }
+
+                .btn-edit:hover {
+                    background-color: #2563eb;
+                }
+
+                .btn-delete {
+                    background-color: #dc2626;
+                }
+
+                .btn-delete:hover {
+                    background-color: #b91c1c;
+                }
+
+                /* Mobile Responsive */
+                @media (max-width: 767px) {
+                    .clients-table {
+                        min-width: 100%;
+                        font-size: 0.75rem;
+                    }
+
+                    .clients-table th,
+                    .clients-table td {
+                        padding: 0.5rem 0.375rem;
+                    }
+
+                    .clients-table th {
+                        font-size: 0.7rem;
+                    }
+
+                    .username-col {
+                        max-width: 80px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .email-col {
+                        max-width: 100px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .slug-col {
+                        max-width: 80px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .date-col {
+                        font-size: 0.7rem;
+                    }
+
+                    .btn-quota,
+                    .btn-edit,
+                    .btn-delete {
+                        padding: 0.375rem 0.5rem;
+                        font-size: 0.7rem;
+                        margin-right: 0.25rem;
+                    }
+
+                    .btn-delete {
+                        margin-right: 0;
                     }
                 }
 
-/* Tablet */
-@media(min - width: 768px) and(max - width: 1023px) {
-                    .clients - table {
-        font - size: 0.875rem;
-    }
+                /* Tablet */
+                @media (min-width: 768px) and (max-width: 1023px) {
+                    .clients-table {
+                        font-size: 0.875rem;
+                    }
 
-                    .clients - table th,
-                    .clients - table td {
-        padding: 0.75rem 0.5rem;
-    }
-}
-`}</style>
+                    .clients-table th,
+                    .clients-table td {
+                        padding: 0.75rem 0.5rem;
+                    }
+                }
+            `}</style>
 
             {/* Modal */}
             {showModal && (
