@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_ENDPOINTS } from '@/lib/api-config';
 import { AVAILABLE_THEMES } from '@/lib/themes/availableThemes';
 import {
     InvitationFormData,
@@ -203,7 +204,10 @@ export default function TambahUndanganPage() {
 
         try {
             const token = localStorage.getItem('admin_token');
-            const response = await fetch('/api/admin/invitations', {
+            // ... in handleSubmit
+
+            // ... in handleSubmit
+            const response = await fetch(API_ENDPOINTS.admin.invitations, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

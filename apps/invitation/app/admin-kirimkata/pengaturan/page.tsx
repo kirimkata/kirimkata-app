@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 export default function AdminSettingsPage() {
     const [formData, setFormData] = useState({
@@ -42,7 +43,10 @@ export default function AdminSettingsPage() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/admin/settings', {
+            // ... in handleSubmit
+
+            // ... in handleSubmit
+            const response = await fetch(API_ENDPOINTS.admin.settings, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({

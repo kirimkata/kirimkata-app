@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface QuotaEditModalProps {
     isOpen: boolean;
@@ -33,7 +34,10 @@ export default function QuotaEditModal({ isOpen, onClose, client, onSuccess }: Q
 
         try {
             const token = localStorage.getItem('admin_token');
-            const response = await fetch(`/api/admin/clients/${client.id}/quota`, {
+            // ... inside the component
+
+            // ... inside the component
+            const response = await fetch(`${API_ENDPOINTS.admin.clients}/${client.id}/quota`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
