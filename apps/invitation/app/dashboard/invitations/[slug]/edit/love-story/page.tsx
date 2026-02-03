@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 interface LoveStoryBlock {
     id?: string;
@@ -38,8 +39,7 @@ export default function LoveStoryEditorPage() {
 
     async function fetchData() {
         try {
-            const res = await fetch(`/api/invitations/${slug}/love-story`);
-            const data = await res.json();
+            const data = await InvitationAPI.getLoveStory(slug);
 
             if (data.success) {
                 if (data.data.settings) {
@@ -59,13 +59,8 @@ export default function LoveStoryEditorPage() {
     async function handleSave() {
         setSaving(true);
         try {
-            const res = await fetch(`/api/invitations/${slug}/love-story`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings, blocks }),
-            });
+            const data = await InvitationAPI.updateLoveStory(slug, { settings, blocks });
 
-            const data = await res.json();
             if (data.success) {
                 alert('✅ Love Story saved successfully!');
             } else {

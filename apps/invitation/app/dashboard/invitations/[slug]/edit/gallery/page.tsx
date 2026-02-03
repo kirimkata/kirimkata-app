@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 interface GallerySettings {
     main_title: string;
@@ -37,11 +38,10 @@ export default function GalleryEditorPage() {
 
     async function fetchData() {
         try {
-            const res = await fetch(`/api/invitations/${slug}/gallery`);
-            const data = await res.json();
+            const data = await InvitationAPI.getGallery(slug);
 
             if (data.success && data.data) {
-                setSettings(data.data);
+                setSettings(data.data.settings);
             }
             setLoading(false);
         } catch (error) {
@@ -53,13 +53,7 @@ export default function GalleryEditorPage() {
     async function handleSave() {
         setSaving(true);
         try {
-            const res = await fetch(`/api/invitations/${slug}/gallery`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings),
-            });
-
-            const data = await res.json();
+            const data = await InvitationAPI.updateGallery(slug, { settings });
             if (data.success) {
                 alert('✅ Gallery saved successfully!');
             } else {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { InvitationAPI } from '@/lib/api/client';
 
 // Event type configurations untuk berbagai agama
 const EVENT_TYPES = {
@@ -137,15 +138,9 @@ export default function WeddingRegistrationPage() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/wedding-registration', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            const data = await InvitationAPI.createRegistration(formData);
 
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
+            if (!data.success) {
                 throw new Error(data.error || 'Gagal menyimpan data');
             }
 

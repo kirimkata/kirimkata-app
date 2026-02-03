@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 interface Settings {
     background_color: string;
@@ -32,11 +33,10 @@ export default function ClosingEditorPage() {
 
     async function fetchData() {
         try {
-            const res = await fetch(`/api/invitations/${slug}/closing`);
-            const data = await res.json();
+            const data = await InvitationAPI.getClosing(slug);
 
             if (data.success && data.data) {
-                setSettings(data.data);
+                setSettings(data.data.settings);
             }
             setLoading(false);
         } catch (error) {
@@ -48,13 +48,7 @@ export default function ClosingEditorPage() {
     async function handleSave() {
         setSaving(true);
         try {
-            const res = await fetch(`/api/invitations/${slug}/closing`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings),
-            });
-
-            const data = await res.json();
+            const data = await InvitationAPI.updateClosing(slug, { settings });
             if (data.success) {
                 alert('✅ Closing section saved successfully!');
             } else {

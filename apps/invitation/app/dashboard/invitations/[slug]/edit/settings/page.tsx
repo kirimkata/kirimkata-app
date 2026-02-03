@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 interface ThemeSettings {
     theme_key: string;
@@ -50,19 +51,16 @@ export default function SettingsEditorPage() {
 
     async function fetchData() {
         try {
-            const [themeRes, musicRes] = await Promise.all([
-                fetch(`/api/invitations/${slug}/theme`),
-                fetch(`/api/invitations/${slug}/music`),
+            const [themeData, musicData] = await Promise.all([
+                InvitationAPI.getTheme(slug),
+                InvitationAPI.getMusic(slug),
             ]);
 
-            const themeData = await themeRes.json();
-            const musicData = await musicRes.json();
-
             if (themeData.success && themeData.data) {
-                setThemeSettings(themeData.data);
+                setThemeSettings(themeData.data.settings);
             }
             if (musicData.success && musicData.data) {
-                setMusicSettings(musicData.data);
+                setMusicSettings(musicData.data.settings);
             }
 
             setLoading(false);
@@ -75,21 +73,10 @@ export default function SettingsEditorPage() {
     async function handleSave() {
         setSaving(true);
         try {
-            const [themeRes, musicRes] = await Promise.all([
-                fetch(`/api/invitations/${slug}/theme`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(themeSettings),
-                }),
-                fetch(`/api/invitations/${slug}/music`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(musicSettings),
-                }),
+            const [themeData, musicData] = await Promise.all([
+                InvitationAPI.updateTheme(slug, { settings: themeSettings }),
+                InvitationAPI.updateMusic(slug, { settings: musicSettings }),
             ]);
-
-            const themeData = await themeRes.json();
-            const musicData = await musicRes.json();
 
             if (themeData.success && musicData.success) {
                 alert('✅ Settings saved successfully!');
