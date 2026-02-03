@@ -5,6 +5,60 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
  * Calls Cloudflare Workers API endpoints
  */
 export class InvitationAPI {
+    // ============ EVENTS ============
+
+    static async createEvent(data: { name: string; event_date: string; location?: string; slug?: string }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/events`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async getEvents(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/events`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getEvent(id: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/events/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async updateEvent(id: string, data: any, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/events/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async deleteEvent(id: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/events/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
     // ============ REGISTRATION ============
 
     static async createRegistration(data: any) {

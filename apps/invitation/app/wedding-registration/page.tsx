@@ -544,6 +544,7 @@ export default function WeddingRegistrationPage() {
                                             <label style={labelStyle}>Jam Mulai</label>
                                             <input
                                                 type="time"
+                                                step="60"
                                                 value={formData.event1Time}
                                                 onChange={(e) => handleChange('event1Time', e.target.value)}
                                                 style={inputStyle}
@@ -553,6 +554,7 @@ export default function WeddingRegistrationPage() {
                                             <label style={labelStyle}>Jam Selesai</label>
                                             <input
                                                 type="time"
+                                                step="60"
                                                 value={formData.event1EndTime || ''}
                                                 onChange={(e) => handleChange('event1EndTime', e.target.value)}
                                                 style={inputStyle}
@@ -600,6 +602,7 @@ export default function WeddingRegistrationPage() {
                                             <label style={labelStyle}>Jam Mulai</label>
                                             <input
                                                 type="time"
+                                                step="60"
                                                 value={formData.event2Time || ''}
                                                 onChange={(e) => handleChange('event2Time', e.target.value)}
                                                 style={inputStyle}
@@ -609,6 +612,7 @@ export default function WeddingRegistrationPage() {
                                             <label style={labelStyle}>Jam Selesai</label>
                                             <input
                                                 type="time"
+                                                step="60"
                                                 value={formData.event2EndTime || ''}
                                                 onChange={(e) => handleChange('event2EndTime', e.target.value)}
                                                 style={inputStyle}

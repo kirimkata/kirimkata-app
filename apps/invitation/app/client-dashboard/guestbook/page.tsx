@@ -103,7 +103,7 @@ const buildUrl = (path: string) => {
 
 export default function GuestbookPage() {
   const router = useRouter();
-  
+
   // State management
   const [activeTab, setActiveTab] = useState<'overview' | 'guests' | 'staff' | 'seating' | 'logs'>('overview');
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -117,13 +117,13 @@ export default function GuestbookPage() {
   const [checkinLogs, setCheckinLogs] = useState<CheckinLog[]>([]);
   const [redemptionLogs, setRedemptionLogs] = useState<RedemptionLog[]>([]);
   const [staffQuota, setStaffQuota] = useState<StaffQuota | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterCheckedIn, setFilterCheckedIn] = useState<string>('all');
-  
+
   // Staff modal state
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
@@ -138,8 +138,8 @@ export default function GuestbookPage() {
     can_redeem_snack: false,
     can_access_vip_lounge: false
   });
-  
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   // ============================================================================
   // AUTH & TOKEN MANAGEMENT
@@ -152,7 +152,7 @@ export default function GuestbookPage() {
   const checkAuth = useCallback(() => {
     const user = localStorage.getItem('client_user');
     const token = getAuthToken();
-    
+
     if (!user || !token) {
       router.push('/client-dashboard/login');
       return false;
@@ -195,10 +195,10 @@ export default function GuestbookPage() {
       const data = await res.json();
       if (data.success && data.data) {
         setEvents(data.data);
-        
+
         // Check if event was pre-selected from dashboard
         const preSelectedEventId = typeof window !== 'undefined' ? localStorage.getItem('selected_event_id') : null;
-        
+
         if (preSelectedEventId && data.data.find((e: Event) => e.id === preSelectedEventId)) {
           setSelectedEvent(preSelectedEventId);
           // Clear the stored event after using it
@@ -224,7 +224,7 @@ export default function GuestbookPage() {
     try {
       setError('');
       setIsLoading(true);
-      
+
       // Fetch all data in parallel with event_id filter
       const [staffRes, guestStatsRes, seatingStatsRes, guestsRes] =
         await Promise.all([
@@ -362,7 +362,7 @@ export default function GuestbookPage() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         setStaff(prev => [data.data, ...prev]);
         setShowStaffModal(false);
@@ -394,7 +394,7 @@ export default function GuestbookPage() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         setStaff(prev => prev.map(s => s.id === staffId ? data.data : s));
         showNotification('success', 'Staff berhasil diupdate');
@@ -419,7 +419,7 @@ export default function GuestbookPage() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         setStaff(prev => prev.filter(s => s.id !== staffId));
         showNotification('success', 'Staff berhasil dihapus');
@@ -457,14 +457,14 @@ export default function GuestbookPage() {
 
   const filteredGuests = guests.filter(guest => {
     const matchesSearch = guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guest.phone.includes(searchTerm) ||
-                         (guest.guest_group && guest.guest_group.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+      guest.phone.includes(searchTerm) ||
+      (guest.guest_group && guest.guest_group.toLowerCase().includes(searchTerm.toLowerCase()));
+
     const matchesCategory = filterCategory === 'all' || guest.guest_type_id === filterCategory;
-    const matchesCheckedIn = filterCheckedIn === 'all' || 
-                             (filterCheckedIn === 'checked_in' && guest.is_checked_in) ||
-                             (filterCheckedIn === 'not_checked_in' && !guest.is_checked_in);
-    
+    const matchesCheckedIn = filterCheckedIn === 'all' ||
+      (filterCheckedIn === 'checked_in' && guest.is_checked_in) ||
+      (filterCheckedIn === 'not_checked_in' && !guest.is_checked_in);
+
     return matchesSearch && matchesCategory && matchesCheckedIn;
   });
 
@@ -488,7 +488,8 @@ export default function GuestbookPage() {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     });
   };
 
@@ -1347,10 +1348,10 @@ export default function GuestbookPage() {
                   {event.event_name}
                 </div>
                 <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                  📅 {new Date(event.event_date).toLocaleDateString('id-ID', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
+                  📅 {new Date(event.event_date).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
                   })}
                 </div>
                 {event.venue_name && (
@@ -1412,112 +1413,112 @@ export default function GuestbookPage() {
                 Pusat pengaturan guestbook: kelola tamu, staff, seating, dan monitoring real-time
               </p>
             </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {activeTab === 'staff' && (
-            <button
-              onClick={() => setShowStaffModal(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 18px',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: '#2563eb',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
-              }}
-            >
-              <span>➕</span>
-              Tambah Staff
-            </button>
-          )}
-          {activeTab === 'guests' && (
-            <>
-              <button style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 18px',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: '#16a34a',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)'
-              }}>
-                <span>📥</span>
-                Import CSV
-              </button>
-              <button style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 18px',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: '#7c3aed',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-              }}>
-                <span>📤</span>
-                Export
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {activeTab === 'staff' && (
+                <button
+                  onClick={() => setShowStaffModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 18px',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#2563eb',
+                    color: '#fff',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  <span>➕</span>
+                  Tambah Staff
+                </button>
+              )}
+              {activeTab === 'guests' && (
+                <>
+                  <button style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 18px',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#16a34a',
+                    color: '#fff',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)'
+                  }}>
+                    <span>📥</span>
+                    Import CSV
+                  </button>
+                  <button style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 18px',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#7c3aed',
+                    color: '#fff',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                  }}>
+                    <span>📤</span>
+                    Export
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
 
-      {/* Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '24px',
-        padding: '0 4px',
-        borderBottom: '2px solid #e5e7eb',
-        overflowX: 'auto'
-      }}>
-        {[
-          { key: 'overview', label: 'Overview', icon: '📊' },
-          { key: 'guests', label: 'Guests', icon: '👥' },
-          { key: 'staff', label: 'Staff', icon: '🛡️' },
-          { key: 'seating', label: 'Seating', icon: '📍' },
-          { key: 'logs', label: 'Logs', icon: '📋' },
-        ].map(({ key, label, icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key as any)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 4px',
-              border: 'none',
-              borderBottom: activeTab === key ? '3px solid #2563eb' : '3px solid transparent',
-              background: 'transparent',
-              color: activeTab === key ? '#2563eb' : '#6b7280',
-              fontWeight: activeTab === key ? 700 : 500,
-              cursor: 'pointer',
-              fontSize: '15px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>{icon}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+          {/* Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: '24px',
+            padding: '0 4px',
+            borderBottom: '2px solid #e5e7eb',
+            overflowX: 'auto'
+          }}>
+            {[
+              { key: 'overview', label: 'Overview', icon: '📊' },
+              { key: 'guests', label: 'Guests', icon: '👥' },
+              { key: 'staff', label: 'Staff', icon: '🛡️' },
+              { key: 'seating', label: 'Seating', icon: '📍' },
+              { key: 'logs', label: 'Logs', icon: '📋' },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 4px',
+                  border: 'none',
+                  borderBottom: activeTab === key ? '3px solid #2563eb' : '3px solid transparent',
+                  background: 'transparent',
+                  color: activeTab === key ? '#2563eb' : '#6b7280',
+                  fontWeight: activeTab === key ? 700 : 500,
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && renderOverviewTab()}
-      {activeTab === 'guests' && renderGuestsTab()}
-      {activeTab === 'staff' && renderStaffTab()}
-      {activeTab === 'seating' && renderSeatingTab()}
-      {activeTab === 'logs' && renderLogsTab()}
+          {/* Tab Content */}
+          {activeTab === 'overview' && renderOverviewTab()}
+          {activeTab === 'guests' && renderGuestsTab()}
+          {activeTab === 'staff' && renderStaffTab()}
+          {activeTab === 'seating' && renderSeatingTab()}
+          {activeTab === 'logs' && renderLogsTab()}
         </>
       )}
     </div>

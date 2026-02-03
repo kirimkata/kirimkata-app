@@ -401,12 +401,41 @@ function Step1Content({ formData, updateFormData }: any) {
           <label style={labelStyle}>
             Waktu Event
           </label>
-          <input
-            type="time"
-            value={formData.event_time}
-            onChange={(e) => updateFormData({ event_time: e.target.value })}
-            style={inputStyle}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <select
+              value={formData.event_time ? formData.event_time.split(':')[0] : '10'}
+              onChange={(e) => {
+                const hour = e.target.value;
+                const minute = formData.event_time ? formData.event_time.split(':')[1] : '00';
+                updateFormData({ event_time: `${hour}:${minute}` });
+              }}
+              style={inputStyle}
+            >
+              {Array.from({ length: 24 }, (_, i) => (
+                <option key={i} value={String(i).padStart(2, '0')}>
+                  {String(i).padStart(2, '0')}
+                </option>
+              ))}
+            </select>
+            <select
+              value={formData.event_time ? formData.event_time.split(':')[1] : '00'}
+              onChange={(e) => {
+                const hour = formData.event_time ? formData.event_time.split(':')[0] : '10';
+                const minute = e.target.value;
+                updateFormData({ event_time: `${hour}:${minute}` });
+              }}
+              style={inputStyle}
+            >
+              {Array.from({ length: 60 }, (_, i) => (
+                <option key={i} value={String(i).padStart(2, '0')}>
+                  {String(i).padStart(2, '0')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', marginBottom: 0 }}>
+            Format 24 jam (HH:MM)
+          </p>
         </div>
       </div>
 
@@ -573,8 +602,8 @@ function Step3Content({ formData, updateFormData }: any) {
                 type="number"
                 min="1"
                 max="10"
-                value={formData.invitation_max_guests}
-                onChange={(e) => updateFormData({ invitation_max_guests: parseInt(e.target.value) })}
+                value={formData.invitation_max_guests || 1}
+                onChange={(e) => updateFormData({ invitation_max_guests: parseInt(e.target.value) || 1 })}
                 style={inputStyle}
               />
               <p style={{ fontSize: '12px', color: '#4b5563', marginTop: '4px' }}>Jumlah maksimal tamu yang bisa dibawa</p>

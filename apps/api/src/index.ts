@@ -24,6 +24,7 @@ import guestbookExportRoutes from './routes/v1/guestbook-export';
 import sharedRoutes from './routes/v1/shared';
 import registrationRoutes from './routes/v1/registration';
 import invitationsRoutes from './routes/v1/invitations';
+import eventsRoutes from './routes/v1/events';
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -77,6 +78,7 @@ app.route('/v1/shared', sharedRoutes);
 // Wedding invitation routes
 app.route('/v1/registration', registrationRoutes);
 app.route('/v1/invitations', invitationsRoutes);
+app.route('/v1/events', eventsRoutes);
 
 // 404 handler
 app.notFound((c) => {
