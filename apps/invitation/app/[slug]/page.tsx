@@ -1,96 +1,80 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { getClientDefinition } from '@/clients';
-import { DEFAULT_METADATA, absoluteUrl } from '@/lib/siteMetadata';
-import { loadClientData } from '@/lib/loaders/loadClientData';
+import type { FullInvitationContent } from '@/lib/repositories/invitationContentRepository';
+import { resolveTheme } from '@/lib/theme/resolveTheme';
+import { InvitationLoading } from '@/components/InvitationLoading';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
-interface InvitePageProps {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ to?: string }>;
-}
+export default function InvitePage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const slug = params.slug as string;
+  const guestName = searchParams?.get('to')?.trim() || '';
 
-// Force dynamic rendering since we fetch data from database
-export const dynamic = 'force-dynamic';
+  const [invitationData, setInvitationData] = useState<FullInvitationContent | null>(null);
+  const [clientDef, setClientDef] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-// Return empty array to prevent static generation at build time
-export async function generateStaticParams() {
-  return [];
-}
+  useEffect(() => {
+    async function loadInvitation() {
+      try {
+        setLoading(true);
+        setError(false);
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  const client = await getClientDefinition(slug);
+        // Load client definition (for theme info)
+        const client = await getClientDefinition(slug);
+        if (!client) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        setClientDef(client);
 
-  if (!client) {
-    return {
-      title: DEFAULT_METADATA.title,
-      description: DEFAULT_METADATA.description,
-    };
-  }
+        // Fetch compiled invitation data from centralized API
+        const response = await fetch(API_ENDPOINTS.invitations.compile(slug));
 
-  const { profile } = client;
-  const title = profile.metaTitle ?? `${profile.coupleNames} — Digital Invitation`;
-  const description =
-    profile.metaDescription ?? profile.shortDescription ?? DEFAULT_METADATA.description;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-  // Handle shareImage - use as-is if already absolute URL, otherwise make it absolute
-  const rawShareImage = profile.shareImage ?? profile.coverImage ?? '';
-  const shareImage = rawShareImage.startsWith('http') ? rawShareImage : absoluteUrl(rawShareImage);
-  const url = `${DEFAULT_METADATA.baseUrl}/${profile.slug}`;
+        const result = await response.json();
 
-  return {
-    title,
-    description,
-    robots: {
-      index: false,
-      follow: false,
-      nocache: true,
-    },
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: DEFAULT_METADATA.siteName,
-      type: 'website',
-      images: shareImage ? [{ url: shareImage }] : undefined,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: shareImage ? [shareImage] : undefined,
-    },
-  };
-}
-
-export default async function InvitePage({ params, searchParams }: InvitePageProps) {
-  const { slug } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  let guestName: string | undefined = '';
-  if (typeof resolvedSearchParams?.to === 'string') {
-    const toParam = resolvedSearchParams.to.trim();
-    if (toParam) {
-      guestName = toParam;
-    } else {
-      guestName = '';
+        if (result.success && result.data) {
+          setInvitationData(result.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (err) {
+        console.error('Failed to load invitation:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadInvitation();
+  }, [slug]);
+
+  if (loading) {
+    return <InvitationLoading />;
   }
 
-  let loadedContext: Awaited<ReturnType<typeof loadClientData>> | null = null;
-  try {
-    loadedContext = await loadClientData(slug);
-  } catch (error) {
-    loadedContext = null;
-  }
-
-  if (!loadedContext) {
+  if (error || !invitationData || !clientDef) {
     notFound();
+    return null;
   }
 
-  const ThemeRenderer = loadedContext.theme.render;
+  const theme = resolveTheme(clientDef.theme.key);
+  const ThemeRenderer = theme.render;
 
   if (!ThemeRenderer) {
     notFound();
+    return null;
   }
 
   return (
@@ -98,7 +82,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
       <ThemeRenderer
         clientSlug={slug}
         guestName={guestName}
-        fullInvitationContent={loadedContext.fullInvitationContent}
+        fullInvitationContent={invitationData}
       />
     </div>
   );
