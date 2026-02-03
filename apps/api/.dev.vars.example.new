@@ -1,0 +1,13 @@
+# Cloudflare Workers API Environment Variables
+
+ENVIRONMENT=development
+
+# Supabase
+SUPABASE_URL=your-supabase-url-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+
+# JWT
+JWT_SECRET=your-jwt-secret-here
+
+# Encryption
+ENCRYPTION_KEY=your-encryption-key-here
