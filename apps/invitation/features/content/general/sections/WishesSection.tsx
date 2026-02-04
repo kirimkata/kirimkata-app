@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useInViewSlideIn } from '@/hooks/useInViewAnimation';
 import { typographyConfig, getTypographyStyle } from '@/config/fontConfig';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 type AttendanceStatus = 'hadir' | 'tidak-hadir' | 'masih-ragu';
 
@@ -84,16 +85,15 @@ export default function WishesSection({ invitationSlug, onSubmit, messages }: Wi
 
   const loadWishes = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
-      const response = await fetch(`${apiUrl}/v1/wishes/${invitationSlug}`);
-      
+      const response = await fetch(API_ENDPOINTS.wishes.list(invitationSlug));
+
       if (!response.ok) {
         throw new Error('Failed to fetch wishes');
       }
-      
+
       const data = await response.json();
       const wishes = data.wishes || [];
-      
+
       setItems(
         wishes.map((wish: any) => ({
           id: wish.id,
@@ -137,8 +137,7 @@ export default function WishesSection({ invitationSlug, onSubmit, messages }: Wi
       }
 
       // Submit wish to Cloudflare Workers API
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
-      const response = await fetch(`${apiUrl}/v1/wishes/${invitationSlug}`, {
+      const response = await fetch(API_ENDPOINTS.wishes.submit(invitationSlug), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

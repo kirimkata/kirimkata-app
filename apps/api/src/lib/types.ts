@@ -11,6 +11,9 @@ export interface Env {
 
     // R2 Bucket binding
     MEDIA_BUCKET: R2Bucket;
+
+    // R2 Public URL
+    R2_PUBLIC_URL: string;
 }
 
 // JWT Payload Types

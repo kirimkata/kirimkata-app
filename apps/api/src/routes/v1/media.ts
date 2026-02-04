@@ -22,8 +22,8 @@ const media = new Hono<{
 // All media routes require authentication
 media.use('*', clientAuthMiddleware);
 
-// R2 Public URL (will be set from env or config)
-const R2_PUBLIC_URL = 'https://media.kirimkata.com'; // Update this to your R2 public URL
+// All media routes require authentication
+media.use('*', clientAuthMiddleware);
 
 /**
  * POST /v1/media/upload
@@ -131,7 +131,7 @@ media.post('/upload', async (c) => {
                 contentType: mimeType,
                 path,
             },
-            R2_PUBLIC_URL
+            c.env.R2_PUBLIC_URL || 'https://media.kirimkata.com'
         );
 
         // Save metadata to database
@@ -243,7 +243,8 @@ media.delete('/delete', async (c) => {
 
         // Extract R2 path from URL
         const fileUrl = file.file_url;
-        const r2Path = fileUrl.replace(`${R2_PUBLIC_URL}/`, '');
+        const r2PublicUrl = c.env.R2_PUBLIC_URL || 'https://media.kirimkata.com';
+        const r2Path = fileUrl.replace(`${r2PublicUrl}/`, '');
 
         // Delete from R2
         try {

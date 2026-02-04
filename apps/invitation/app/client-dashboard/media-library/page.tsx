@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface MediaFile {
     id: number;
@@ -50,7 +51,7 @@ export default function MediaLibraryPage() {
     const fetchQuota = async () => {
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/media/quota', {
+            const response = await fetch(API_ENDPOINTS.media.quota, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -69,7 +70,7 @@ export default function MediaLibraryPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('client_token');
-            const response = await fetch(`/api/client/media/list?type=${activeTab}`, {
+            const response = await fetch(`${API_ENDPOINTS.media.list}?type=${activeTab}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -132,7 +133,7 @@ export default function MediaLibraryPage() {
             formData.append('file', file);
             formData.append('type', fileType);
 
-            const response = await fetch('/api/client/media/upload', {
+            const response = await fetch(API_ENDPOINTS.media.upload, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -165,7 +166,7 @@ export default function MediaLibraryPage() {
 
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/media/delete', {
+            const response = await fetch(API_ENDPOINTS.media.delete, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,

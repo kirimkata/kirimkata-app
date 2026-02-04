@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface MediaFile {
     id: number;
@@ -43,7 +44,7 @@ export default function MediaPicker({
         try {
             setLoading(true);
             const token = localStorage.getItem('client_token');
-            const response = await fetch(`/api/client/media/list?type=${fileType}`, {
+            const response = await fetch(`${API_ENDPOINTS.media.list}?type=${fileType}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },

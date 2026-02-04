@@ -1,0 +1,33 @@
+# ===================================================================
+# CLOUDFLARE WORKERS - LOCAL DEVELOPMENT ENVIRONMENT VARIABLES
+# ===================================================================
+# File ini untuk development lokal dengan `wrangler dev`
+# Copy file ini ke `.dev.vars` dan isi dengan nilai yang sebenarnya
+# JANGAN commit file `.dev.vars` ke Git (sudah ada di .gitignore)
+#
+# Untuk production, gunakan: wrangler secret put <KEY>
+# ===================================================================
+
+# === DATABASE CONFIGURATION (Supabase) ===
+# Didapatkan dari Supabase Dashboard -> Settings -> API
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJh... (Gunakan 'service_role' secret, BUKAN 'anon' public key)
+
+# === SECURITY ===
+# String acak untuk men-generate token login (JWT)
+# Minimal 32 karakter, gunakan string yang kuat dan unik
+JWT_SECRET=ganti_dengan_random_string_panjang_minimal_32_karakter
+
+# Key untuk enkripsi password (HARUS 64 karakter Hexadecimal)
+# Generate dengan: openssl rand -hex 32
+ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+
+# === CLOUDFLARE R2 STORAGE ===
+# URL publik untuk R2 bucket (untuk media upload)
+# Format: https://pub-xxxxx.r2.dev atau custom domain
+# Didapatkan dari Cloudflare Dashboard -> R2 -> Bucket Settings -> Public Access
+R2_PUBLIC_URL=https://media.kirimkata.com
+
+# === ENVIRONMENT ===
+# Jangan ubah ini untuk development lokal
+ENVIRONMENT=development
