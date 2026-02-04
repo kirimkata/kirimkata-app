@@ -9,8 +9,9 @@ import { getSupabaseServiceClient } from '@/lib/guestbook/supabase';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { benefitId: string } }
+  context: { params: Promise<{ benefitId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -66,8 +67,9 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { benefitId: string } }
+  context: { params: Promise<{ benefitId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {

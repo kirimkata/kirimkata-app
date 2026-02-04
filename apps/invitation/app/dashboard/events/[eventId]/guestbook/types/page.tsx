@@ -24,6 +24,21 @@ interface GuestTypeStats {
   not_checked_in: number;
 }
 
+const predefinedColors = [
+  { name: 'Emerald', value: '#10b981' },
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Indigo', value: '#6366f1' },
+  { name: 'Violet', value: '#8b5cf6' },
+  { name: 'Purple', value: '#a855f7' },
+  { name: 'Fuchsia', value: '#d946ef' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Rose', value: '#f43f5e' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Amber', value: '#f59e0b' },
+  { name: 'Yellow', value: '#eab308' },
+];
+
 export default function GuestTypesPage() {
   const params = useParams();
   const eventId = params.eventId as string;
@@ -443,8 +458,8 @@ export default function GuestTypesPage() {
                       type="button"
                       onClick={() => setFormData({ ...formData, color_code: color.value })}
                       className={`h-10 rounded-lg border-2 transition ${formData.color_code === color.value
-                          ? 'border-gray-900 ring-2 ring-gray-900'
-                          : 'border-gray-200 hover:border-gray-400'
+                        ? 'border-gray-900 ring-2 ring-gray-900'
+                        : 'border-gray-200 hover:border-gray-400'
                         }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}

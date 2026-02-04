@@ -8,8 +8,9 @@ import { getGuestTypeById, updateGuestType, deleteGuestType } from '@/lib/guestb
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { typeId: string } }
+  context: { params: Promise<{ typeId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -74,8 +75,9 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { typeId: string } }
+  context: { params: Promise<{ typeId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {

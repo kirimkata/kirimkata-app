@@ -9,8 +9,9 @@ import { getEventByIdWithAccess } from '@/lib/guestbook/repositories/eventReposi
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { configId: string } }
+  context: { params: Promise<{ configId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -84,8 +85,9 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { configId: string } }
+  context: { params: Promise<{ configId: string }> }
 ) {
+  const params = await context.params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {

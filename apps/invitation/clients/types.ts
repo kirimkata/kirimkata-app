@@ -14,6 +14,7 @@ export interface ClientProfile {
   metaDescription?: string;
   loadingDesign?: LoadingDesignType; // Loading overlay design type
   custom_images?: CustomImages; // Custom theme images for template1
+  theme?: string;
 }
 
 export type ClientDataId = string;

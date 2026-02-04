@@ -9,8 +9,9 @@ import { invitationCompiler } from '@/lib/services/invitationCompilerService';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { slug: string } }
+    context: { params: Promise<{ slug: string }> }
 ) {
+    const params = await context.params;
     try {
         const registration = await weddingRegistrationRepo.findBySlug(params.slug);
         if (!registration) {
@@ -39,8 +40,9 @@ export async function GET(
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { slug: string } }
+    context: { params: Promise<{ slug: string }> }
 ) {
+    const params = await context.params;
     try {
         const body = await request.json();
         const { settings, blocks } = body;
