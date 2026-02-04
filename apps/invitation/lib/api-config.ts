@@ -63,6 +63,31 @@ export const API_ENDPOINTS = {
         staff: `${API_BASE_URL}/v1/shared/staff`,
         guestStats: `${API_BASE_URL}/v1/shared/guests/stats`,
     },
+
+    // Registration
+    registration: {
+        create: `${API_BASE_URL}/v1/registration`,
+        get: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}`,
+        update: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}`,
+    },
+
+    // Invitations
+    invitations: {
+        compile: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/compile`,
+        loveStory: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/love-story`,
+        gallery: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/gallery`,
+        weddingGift: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/wedding-gift`,
+        closing: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/closing`,
+        music: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/music`,
+        theme: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/theme`,
+        greetings: (slug: string) => `${API_BASE_URL}/v1/invitations/${slug}/greetings`,
+    },
+
+    // Wishes (public endpoint)
+    wishes: {
+        list: (slug: string) => `${API_BASE_URL}/v1/wishes/${slug}`,
+        submit: (slug: string) => `${API_BASE_URL}/v1/wishes/${slug}`,
+    },
 };
 
 /**
@@ -74,9 +99,9 @@ export async function apiCall(
 ): Promise<Response> {
     const token = localStorage.getItem('client_token');
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string>),
     };
 
     if (token) {
