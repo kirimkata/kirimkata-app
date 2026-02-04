@@ -38,6 +38,13 @@ export const API_ENDPOINTS = {
         customImages: `${API_BASE_URL}/v1/media/custom-images`,
     },
 
+    // Guests
+    guests: {
+        list: `${API_BASE_URL}/v1/guests`,
+        sync: `${API_BASE_URL}/v1/guests`,
+        stats: `${API_BASE_URL}/v1/guests/stats`,
+    },
+
     // Guestbook
     guestbook: {
         events: `${API_BASE_URL}/v1/guestbook/events`,
@@ -46,6 +53,9 @@ export const API_ENDPOINTS = {
         benefits: `${API_BASE_URL}/v1/guestbook/benefits`,
         seating: `${API_BASE_URL}/v1/guestbook/seating`,
         checkin: `${API_BASE_URL}/v1/guestbook/checkin`,
+        checkinQr: `${API_BASE_URL}/v1/guestbook/checkin/qr`,
+        generateQr: (guestId: string) => `${API_BASE_URL}/v1/guestbook/qr/generate/${guestId}`,
+        bulkGenerateQr: `${API_BASE_URL}/v1/guestbook/qr/bulk-generate`,
     },
 
     // Admin
