@@ -102,8 +102,8 @@ export interface RegistrationData {
 
 export interface LoveStoryBlock {
     id?: string;
-    blockTitle: string;
-    blockBody: string;
+    title: string;
+    bodyText: string;
     storyDate?: string;
     displayOrder: number;
 }
@@ -113,6 +113,7 @@ export interface LoveStoryData {
         mainTitle?: string;
         backgroundImageUrl?: string;
         overlayOpacity?: number;
+        isEnabled?: boolean;
     };
     blocks: LoveStoryBlock[];
 }
@@ -123,7 +124,8 @@ export interface GalleryData {
         backgroundColor?: string;
         showYoutube?: boolean;
         youtubeEmbedUrl?: string;
-        imageUrls?: string[];
+        images?: string[];
+        isEnabled?: boolean;
     };
 }
 
@@ -142,6 +144,12 @@ export interface WeddingGiftData {
         buttonLabel?: string;
         giftImageUrl?: string;
         backgroundOverlayOpacity?: number;
+        recipientName?: string;
+        recipientPhone?: string;
+        recipientAddressLine1?: string;
+        recipientAddressLine2?: string;
+        recipientAddressLine3?: string;
+        isEnabled?: boolean;
     };
     bankAccounts: WeddingGiftBankAccount[];
 }
@@ -150,25 +158,35 @@ export interface ClosingData {
     settings: {
         backgroundColor?: string;
         photoUrl?: string;
+        photoAlt?: string;
         namesDisplay?: string;
         messageLine1?: string;
         messageLine2?: string;
+        messageLine3?: string;
+        isEnabled?: boolean;
     };
 }
 
 export interface MusicData {
     settings: {
-        mediaId?: number;
+        audioUrl?: string;
         title?: string;
         artist?: string;
-        loopEnabled?: boolean;
-        musicUrl?: string;
+        loop?: boolean;
+        registerAsBackgroundAudio?: boolean;
+        isEnabled?: boolean;
     };
 }
 
 export interface ThemeData {
     settings: {
         themeKey?: string;
+        enableGallery?: boolean;
+        enableLoveStory?: boolean;
+        enableWeddingGift?: boolean;
+        enableWishes?: boolean;
+        enableClosing?: boolean;
+        customCss?: string;
         customImages?: Record<string, any>;
     };
 }

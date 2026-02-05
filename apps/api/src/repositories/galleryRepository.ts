@@ -5,9 +5,7 @@ export interface GallerySettings {
     registration_id: string;
     main_title: string;
     background_color: string;
-    top_row_images: string[];
-    middle_images: string[];
-    bottom_grid_images: string[];
+    images: string[];
     youtube_embed_url?: string;
     show_youtube: boolean;
     is_enabled: boolean;
@@ -64,23 +62,18 @@ class GalleryRepository {
      */
     async addImage(
         registrationId: string,
-        imageUrl: string,
-        position: 'top' | 'middle' | 'bottom'
+        imageUrl: string
     ): Promise<GallerySettings> {
         const settings = await this.getSettings(registrationId);
         if (!settings) {
             throw new Error('Gallery settings not found');
         }
 
-        const field = position === 'top' ? 'top_row_images'
-            : position === 'middle' ? 'middle_images'
-                : 'bottom_grid_images';
-
-        const updatedImages = [...(settings[field] || []), imageUrl];
+        const updatedImages = [...(settings.images || []), imageUrl];
 
         return this.upsertSettings({
             ...settings,
-            [field]: updatedImages,
+            images: updatedImages,
         });
     }
 
@@ -95,18 +88,15 @@ class GalleryRepository {
 
         return this.upsertSettings({
             ...settings,
-            top_row_images: settings.top_row_images.filter(img => img !== imageUrl),
-            middle_images: settings.middle_images.filter(img => img !== imageUrl),
-            bottom_grid_images: settings.bottom_grid_images.filter(img => img !== imageUrl),
+            images: (settings.images || []).filter(img => img !== imageUrl),
         });
     }
 
     /**
-     * Reorder images in a specific position
+     * Reorder images
      */
     async reorderImages(
         registrationId: string,
-        position: 'top' | 'middle' | 'bottom',
         imageUrls: string[]
     ): Promise<GallerySettings> {
         const settings = await this.getSettings(registrationId);
@@ -114,13 +104,9 @@ class GalleryRepository {
             throw new Error('Gallery settings not found');
         }
 
-        const field = position === 'top' ? 'top_row_images'
-            : position === 'middle' ? 'middle_images'
-                : 'bottom_grid_images';
-
         return this.upsertSettings({
             ...settings,
-            [field]: imageUrls,
+            images: imageUrls,
         });
     }
 }

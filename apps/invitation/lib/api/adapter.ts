@@ -111,8 +111,8 @@ export function adaptApiDataToFullContent(
         backgroundImage: loveStory?.settings?.backgroundImageUrl || '',
         overlayOpacity: loveStory?.settings?.overlayOpacity || 0.6,
         blocks: (loveStory?.blocks || []).map((block) => ({
-            title: block.blockTitle,
-            body: block.blockBody,
+            title: block.title,
+            body: block.bodyText,
         })),
     };
 
@@ -128,8 +128,9 @@ export function adaptApiDataToFullContent(
     };
 
     // Convert image URLs to gallery structure
-    if (gallery?.settings?.imageUrls && Array.isArray(gallery.settings.imageUrls)) {
-        const images = gallery.settings.imageUrls.map((url, index) => ({
+    // API now returns single 'images' array, we distribute it for UI compatibility
+    if (gallery?.settings?.images && Array.isArray(gallery.settings.images)) {
+        const images = gallery.settings.images.map((url, index) => ({
             src: url,
             alt: `Gallery image ${index + 1}`,
         }));
@@ -154,9 +155,13 @@ export function adaptApiDataToFullContent(
             accountName: account.accountHolderName,
         })),
         physicalGift: {
-            recipientName: registration?.groomFullName || '',
-            phone: '',
-            addressLines: [],
+            recipientName: weddingGift?.settings?.recipientName || registration?.groomFullName || '',
+            phone: weddingGift?.settings?.recipientPhone || '',
+            addressLines: [
+                weddingGift?.settings?.recipientAddressLine1,
+                weddingGift?.settings?.recipientAddressLine2,
+                weddingGift?.settings?.recipientAddressLine3
+            ].filter((line): line is string => !!line),
         },
     };
 
@@ -164,22 +169,23 @@ export function adaptApiDataToFullContent(
     const closingContent: ClosingContent = {
         backgroundColor: closing?.settings?.backgroundColor || '#F5F5F0',
         photoSrc: closing?.settings?.photoUrl || '',
-        photoAlt: 'Closing photo',
+        photoAlt: closing?.settings?.photoAlt || 'Closing photo',
         namesScript: closing?.settings?.namesDisplay || `${bride.name} & ${groom.name}`,
         messageLines: [
             closing?.settings?.messageLine1 || 'Thank you for being part of our special day',
             closing?.settings?.messageLine2 || 'Your presence means the world to us',
-        ],
+            closing?.settings?.messageLine3 || '',
+        ].filter(Boolean),
     };
 
     // Background music content
-    const backgroundMusic: BackgroundMusicContent | undefined = music?.settings?.musicUrl
+    const backgroundMusic: BackgroundMusicContent | undefined = music?.settings?.audioUrl
         ? {
-            src: music.settings.musicUrl,
+            src: music.settings.audioUrl,
             title: music.settings.title,
             artist: music.settings.artist,
-            loop: music.settings.loopEnabled !== false,
-            registerAsBackgroundAudio: true,
+            loop: music.settings.loop !== false,
+            registerAsBackgroundAudio: music.settings.registerAsBackgroundAudio ?? true,
         }
         : undefined;
 
