@@ -5,14 +5,28 @@ import { cors } from 'hono/cors';
  * Allows requests from Vercel-hosted frontends
  */
 export const corsMiddleware = cors({
-    origin: [
-        'https://invitation.kirimkata.com',
-        'https://guestbook.kirimkata.com',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        // Add preview deployments pattern
-        /https:\/\/.*\.vercel\.app$/,
-    ],
+    origin: (origin) => {
+        const allowedOrigins = [
+            'https://invitation.kirimkata.com',
+            'https://guestbook.kirimkata.com',
+            'https://kirimkata.com',
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://kirimkata-app-invitation.vercel.app',
+        ];
+
+        // Access allowed origins directly
+        if (allowedOrigins.includes(origin)) {
+            return origin;
+        }
+
+        // Check for Vercel preview deployments
+        if (origin && /https:\/\/.*\.vercel\.app$/.test(origin)) {
+            return origin;
+        }
+
+        return undefined; // Block other origins
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'x-client-id'],
     credentials: true,
