@@ -1,4 +1,5 @@
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { swaggerUI } from '@hono/swagger-ui';
 import type { Env } from './lib/types';
 import { corsMiddleware } from './middleware/cors';
 import { loggerMiddleware } from './middleware/logger';
@@ -26,8 +27,8 @@ import registrationRoutes from './routes/v1/registration';
 import invitationsRoutes from './routes/v1/invitations';
 import eventsRoutes from './routes/v1/events';
 
-// Create main Hono app
-const app = new Hono<{ Bindings: Env }>();
+// Create main Hono app with OpenAPI support
+const app = new OpenAPIHono<{ Bindings: Env }>();
 
 // Initialize env for each request (must be first)
 app.use('*', async (c, next) => {
@@ -38,6 +39,19 @@ app.use('*', async (c, next) => {
 // Global middleware
 app.use('*', corsMiddleware);
 app.use('*', loggerMiddleware);
+
+// OpenAPI Documentation
+app.doc('/doc', {
+    openapi: '3.0.0',
+    info: {
+        version: '1.0.0',
+        title: 'KirimKata API',
+        description: 'Unified API service for Kirimkata Guestbook and Invitation apps',
+    },
+});
+
+// Swagger UI
+app.get('/ui', swaggerUI({ url: '/doc' }));
 
 // Health check endpoint
 app.get('/health', (c) => {
