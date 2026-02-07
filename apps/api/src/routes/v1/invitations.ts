@@ -198,9 +198,7 @@ router.openapi(
 
         const settings = await loveStoryRepo.getSettings(registration.id);
         const blocks = await loveStoryRepo.getBlocks(registration.id);
-        // Explicitly cast to match schema if needed, but repo types should align close enough
-        // We might need to map some fields if repo returns nulls where optional is expected
-        return c.json({ success: true, data: { settings: settings as any, blocks: blocks as any } });
+        return c.json({ success: true, data: { settings, blocks } }, 200);
     }
 );
 
@@ -214,6 +212,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update love story' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -237,7 +236,7 @@ router.openapi(
             }
         }
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Love story updated successfully' });
+        return c.json({ success: true, message: 'Love story updated successfully' }, 200);
     }
 );
 
@@ -249,6 +248,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(GalleryResponseSchema) } }, description: 'Retrieve gallery settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -257,7 +257,7 @@ router.openapi(
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const settings = await galleryRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings: settings as any } });
+        return c.json({ success: true, data: { settings } }, 200);
     }
 );
 
@@ -271,6 +271,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update gallery' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -281,7 +282,7 @@ router.openapi(
 
         await galleryRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Gallery updated successfully' });
+        return c.json({ success: true, message: 'Gallery updated successfully' }, 200);
     }
 );
 
@@ -293,6 +294,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(WeddingGiftResponseSchema) } }, description: 'Retrieve wedding gift settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -302,7 +304,7 @@ router.openapi(
 
         const settings = await weddingGiftRepo.getSettings(registration.id);
         const bankAccounts = await weddingGiftRepo.getBankAccounts(registration.id);
-        return c.json({ success: true, data: { settings: settings as any, bankAccounts: bankAccounts as any } });
+        return c.json({ success: true, data: { settings, bankAccounts } }, 200);
     }
 );
 
@@ -316,6 +318,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update wedding gift' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -340,7 +343,7 @@ router.openapi(
             }
         }
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Wedding gift updated successfully' });
+        return c.json({ success: true, message: 'Wedding gift updated successfully' }, 200);
     }
 );
 
@@ -352,6 +355,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(ClosingResponseSchema) } }, description: 'Retrieve closing settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -360,7 +364,7 @@ router.openapi(
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const settings = await closingRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings: settings as any } });
+        return c.json({ success: true, data: { settings } }, 200);
     }
 );
 
@@ -374,6 +378,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update closing settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -384,7 +389,7 @@ router.openapi(
 
         await closingRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Closing updated successfully' });
+        return c.json({ success: true, message: 'Closing updated successfully' }, 200);
     }
 );
 
@@ -396,6 +401,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(MusicResponseSchema) } }, description: 'Retrieve music settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -404,7 +410,7 @@ router.openapi(
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const settings = await backgroundMusicRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings: settings as any } });
+        return c.json({ success: true, data: { settings } }, 200);
     }
 );
 
@@ -418,6 +424,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update music settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -428,7 +435,7 @@ router.openapi(
 
         await backgroundMusicRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Background music updated successfully' });
+        return c.json({ success: true, message: 'Background music updated successfully' }, 200);
     }
 );
 
@@ -440,6 +447,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(ThemeResponseSchema) } }, description: 'Retrieve theme settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -448,7 +456,7 @@ router.openapi(
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const settings = await themeSettingsRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings: settings as any } });
+        return c.json({ success: true, data: { settings } }, 200);
     }
 );
 
@@ -462,6 +470,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update theme settings' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -472,7 +481,7 @@ router.openapi(
 
         await themeSettingsRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Theme updated successfully' });
+        return c.json({ success: true, message: 'Theme updated successfully' }, 200);
     }
 );
 
@@ -484,6 +493,7 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(GreetingsResponseSchema) } }, description: 'Retrieve greeting sections' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -492,7 +502,7 @@ router.openapi(
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const greetings = await greetingSectionRepo.findByRegistrationId(registration.id);
-        return c.json({ success: true, data: { greetings: greetings as any } });
+        return c.json({ success: true, data: { greetings } }, 200);
     }
 );
 
@@ -506,6 +516,7 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update greeting sections' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
     async (c) => {
@@ -520,11 +531,25 @@ router.openapi(
                 await greetingSectionRepo.delete(old.id);
             }
             for (const greeting of greetings) {
-                await greetingSectionRepo.create({ registration_id: registration.id, ...greeting });
+                // Map section_key to section_type
+                const sectionTypeMap: Record<string, 'opening_verse' | 'main_greeting' | 'countdown_title'> = {
+                    'opening_verse': 'opening_verse',
+                    'main_greeting': 'main_greeting',
+                    'countdown_title': 'countdown_title',
+                };
+                const section_type = sectionTypeMap[greeting.section_key] || 'main_greeting';
+
+                await greetingSectionRepo.create({
+                    registration_id: registration.id,
+                    section_type,
+                    display_order: greeting.display_order,
+                    title: greeting.title,
+                    subtitle: greeting.subtitle,
+                });
             }
         }
         await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, message: 'Greetings updated successfully' });
+        return c.json({ success: true, message: 'Greetings updated successfully' }, 200);
     }
 );
 
