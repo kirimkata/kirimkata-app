@@ -6,6 +6,7 @@ export function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   // Redirect legacy client-dashboard URLs to new dashboard structure
+  /*
   const redirects: Record<string, string> = {
     '/client-dashboard': '/dashboard',
     '/client-dashboard/login': '/dashboard/login',
@@ -18,6 +19,7 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith('/client-dashboard/')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+  */
 
   // Add cache control for invitation pages (slug routes)
   // Match pattern: /slug (not dashboard or admin pages)

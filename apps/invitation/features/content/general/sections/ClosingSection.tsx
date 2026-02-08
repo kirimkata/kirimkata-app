@@ -13,12 +13,12 @@ export default function ClosingSection() {
   const fallbackConfig = getClosingConfig();
   const config = invitationContent
     ? {
-        backgroundColor: invitationContent.closing.backgroundColor,
-        photoSrc: invitationContent.closing.photoSrc,
-        photoAlt: invitationContent.closing.photoAlt,
-        namesScript: invitationContent.closing.namesScript,
-        messageLines: [...invitationContent.closing.messageLines],
-      }
+      backgroundColor: invitationContent.closing.backgroundColor,
+      photoSrc: invitationContent.closing.photoSrc,
+      photoAlt: invitationContent.closing.photoAlt,
+      namesScript: invitationContent.closing.namesScript,
+      messageLines: [...invitationContent.closing.messageLines],
+    }
     : fallbackConfig;
 
   const { ref: photoRef, style: photoStyle } = useInViewSlideIn({
@@ -78,17 +78,34 @@ export default function ClosingSection() {
                 width: 260,
                 height: 320,
                 overflow: 'hidden',
+                backgroundColor: '#eee', // Placeholder color if no image
               }}
             >
-              <Image
-                src={config.photoSrc}
-                alt={config.photoAlt}
-                fill
-                sizes="260px"
-                style={{
-                  objectFit: 'cover',
-                }}
-              />
+              {config.photoSrc ? (
+                <Image
+                  src={config.photoSrc}
+                  alt={config.photoAlt}
+                  fill
+                  sizes="260px"
+                  style={{
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#999',
+                    fontSize: '14px'
+                  }}
+                >
+                  No Image
+                </div>
+              )}
             </div>
           </div>
 
@@ -152,8 +169,8 @@ export default function ClosingSection() {
                   index === 0
                     ? '0 0 6px'
                     : index === config.messageLines.length - 1
-                    ? '0'
-                    : '0 0 6px',
+                      ? '0'
+                      : '0 0 6px',
                 color: '#4f4a3f',
                 ...(closingTypography.body
                   ? getTypographyStyle(closingTypography.body)

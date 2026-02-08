@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
         }
 
         const token = authHeader.substring(7);
+        console.log('Verifying token for invitation-content:', token.substring(0, 20) + '...');
         const decoded = verifyToken(token);
+        console.log('Decoded token:', decoded);
 
         if (!decoded || decoded.type !== 'client') {
             return NextResponse.json(

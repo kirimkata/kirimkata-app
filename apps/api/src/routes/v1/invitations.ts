@@ -553,7 +553,7 @@ router.openapi(
     }
 );
 
-// Compile Route
+// Compile Route (POST)
 router.openapi(
     createRoute({
         method: 'post',
@@ -567,6 +567,30 @@ router.openapi(
         const slug = c.req.param('slug');
         const compiled = await invitationCompiler.compileAndCache(slug);
         return c.json({ success: true, data: compiled, message: 'Invitation compiled successfully' });
+    }
+);
+
+// Compile Route (GET) - Public access for frontend
+router.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{slug}/compile',
+        request: { params: SlugParamsSchema },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema(z.any()) } }, description: 'Get compiled invitation data' },
+            404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
+        },
+    }),
+    async (c) => {
+        const slug = c.req.param('slug');
+        try {
+            // Re-use compileAndCache to ensure fresh data or get from cache if implemented
+            const compiled = await invitationCompiler.compileAndCache(slug);
+            return c.json({ success: true, data: compiled }, 200);
+        } catch (error) {
+            console.error('Error fetching invitation:', error);
+            return c.json({ error: 'Invitation not found' }, 404);
+        }
     }
 );
 

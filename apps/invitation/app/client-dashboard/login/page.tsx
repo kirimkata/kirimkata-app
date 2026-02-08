@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useClient } from '@/lib/contexts/ClientContext';
 
 export default function ClientLoginPage() {
     const router = useRouter();
+    const { login } = useClient();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -35,12 +37,8 @@ export default function ClientLoginPage() {
                 return;
             }
 
-            // Store JWT token in localStorage
-            localStorage.setItem('client_token', data.token);
-            localStorage.setItem('client_user', JSON.stringify(data.client));
-
-            // Redirect to client dashboard (event selection page)
-            router.push('/client-dashboard');
+            // Use context login to update state and redirect
+            login(data.token, data.client);
         } catch (err) {
             console.error('Login error:', err);
             setError('An error occurred. Please try again.');

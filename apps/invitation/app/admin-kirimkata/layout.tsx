@@ -96,9 +96,20 @@ export default function AdminLayout({
                 {/* Sidebar */}
                 <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                     <div className="sidebar-header">
-                        <div>
-                            <h1>KirimKata Admin</h1>
-                            <p>{adminData?.username || 'Administrator'}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <img
+                                src="/k_logo.png"
+                                alt="KirimKata"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    objectFit: 'contain',
+                                }}
+                            />
+                            <div>
+                                <h1>KirimKata Admin</h1>
+                                <p>{adminData?.username || 'Administrator'}</p>
+                            </div>
                         </div>
                         <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>
                             ✕

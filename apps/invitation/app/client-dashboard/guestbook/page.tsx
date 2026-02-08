@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useClient } from '@/lib/contexts/ClientContext';
 
 // ============================================================================
 // INTERFACES
@@ -22,11 +23,14 @@ interface Staff {
 
 interface Event {
   id: string;
-  event_name: string;
+  name: string;
   event_date: string;
-  event_time?: string;
-  venue_name?: string;
+  location?: string;
+  slug?: string;
+  has_invitation: boolean;
+  has_guestbook: boolean;
   is_active: boolean;
+  created_at: string;
 }
 
 interface GuestType {
@@ -104,14 +108,17 @@ const buildUrl = (path: string) => {
 export default function GuestbookPage() {
   const router = useRouter();
 
+  const { events, selectedEvent: contextSelectedEvent, setSelectedEvent: setContextSelectedEvent, isLoading: isContextLoading } = useClient();
+  const selectedEvent = contextSelectedEvent?.id; // Derived for compatibility
+
   // State management
   const [activeTab, setActiveTab] = useState<'overview' | 'guests' | 'staff' | 'seating' | 'logs'>('overview');
   const [staff, setStaff] = useState<Staff[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
+  // events state removed
   const [guestTypes, setGuestTypes] = useState<GuestType[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  // selectedEvent state removed (derived from context)
+  // isLoadingEvents removed
   const [guestStats, setGuestStats] = useState<GuestStats | null>(null);
   const [seatingStats, setSeatingStats] = useState<SeatingStats | null>(null);
   const [checkinLogs, setCheckinLogs] = useState<CheckinLog[]>([]);
@@ -176,46 +183,7 @@ export default function GuestbookPage() {
   // DATA FETCHING
   // ============================================================================
 
-  const fetchEvents = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) return;
-
-    try {
-      setIsLoadingEvents(true);
-      const res = await fetch('/api/guestbook/events', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.status === 401) {
-        setError('Sesi berakhir atau token tidak valid. Silakan login ulang.');
-        router.push('/client-dashboard/login');
-        return;
-      }
-
-      const data = await res.json();
-      if (data.success && data.data) {
-        setEvents(data.data);
-
-        // Check if event was pre-selected from dashboard
-        const preSelectedEventId = typeof window !== 'undefined' ? localStorage.getItem('selected_event_id') : null;
-
-        if (preSelectedEventId && data.data.find((e: Event) => e.id === preSelectedEventId)) {
-          setSelectedEvent(preSelectedEventId);
-          // Clear the stored event after using it
-          localStorage.removeItem('selected_event_id');
-        } else if (data.data.length === 1) {
-          setSelectedEvent(data.data[0].id);
-        } else if (data.data.length === 0) {
-          setError('Belum ada event. Silakan buat event terlebih dahulu di dashboard.');
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('Gagal mengambil data event.');
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, [getAuthToken, router]);
+  // fetchEvents removed - using ClientContext
 
   const fetchData = useCallback(async () => {
     const token = getAuthToken();
@@ -304,10 +272,9 @@ export default function GuestbookPage() {
   }, [getAuthToken, selectedEvent]);
 
   // Fetch events on mount
+  // Fetch events handled by ClientContext
   useEffect(() => {
-    if (checkAuth()) {
-      fetchEvents();
-    }
+    checkAuth();
   }, [checkAuth]);
 
   // Fetch data when event is selected
@@ -1273,7 +1240,7 @@ export default function GuestbookPage() {
       {renderStaffModal()}
 
       {/* Event Selector */}
-      {isLoadingEvents ? (
+      {isContextLoading ? (
         <div style={{
           padding: '24px',
           backgroundColor: '#fff',
@@ -1325,7 +1292,7 @@ export default function GuestbookPage() {
             {events.map(event => (
               <button
                 key={event.id}
-                onClick={() => setSelectedEvent(event.id)}
+                onClick={() => setContextSelectedEvent(event)}
                 style={{
                   padding: '20px',
                   borderRadius: '12px',
@@ -1333,7 +1300,8 @@ export default function GuestbookPage() {
                   backgroundColor: '#fff',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#2563eb';
@@ -1345,20 +1313,20 @@ export default function GuestbookPage() {
                 }}
               >
                 <div style={{ fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>
-                  {event.event_name}
+                  {event.name}
                 </div>
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                  📅 {new Date(event.event_date).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </div>
-                {event.venue_name && (
-                  <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-                    📍 {event.venue_name}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#6b7280', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>📅</span>
+                    {formatDateTime(event.event_date)}
                   </div>
-                )}
+                  {event.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📍</span>
+                      {event.location}
+                    </div>
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -1388,8 +1356,11 @@ export default function GuestbookPage() {
                 </h1>
                 {events.length > 1 && (
                   <select
-                    value={selectedEvent}
-                    onChange={(e) => setSelectedEvent(e.target.value)}
+                    value={selectedEvent || ''}
+                    onChange={(e) => {
+                      const selected = events.find(ev => ev.id === e.target.value);
+                      if (selected) setContextSelectedEvent(selected);
+                    }}
                     style={{
                       padding: '6px 12px',
                       borderRadius: '8px',
@@ -1403,7 +1374,7 @@ export default function GuestbookPage() {
                   >
                     {events.map(event => (
                       <option key={event.id} value={event.id}>
-                        {event.event_name}
+                        {event.name}
                       </option>
                     ))}
                   </select>

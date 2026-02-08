@@ -9,6 +9,7 @@ import {
   BackgroundMusicData,
   ClosingData,
 } from './types';
+import { API_ENDPOINTS } from '@/lib/api-config';
 import { BrideGroomSection } from './components/BrideGroomSection';
 import { EventSection } from './components/EventSection';
 import { LoveStorySection } from './components/LoveStorySection';
@@ -137,13 +138,19 @@ export default function EditUndanganPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/client/invitation-content', {
+        const response = await fetch(API_ENDPOINTS.client.invitationContent, {
           headers: getAuthHeaders(),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('client_token');
+            localStorage.removeItem('client_user');
+            router.push('/client-dashboard/login');
+            return;
+          }
           if (response.status === 404) {
             setMessage({
               type: 'error',
@@ -305,7 +312,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -342,7 +349,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -379,7 +386,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -415,7 +422,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -451,7 +458,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -487,7 +494,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -523,7 +530,7 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
+      const response = await fetch(API_ENDPOINTS.client.invitationContent, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({

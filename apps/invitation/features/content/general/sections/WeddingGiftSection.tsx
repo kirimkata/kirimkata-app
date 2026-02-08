@@ -113,18 +113,21 @@ export default function WeddingGiftSection() {
           style={{
             position: 'absolute',
             inset: 0,
+            backgroundColor: '#f0f0f0', // Fallback color
           }}
         >
-          <Image
-            src={card.cardBgSrc}
-            alt={`${card.bankName} card background`}
-            fill
-            sizes="(max-width: 768px) 100vw, 640px"
-            style={{
-              objectFit: 'cover',
-              opacity: 0.95,
-            }}
-          />
+          {card.cardBgSrc && (
+            <Image
+              src={card.cardBgSrc}
+              alt={`${card.bankName} card background`}
+              fill
+              sizes="(max-width: 768px) 100vw, 640px"
+              style={{
+                objectFit: 'cover',
+                opacity: 0.95,
+              }}
+            />
+          )}
         </div>
 
         <div
@@ -152,15 +155,17 @@ export default function WeddingGiftSection() {
                 height: 32,
               }}
             >
-              <Image
-                src={card.chipSrc}
-                alt="Card chip"
-                fill
-                sizes="48px"
-                style={{
-                  objectFit: 'contain',
-                }}
-              />
+              {card.chipSrc && (
+                <Image
+                  src={card.chipSrc}
+                  alt="Card chip"
+                  fill
+                  sizes="48px"
+                  style={{
+                    objectFit: 'contain',
+                  }}
+                />
+              )}
             </div>
             <div
               style={{
@@ -169,16 +174,18 @@ export default function WeddingGiftSection() {
                 height: 40,
               }}
             >
-              <Image
-                src={card.logoSrc}
-                alt={`${card.bankName} logo`}
-                fill
-                sizes="80px"
-                style={{
-                  objectFit: 'contain',
-                  objectPosition: 'right center',
-                }}
-              />
+              {card.logoSrc && (
+                <Image
+                  src={card.logoSrc}
+                  alt={`${card.bankName} logo`}
+                  fill
+                  sizes="80px"
+                  style={{
+                    objectFit: 'contain',
+                    objectPosition: 'right center',
+                  }}
+                />
+              )}
             </div>
           </div>
 

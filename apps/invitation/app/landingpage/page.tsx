@@ -72,10 +72,26 @@ export default function LandingPageV2() {
                         }}
                     >
                         {/* Logo */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <span
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '1rem',
+                            }}
+                        >
+                            <img
+                                src="/k_logo.png"
+                                alt="KirimKata"
                                 style={{
-                                    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                                    width: 'clamp(80px, 10vw, 120px)',
+                                    height: 'clamp(80px, 10vw, 120px)',
+                                    objectFit: 'contain',
+                                }}
+                            />
+                            <div
+                                style={{
+                                    fontSize: 'clamp(2.5rem, 5vw, 4rem)',
                                     fontWeight: '300',
                                     color: '#F5F5F0',
                                     fontFamily: 'Georgia, serif',
@@ -83,7 +99,7 @@ export default function LandingPageV2() {
                                 }}
                             >
                                 kirimkata
-                            </span>
+                            </div>
                         </div>
 
                         {/* Order Button */}

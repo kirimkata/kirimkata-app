@@ -21,10 +21,11 @@ const buildUrl = (path: string) => {
   return path;
 };
 
+import { useClient } from '@/lib/contexts/ClientContext';
+
 export default function ClientDashboard() {
   const router = useRouter();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { events, fetchEvents, isLoading, setSelectedEvent } = useClient();
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -36,44 +37,13 @@ export default function ClientDashboard() {
     venue_address: ''
   });
 
-  const getAuthToken = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('client_token');
-  }, []);
-
-  const fetchEvents = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) {
-      router.push('/client-dashboard/login');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError('');
-      const { InvitationAPI } = await import('@/lib/api/client');
-      const data = await InvitationAPI.getEvents(token);
-
-      if (data.success && data.data) {
-        setEvents(data.data);
-      } else {
-        setError(data.error || 'Gagal mengambil data event');
-      }
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('Gagal mengambil data event. Periksa koneksi Anda.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getAuthToken, router]);
-
   const handleCreateEvent = async () => {
     if (!createForm.event_name || !createForm.event_date) {
       alert('Nama event dan tanggal wajib diisi');
       return;
     }
 
-    const token = getAuthToken();
+    const token = localStorage.getItem('client_token');
     if (!token) return;
 
     try {
@@ -110,17 +80,13 @@ export default function ClientDashboard() {
   };
 
   const handleEventClick = (event: Event) => {
-    // Navigate to registration form for this event slug
-    if (event.slug) {
-      router.push(`/${event.slug}`);
-    } else {
-      alert('Event ini belum memiliki slug. Silakan hubungi admin.');
-    }
-  };
+    // Set selected event in context and localStorage
+    setSelectedEvent(event);
+    localStorage.setItem('selected_event_id', event.id);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    // Navigate to dashboard edit page
+    router.push('/client-dashboard/edit-undangan');
+  };
 
   if (isLoading) {
     return (

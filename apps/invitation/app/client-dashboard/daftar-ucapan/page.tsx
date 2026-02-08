@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface Wish {
     id: number;
@@ -21,7 +22,7 @@ export default function DaftarUcapanPage() {
         setError('');
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/messages', {
+            const response = await fetch(API_ENDPOINTS.client.messages, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -30,6 +31,15 @@ export default function DaftarUcapanPage() {
             const data = await response.json();
 
             if (!response.ok) {
+                console.error('Fetch wishes failed:', response.status, JSON.stringify(data));
+                if (response.status === 401) {
+                    localStorage.removeItem('client_token');
+                    localStorage.removeItem('client_user');
+                    // Use window.location to force a full refresh/redirect if router is not available or behavior is inconsistent
+                    window.location.href = '/client-dashboard/login';
+                    return;
+                }
+
                 // Check if error is about no slug assigned
                 if (data.error && data.error.includes('no slug assigned')) {
                     setError('no-slug');

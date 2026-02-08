@@ -422,29 +422,59 @@ client.get('/messages', async (c) => {
             );
         }
 
-        // Fetch wishes for the client's slug
-        const { data: wishes, error: wishesError } = await supabase
+        // Parse pagination params
+        const page = parseInt(c.req.query('page') || '1');
+        const limit = parseInt(c.req.query('limit') || '10');
+        const offset = (page - 1) * limit;
+
+        console.log(`Fetching wishes for slug: ${clientData.slug}, page: ${page}, limit: ${limit}`);
+
+        // Fetch wishes with pagination
+        const { data: wishes, error: wishesError, count } = await supabase
             .from('wishes')
-            .select('*')
-            .eq('slug', clientData.slug)
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' })
+            .eq('invitation_slug', clientData.slug)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (wishesError) {
             console.error('Error fetching wishes:', wishesError);
             return c.json(
-                { success: false, error: 'Failed to fetch messages' },
+                {
+                    success: false,
+                    error: 'Failed to fetch messages',
+                    details: {
+                        message: wishesError.message,
+                        code: wishesError.code,
+                        details: wishesError.details,
+                        hint: wishesError.hint
+                    }
+                },
                 500
             );
         }
 
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limit);
+
         return c.json({
             success: true,
             wishes: wishes || [],
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages
+            }
         });
     } catch (error) {
         console.error('Error fetching messages:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            {
+                success: false,
+                error: 'Internal server error',
+                details: error instanceof Error ? error.message : String(error)
+            },
             500
         );
     }
