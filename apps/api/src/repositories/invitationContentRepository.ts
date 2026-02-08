@@ -130,17 +130,17 @@ export interface BackgroundMusicContent {
 
 export interface FullInvitationContent {
   slug: string;
-  clientProfile: ClientProfile;
+  profile: ClientProfile;
   bride: BrideContent;
   groom: GroomContent;
   event: EventContent;
-  clouds: CloudsContent;
-  eventCloud: EventCloudContent;
+  greetings: CloudsContent;
+  eventDetails: EventCloudContent;
   loveStory: LoveStoryContent;
   gallery: GalleryContent;
   weddingGift: WeddingGiftContent;
   closing: ClosingContent;
-  backgroundMusic?: BackgroundMusicContent;
+  musicSettings?: BackgroundMusicContent;
 }
 
 interface InvitationContentRow {
@@ -148,17 +148,17 @@ interface InvitationContentRow {
   slug: string;
   theme_key?: string;
   custom_images?: any;
-  client_profile: FullInvitationContent['clientProfile'];
+  profile: FullInvitationContent['profile'];
   bride: FullInvitationContent['bride'];
   groom: FullInvitationContent['groom'];
   event: FullInvitationContent['event'];
-  clouds: FullInvitationContent['clouds'];
-  event_cloud: FullInvitationContent['eventCloud'];
+  greetings: FullInvitationContent['greetings'];
+  event_details: FullInvitationContent['eventDetails'];
   love_story: FullInvitationContent['loveStory'];
   gallery: FullInvitationContent['gallery'];
   wedding_gift: FullInvitationContent['weddingGift'];
   closing: FullInvitationContent['closing'];
-  background_music?: FullInvitationContent['backgroundMusic'];
+  music_settings?: FullInvitationContent['musicSettings'];
   created_at: string;
   updated_at: string;
 }
@@ -168,19 +168,19 @@ const TABLE_NAME = 'invitation_contents';
 function mapRowToFullContent(row: InvitationContentRow): FullInvitationContent {
   return {
     slug: row.slug,
-    clientProfile: {
-      ...row.client_profile,
-      custom_images: row.custom_images || row.client_profile?.custom_images,
+    profile: {
+      ...row.profile,
+      custom_images: row.custom_images || row.profile?.custom_images,
     },
     bride: row.bride,
     groom: row.groom,
     event: row.event,
-    clouds: row.clouds,
-    eventCloud: row.event_cloud,
+    greetings: row.greetings,
+    eventDetails: row.event_details,
     loveStory: row.love_story,
     gallery: row.gallery,
     weddingGift: row.wedding_gift,
-    backgroundMusic: row.background_music,
+    musicSettings: row.music_settings,
     closing: row.closing,
   };
 }

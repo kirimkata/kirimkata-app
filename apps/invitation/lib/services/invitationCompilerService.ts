@@ -63,17 +63,17 @@ class InvitationCompilerService {
         // 4. Transform to JSONB format (old structure)
         const compiled: FullInvitationContent = {
             slug: registration.slug,
-            clientProfile: await this.buildClientProfile(registration, themeSettings?.theme_key || 'simple2'),
+            profile: await this.buildClientProfile(registration, themeSettings?.theme_key || 'simple2'),
             bride: this.buildBrideContent(registration),
             groom: this.buildGroomContent(registration),
             event: this.buildEventContent(registration),
-            clouds: this.buildCloudsContent(greetings),
-            eventCloud: this.buildEventCloudContent(registration),
+            greetings: this.buildCloudsContent(greetings),
+            eventDetails: this.buildEventCloudContent(registration),
             loveStory: this.buildLoveStoryContent(loveStorySettings, loveStoryBlocks),
             gallery: this.buildGalleryContent(gallerySettings),
             weddingGift: this.buildWeddingGiftContent(weddingGiftSettings, weddingGiftBankAccounts),
             closing: this.buildClosingContent(closingSettings),
-            backgroundMusic: this.buildMusicContent(musicSettings),
+            musicSettings: this.buildMusicContent(musicSettings),
         };
 
         return compiled;
@@ -90,18 +90,18 @@ class InvitationCompilerService {
             .upsert(
                 {
                     slug,
-                    client_profile: compiled.clientProfile,
+                    profile: compiled.profile,
                     bride: compiled.bride,
                     groom: compiled.groom,
                     event: compiled.event,
-                    clouds: compiled.clouds,
-                    event_cloud: compiled.eventCloud,
+                    greetings: compiled.greetings,
+                    event_details: compiled.eventDetails,
                     love_story: compiled.loveStory,
                     gallery: compiled.gallery,
                     wedding_gift: compiled.weddingGift,
                     closing: compiled.closing,
-                    background_music: compiled.backgroundMusic,
-                    theme_key: compiled.clientProfile.theme,
+                    music_settings: compiled.musicSettings,
+                    theme_key: compiled.profile.theme,
                     updated_at: new Date().toISOString(),
                 },
                 {

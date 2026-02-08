@@ -9,6 +9,7 @@ import { backgroundMusicRepo } from '../../repositories/backgroundMusicRepositor
 import { themeSettingsRepo } from '../../repositories/themeSettingsRepository';
 import { greetingSectionRepo } from '../../repositories/greetingSectionRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
+import { fetchFullInvitationContent } from '../../repositories/invitationContentRepository';
 
 const router = new OpenAPIHono<{ Bindings: Env }>();
 
@@ -584,8 +585,8 @@ router.openapi(
     async (c) => {
         const slug = c.req.param('slug');
         try {
-            // Re-use compileAndCache to ensure fresh data or get from cache if implemented
-            const compiled = await invitationCompiler.compileAndCache(slug);
+            // Use fetchFullInvitationContent to checks cache first, then compiles if needed
+            const compiled = await fetchFullInvitationContent(slug);
             return c.json({ success: true, data: compiled }, 200);
         } catch (error) {
             console.error('Error fetching invitation:', error);

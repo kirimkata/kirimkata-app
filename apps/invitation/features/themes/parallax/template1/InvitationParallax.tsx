@@ -42,7 +42,7 @@ export default function InvitationParallax({
   // 2. Theme-level loadingDesign (passed as prop)
   // 3. Default to 'general'
   const loadingDesign: LoadingDesignType =
-    (invitationContent?.clientProfile?.loadingDesign as LoadingDesignType) ??
+    (invitationContent?.profile?.loadingDesign as LoadingDesignType) ??
     themeLoadingDesign ??
     'general';
 
@@ -50,7 +50,7 @@ export default function InvitationParallax({
   const brideGroomNames =
     invitationContent?.bride?.name && invitationContent?.groom?.name
       ? `${invitationContent.bride.name} & ${invitationContent.groom.name}`
-      : (invitationContent?.clientProfile?.coupleNames ?? 'Bride & Groom');
+      : (invitationContent?.profile?.coupleNames ?? 'Bride & Groom');
 
   // State management
   const [currentSection, setCurrentSection] = useState(0);

@@ -68,13 +68,13 @@ export async function GET(request: NextRequest) {
                 bride: content.bride,
                 groom: content.groom,
                 event: content.event,
-                eventCloud: content.event_cloud,
+                eventDetails: content.event_details,
                 loveStory: content.love_story,
                 gallery: content.gallery,
                 weddingGift: content.wedding_gift,
                 closing: content.closing,
-                backgroundMusic: content.background_music,
-                clientProfile: content.client_profile,
+                musicSettings: content.music_settings,
+                profile: content.profile,
             },
         });
 
@@ -152,16 +152,16 @@ export async function PUT(request: NextRequest) {
                 eventTitle: `The Wedding of ${body.bride?.name || ''} & ${body.groom?.name || ''}`.trim(),
             };
 
-            // Also update event_cloud for backward compatibility
-            updateData.event_cloud = {
+            // Also update event_details for backward compatibility (or forward?)
+            updateData.event_details = {
                 holyMatrimony: body.event.holyMatrimony || {},
                 reception: body.event.reception || {},
             };
         }
 
 
-        if (body.eventCloud) {
-            updateData.event_cloud = body.eventCloud;
+        if (body.eventDetails) {
+            updateData.event_details = body.eventDetails;
         }
         if (body.loveStory) {
             updateData.love_story = body.loveStory;
@@ -172,14 +172,14 @@ export async function PUT(request: NextRequest) {
         if (body.weddingGift) {
             updateData.wedding_gift = body.weddingGift;
         }
-        if (body.backgroundMusic) {
-            updateData.background_music = body.backgroundMusic;
+        if (body.musicSettings) {
+            updateData.music_settings = body.musicSettings;
         }
         if (body.closing) {
             updateData.closing = body.closing;
         }
-        if (body.clientProfile) {
-            updateData.client_profile = body.clientProfile;
+        if (body.profile) {
+            updateData.profile = body.profile;
         }
 
         // Update invitation content

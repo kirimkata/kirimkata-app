@@ -40,11 +40,11 @@ export default function InvitePage() {
           setInvitationData(result.data);
 
           // Construct clientDef from the API response
-          // The API returns clientProfile which has the structure we need
+          // The API returns profile which has the structure we need
           const clientData = {
-            profile: result.data.clientProfile,
+            profile: result.data.profile,
             theme: {
-              key: result.data.clientProfile.theme,
+              key: result.data.profile.theme,
               dataId: slug
             }
           };

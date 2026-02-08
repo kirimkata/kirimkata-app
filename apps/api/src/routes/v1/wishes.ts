@@ -119,9 +119,9 @@ wishes.post('/:slug', async (c) => {
         const validAttendance = ['hadir', 'tidak-hadir', 'masih-ragu'];
         if (!validAttendance.includes(attendance)) {
             return c.json(
-                { 
-                    success: false, 
-                    error: `Invalid attendance status. Must be one of: ${validAttendance.join(', ')}` 
+                {
+                    success: false,
+                    error: `Invalid attendance status. Must be one of: ${validAttendance.join(', ')}`
                 },
                 400
             );

@@ -3,6 +3,7 @@ import { getSupabaseClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
+import { rateLimiter } from "hono-rate-limiter";
 
 const router = new Hono<{ Bindings: Env }>();
 
@@ -10,7 +11,15 @@ const router = new Hono<{ Bindings: Env }>();
  * POST /v1/registration
  * Create new wedding registration
  */
-router.post('/', async (c) => {
+// Rate limiter for registration (5 requests per minute per IP)
+const registrationLimiter = rateLimiter({
+    windowMs: 60 * 1000,
+    limit: 5,
+    keyGenerator: (c) => c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'ip',
+    message: { error: 'Too many requests, please try again later.' } as any
+});
+
+router.post('/', registrationLimiter, async (c) => {
     try {
         const body = await c.req.json();
 

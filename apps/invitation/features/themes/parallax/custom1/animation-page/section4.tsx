@@ -55,19 +55,19 @@ export default function Section4({
   const defaultEventCloudText = getEventCloudText();
   const eventCloudText = invitationContent
     ? {
-        holyMatrimony: {
-          ...defaultEventCloudText.holyMatrimony,
-          ...invitationContent.eventCloud.holyMatrimony,
-        },
-        reception: {
-          ...defaultEventCloudText.reception,
-          ...invitationContent.eventCloud.reception,
-        },
-        streaming: {
-          ...defaultEventCloudText.streaming,
-          ...invitationContent.eventCloud.streaming,
-        },
-      }
+      holyMatrimony: {
+        ...defaultEventCloudText.holyMatrimony,
+        ...invitationContent.eventDetails.holyMatrimony,
+      },
+      reception: {
+        ...defaultEventCloudText.reception,
+        ...invitationContent.eventDetails.reception,
+      },
+      streaming: {
+        ...defaultEventCloudText.streaming,
+        ...invitationContent.eventDetails.streaming,
+      },
+    }
     : defaultEventCloudText;
   const defaultTransition = getDefaultTransitionValues(animationConfig);
 
@@ -175,7 +175,7 @@ export default function Section4({
         }}
       >
         {/* Cloud Image */}
-        <div 
+        <div
           className="relative w-full"
           style={{
             opacity: cloudOpacity,
@@ -281,7 +281,7 @@ export default function Section4({
 
           {/* Reception Section */}
           <div className="mb-5 text-right"
-              style={{
+            style={{
               marginTop: '10px',
             }}>
             <h2
