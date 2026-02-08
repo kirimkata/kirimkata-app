@@ -286,6 +286,86 @@ function ClientLayoutContent({
                                 <span style={{ fontSize: '20px' }}>📖</span>
                                 <span style={{ fontSize: '14px' }}>Buku Tamu</span>
                             </Link>
+
+                            <Link href="/client-dashboard/kirim-undangan" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                backgroundColor: pathname.includes('/kirim-undangan') ? '#eff6ff' : 'transparent',
+                                color: pathname.includes('/kirim-undangan') ? '#2563eb' : '#4b5563',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                                fontWeight: pathname.includes('/kirim-undangan') ? 600 : 500
+                            }}>
+                                <span style={{ fontSize: '20px' }}>📤</span>
+                                <span style={{ fontSize: '14px' }}>Kirim Undangan</span>
+                            </Link>
+
+                            <Link href="/client-dashboard/message-template" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                backgroundColor: pathname.includes('/message-template') ? '#eff6ff' : 'transparent',
+                                color: pathname.includes('/message-template') ? '#2563eb' : '#4b5563',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                                fontWeight: pathname.includes('/message-template') ? 600 : 500
+                            }}>
+                                <span style={{ fontSize: '20px' }}>📝</span>
+                                <span style={{ fontSize: '14px' }}>Message Template</span>
+                            </Link>
+
+                            <Link href="/client-dashboard/media-library" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                backgroundColor: pathname.includes('/media-library') ? '#eff6ff' : 'transparent',
+                                color: pathname.includes('/media-library') ? '#2563eb' : '#4b5563',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                                fontWeight: pathname.includes('/media-library') ? 600 : 500
+                            }}>
+                                <span style={{ fontSize: '20px' }}>🖼️</span>
+                                <span style={{ fontSize: '14px' }}>Media Library</span>
+                            </Link>
+
+                            <Link href="/client-dashboard/custom-tema" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                backgroundColor: pathname.includes('/custom-tema') ? '#eff6ff' : 'transparent',
+                                color: pathname.includes('/custom-tema') ? '#2563eb' : '#4b5563',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                                fontWeight: pathname.includes('/custom-tema') ? 600 : 500
+                            }}>
+                                <span style={{ fontSize: '20px' }}>🎨</span>
+                                <span style={{ fontSize: '14px' }}>Custom Tema</span>
+                            </Link>
+
+                            <Link href="/client-dashboard/pengaturan" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                backgroundColor: pathname.includes('/pengaturan') ? '#eff6ff' : 'transparent',
+                                color: pathname.includes('/pengaturan') ? '#2563eb' : '#4b5563',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                                fontWeight: pathname.includes('/pengaturan') ? 600 : 500
+                            }}>
+                                <span style={{ fontSize: '20px' }}>⚙️</span>
+                                <span style={{ fontSize: '14px' }}>Pengaturan</span>
+                            </Link>
                         </div>
                     </nav>
 

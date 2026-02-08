@@ -204,4 +204,359 @@ export class InvitationAPI {
         });
         return res.json();
     }
+
+    // ============ GUESTS ============
+
+    static async getGuests(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guests`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async saveGuests(guests: any[], token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ guests }),
+        });
+        return res.json();
+    }
+
+    // ============ CLIENT SETTINGS & PROFILE ============
+
+    static async getClientProfile(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/profile`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async updateClientSettings(data: { email?: string; currentPassword?: string; newPassword?: string }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async getMessageTemplate(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/template`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async saveMessageTemplate(template: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/template`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ template }),
+        });
+        return res.json();
+    }
+
+    // ============ CUSTOM IMAGES ============
+
+    static async getCustomImages(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/media/custom-images`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async saveCustomImages(custom_images: any, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/media/custom-images`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ custom_images }),
+        });
+        return res.json();
+    }
+
+    // ============ INVITATION CONTENT ============
+
+    static async getInvitationContent(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/invitation-content`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async saveInvitationContent(data: any, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/invitation-content`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+    static async getMessages(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/client/messages`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ MEDIA LIBRARY ============
+
+    static async getMediaList(token: string, type?: 'photo' | 'music' | 'video' | 'all') {
+        const url = new URL(`${API_BASE_URL}/v1/media/list`);
+        if (type) {
+            url.searchParams.append('type', type);
+        }
+        const res = await fetch(url.toString(), {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async uploadMedia(token: string, file: File, type: 'photo' | 'music' | 'video') {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+
+        const res = await fetch(`${API_BASE_URL}/v1/media/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
+        return res.json();
+    }
+
+    static async deleteMedia(token: string, fileId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/media/delete`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ fileId }),
+        });
+        return res.json();
+    }
+
+    static async getMediaQuota(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/media/quota`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ GUESTBOOK - STAFF ============
+
+    static async getGuestbookStaff(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/staff?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async createGuestbookStaff(token: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/staff`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async updateGuestbookStaff(token: string, staffId: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/staff/${staffId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async deleteGuestbookStaff(token: string, staffId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/staff/${staffId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ GUESTBOOK - GUESTS ============
+
+    static async getGuestbookGuests(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/guests?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async createGuestbookGuest(token: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/guests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async updateGuestbookGuest(token: string, guestId: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/guests/${guestId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async deleteGuestbookGuest(token: string, guestId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/guests/${guestId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ GUESTBOOK - SEATING ============
+
+    static async getGuestbookSeating(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/seating?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async createGuestbookSeating(token: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/seating`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async updateGuestbookSeating(token: string, configId: string, data: any) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/seating/${configId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async deleteGuestbookSeating(token: string, configId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/seating/${configId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getGuestbookSeatingStats(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/seating/stats?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ GUESTBOOK - CHECKIN & BENEFITS ============
+
+    static async getGuestbookCheckinStats(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/checkin/stats?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getGuestbookCheckinLogs(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/checkin/logs?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getGuestbookRedemptionLogs(token: string, eventId: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/shared/redeem?event_id=${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getGuestbookBenefits(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/guestbook/benefits`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
 }

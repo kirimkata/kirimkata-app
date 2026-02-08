@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClient } from '@/lib/contexts/ClientContext';
+import { InvitationAPI } from '@/lib/api/client';
 
 // ============================================================================
 // INTERFACES
@@ -185,6 +186,12 @@ export default function GuestbookPage() {
 
   // fetchEvents removed - using ClientContext
 
+
+
+  // ... (existing helper function buildUrl can be removed if not used anymore, or kept)
+
+  // ...
+
   const fetchData = useCallback(async () => {
     const token = getAuthToken();
     if (!token || !selectedEvent) return;
@@ -194,35 +201,21 @@ export default function GuestbookPage() {
       setIsLoading(true);
 
       // Fetch all data in parallel with event_id filter
-      const [staffRes, guestStatsRes, seatingStatsRes, guestsRes] =
+      const [staffData, guestStatsData, seatingData, guestsData] =
         await Promise.all([
-          fetch(buildUrl(`/api/staff?event_id=${selectedEvent}`), {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(buildUrl(`/api/guests/stats?event_id=${selectedEvent}`), {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(buildUrl(`/api/seating?stats=true&event_id=${selectedEvent}`), {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(buildUrl(`/api/guests?event_id=${selectedEvent}`), {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          InvitationAPI.getGuestbookStaff(token, selectedEvent),
+          InvitationAPI.getGuestbookCheckinStats(token, selectedEvent),
+          InvitationAPI.getGuestbookSeatingStats(token, selectedEvent),
+          InvitationAPI.getGuestbookGuests(token, selectedEvent)
         ]);
 
-      // Handle 401 to force relogin
-      if ([staffRes, guestStatsRes, seatingStatsRes, guestsRes].some(res => res.status === 401)) {
+      // Handle 401 to force relogin - check if any request returned 401/Unauthorized equivalent
+      const results = [staffData, guestStatsData, seatingData, guestsData];
+      if (results.some(res => !res.success && (res.error === 'Unauthorized' || res.status === 401))) {
         setError('Sesi berakhir atau token tidak valid. Silakan login ulang.');
         router.push('/client-dashboard/login');
         return;
       }
-
-      const [staffData, guestStatsData, seatingData, guestsData] = await Promise.all([
-        staffRes.json(),
-        guestStatsRes.json(),
-        seatingStatsRes.json(),
-        guestsRes.json()
-      ]);
 
       if (staffData.success) setStaff(staffData.data || []);
       if (guestStatsData.success) setGuestStats(guestStatsData.data);
@@ -242,10 +235,7 @@ export default function GuestbookPage() {
     if (!token || !selectedEvent) return;
 
     try {
-      const res = await fetch(buildUrl(`/api/checkin?limit=20&event_id=${selectedEvent}`), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await InvitationAPI.getGuestbookCheckinLogs(token, selectedEvent);
       if (data.success) {
         setCheckinLogs(data.data || []);
       }
@@ -259,10 +249,7 @@ export default function GuestbookPage() {
     if (!token || !selectedEvent) return;
 
     try {
-      const res = await fetch(buildUrl(`/api/redeem?limit=20&event_id=${selectedEvent}`), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await InvitationAPI.getGuestbookRedemptionLogs(token, selectedEvent);
       if (data.success) {
         setRedemptionLogs(data.data || []);
       }
@@ -271,26 +258,7 @@ export default function GuestbookPage() {
     }
   }, [getAuthToken, selectedEvent]);
 
-  // Fetch events on mount
-  // Fetch events handled by ClientContext
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  // Fetch data when event is selected
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchData();
-      if (activeTab === 'logs') {
-        fetchCheckinLogs();
-        fetchRedemptionLogs();
-      }
-    }
-  }, [selectedEvent, activeTab]);
-
-  // ============================================================================
-  // STAFF MANAGEMENT
-  // ============================================================================
+  // ...
 
   const handleCreateStaff = async () => {
     if (!staffForm.username || !staffForm.password || !staffForm.full_name) {
@@ -308,27 +276,19 @@ export default function GuestbookPage() {
 
     setIsSubmittingStaff(true);
     try {
-      const res = await fetch(buildUrl('/api/staff'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          username: staffForm.username,
-          password: staffForm.password,
-          full_name: staffForm.full_name,
-          phone: staffForm.phone || undefined,
-          permissions: {
-            can_checkin: staffForm.can_checkin,
-            can_redeem_souvenir: staffForm.can_redeem_souvenir,
-            can_redeem_snack: staffForm.can_redeem_snack,
-            can_access_vip_lounge: staffForm.can_access_vip_lounge
-          }
-        })
+      const data = await InvitationAPI.createGuestbookStaff(token, {
+        event_id: selectedEvent,
+        username: staffForm.username,
+        password: staffForm.password,
+        full_name: staffForm.full_name,
+        phone: staffForm.phone || undefined,
+        permissions: {
+          can_checkin: staffForm.can_checkin,
+          can_redeem_souvenir: staffForm.can_redeem_souvenir,
+          can_redeem_snack: staffForm.can_redeem_snack,
+          can_access_vip_lounge: staffForm.can_access_vip_lounge
+        }
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setStaff(prev => [data.data, ...prev]);
@@ -340,6 +300,7 @@ export default function GuestbookPage() {
         showNotification('error', data.error || 'Gagal membuat staff');
       }
     } catch (err) {
+      console.error('Create staff error', err);
       showNotification('error', 'Terjadi kesalahan server');
     } finally {
       setIsSubmittingStaff(false);
@@ -351,16 +312,7 @@ export default function GuestbookPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(buildUrl('/api/staff'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ staff_id: staffId, ...updates })
-      });
-
-      const data = await res.json();
+      const data = await InvitationAPI.updateGuestbookStaff(token, staffId, updates);
 
       if (data.success) {
         setStaff(prev => prev.map(s => s.id === staffId ? data.data : s));
@@ -369,6 +321,7 @@ export default function GuestbookPage() {
         showNotification('error', data.error || 'Gagal update staff');
       }
     } catch (err) {
+      console.error('Update staff error', err);
       showNotification('error', 'Terjadi kesalahan server');
     }
   };
@@ -380,12 +333,7 @@ export default function GuestbookPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(buildUrl(`/api/staff?id=${staffId}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      const data = await res.json();
+      const data = await InvitationAPI.deleteGuestbookStaff(token, staffId);
 
       if (data.success) {
         setStaff(prev => prev.filter(s => s.id !== staffId));
@@ -395,6 +343,7 @@ export default function GuestbookPage() {
         showNotification('error', data.error || 'Gagal menghapus staff');
       }
     } catch (err) {
+      console.error('Delete staff error', err);
       showNotification('error', 'Terjadi kesalahan server');
     }
   };

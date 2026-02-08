@@ -22,20 +22,15 @@ export default function DaftarUcapanPage() {
         setError('');
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch(API_ENDPOINTS.client.messages, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            if (!token) return;
 
-            const data = await response.json();
+            const { InvitationAPI } = await import('@/lib/api/client');
+            const data = await InvitationAPI.getMessages(token);
 
-            if (!response.ok) {
-                console.error('Fetch wishes failed:', response.status, JSON.stringify(data));
-                if (response.status === 401) {
+            if (!data.success && !data.wishes) { // InvitationAPI doesn't return ok/status directly, we infer from success or data presence
+                if (data.error === 'Unauthorized' || data.error === 'Invalid token') {
                     localStorage.removeItem('client_token');
                     localStorage.removeItem('client_user');
-                    // Use window.location to force a full refresh/redirect if router is not available or behavior is inconsistent
                     window.location.href = '/client-dashboard/login';
                     return;
                 }

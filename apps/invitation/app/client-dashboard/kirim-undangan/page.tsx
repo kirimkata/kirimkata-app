@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 import * as XLSX from 'xlsx';
 
 interface Guest {
@@ -59,17 +60,12 @@ export default function KirimUndanganPage() {
 
                 if (id) {
                     const token = localStorage.getItem('client_token');
+                    if (!token) return;
 
                     try {
                         // Load guests from database
-                        const guestsResponse = await fetch('/api/client/guests', {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'x-client-id': id,
-                            },
-                        });
+                        const guestsResult = await InvitationAPI.getGuests(token);
 
-                        const guestsResult = await guestsResponse.json();
                         if (guestsResult.success) {
                             // Check if there's unsaved data in localStorage
                             const localStorageKey = `guests_draft_${id}`;
@@ -92,14 +88,8 @@ export default function KirimUndanganPage() {
 
                     try {
                         // Load message template from database
-                        const templateResponse = await fetch('/api/client/template', {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'x-client-id': id,
-                            },
-                        });
+                        const templateResult = await InvitationAPI.getMessageTemplate(token);
 
-                        const templateResult = await templateResponse.json();
                         if (templateResult.success && templateResult.template) {
                             setTemplate(templateResult.template);
                             setSavedTemplate(templateResult.template);
@@ -196,15 +186,11 @@ export default function KirimUndanganPage() {
         if (!clientId) return;
 
         const token = localStorage.getItem('client_token');
-        try {
-            const guestsResponse = await fetch('/api/client/guests', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'x-client-id': clientId,
-                },
-            });
+        if (!token) return;
 
-            const guestsResult = await guestsResponse.json();
+        try {
+            const guestsResult = await InvitationAPI.getGuests(token);
+
             if (guestsResult.success) {
                 setGuests(guestsResult.guests || []);
                 setSavedGuests(guestsResult.guests || []);
@@ -268,15 +254,11 @@ export default function KirimUndanganPage() {
         if (!clientId) return;
 
         const token = localStorage.getItem('client_token');
-        try {
-            const guestsResponse = await fetch('/api/client/guests', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'x-client-id': clientId,
-                },
-            });
+        if (!token) return;
 
-            const guestsResult = await guestsResponse.json();
+        try {
+            const guestsResult = await InvitationAPI.getGuests(token);
+
             if (guestsResult.success) {
                 const dbGuests = guestsResult.guests || [];
                 const localGuests = guests;
@@ -309,20 +291,13 @@ export default function KirimUndanganPage() {
     const handleSaveToDatabase = async () => {
         if (!clientId) return;
 
+        const token = localStorage.getItem('client_token');
+        if (!token) return;
+
         setIsSaving(true);
         try {
-            const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/guests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                    'x-client-id': clientId,
-                },
-                body: JSON.stringify({ guests }),
-            });
+            const result = await InvitationAPI.saveGuests(guests, token);
 
-            const result = await response.json();
             if (result.success) {
                 setSavedGuests(guests);
                 setHasUnsavedChanges(false);
@@ -347,20 +322,13 @@ export default function KirimUndanganPage() {
     const handleSaveTemplate = async () => {
         if (!clientId) return;
 
+        const token = localStorage.getItem('client_token');
+        if (!token) return;
+
         setIsSavingTemplate(true);
         try {
-            const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/template', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                    'x-client-id': clientId,
-                },
-                body: JSON.stringify({ template }),
-            });
+            const result = await InvitationAPI.saveMessageTemplate(template, token);
 
-            const result = await response.json();
             if (result.success) {
                 setSavedTemplate(template);
                 setHasUnsavedTemplate(false);

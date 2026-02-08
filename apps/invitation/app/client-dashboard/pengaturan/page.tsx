@@ -1,263 +1,200 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 export default function PengaturanPage() {
-    const [clientData, setClientData] = useState<any>(null);
-    const [formData, setFormData] = useState({
-        email: '',
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-    });
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState({ type: '', text: '' });
+    const [email, setEmail] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Fetch fresh client data from server
-    const fetchClientData = async () => {
-        try {
-            const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/profile', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+    // Local snackbar state
+    const [snackbar, setSnackbar] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.client) {
-                    // Update localStorage with fresh data
-                    localStorage.setItem('client_user', JSON.stringify(data.client));
-                    setClientData(data.client);
-                    setFormData(prev => ({ ...prev, email: data.client.email || '' }));
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching client data:', err);
-        }
+    const showSnackbar = (message: string, type: 'success' | 'error' = 'success') => {
+        setSnackbar({ show: true, message, type });
+        setTimeout(() => {
+            setSnackbar(prev => ({ ...prev, show: false }));
+        }, 3000);
     };
 
+    // Fetch client data
     useEffect(() => {
-        // First, load from localStorage for immediate display
-        const user = localStorage.getItem('client_user');
-        if (user) {
-            const data = JSON.parse(user);
-            setClientData(data);
-            setFormData(prev => ({ ...prev, email: data.email || '' }));
-        }
+        const fetchClientData = async () => {
+            setIsLoading(true);
+            try {
+                const token = localStorage.getItem('client_token');
+                if (!token) {
+                    setIsLoading(false);
+                    return;
+                }
 
-        // Then fetch fresh data from server
+                const result = await InvitationAPI.getClientProfile(token);
+
+                if (result.success && result.client) {
+                    setEmail(result.client.email || '');
+                } else {
+                    showSnackbar('Gagal memuat data profil', 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching client data:', error);
+                showSnackbar('Terjadi kesalahan saat memuat data', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         fetchClientData();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setMessage({ type: '', text: '' });
 
-        if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-            setMessage({ type: 'error', text: 'Password baru tidak cocok' });
-            return;
+        // Validate password if changing
+        if (newPassword) {
+            if (newPassword !== confirmPassword) {
+                showSnackbar('Password baru tidak cocok', 'error');
+                return;
+            }
+            if (!currentPassword) {
+                showSnackbar('Masukkan password saat ini untuk mengubah password', 'error');
+                return;
+            }
         }
 
-        setLoading(true);
-
+        setIsSaving(true);
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/settings', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    currentPassword: formData.currentPassword || undefined,
-                    newPassword: formData.newPassword || undefined,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Gagal menyimpan perubahan');
+            if (!token) {
+                showSnackbar('Sesi habis, silakan login kembali', 'error');
+                return;
             }
 
-            // Fetch fresh data after update
-            await fetchClientData();
+            const updateData: any = { email };
+            if (newPassword) {
+                updateData.currentPassword = currentPassword;
+                updateData.newPassword = newPassword;
+            }
 
-            setMessage({ type: 'success', text: 'Pengaturan berhasil disimpan' });
-            setFormData(prev => ({
-                ...prev,
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: '',
-            }));
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err.message });
+            const result = await InvitationAPI.updateClientSettings(updateData, token);
+
+            if (result.success) {
+                showSnackbar('Pengaturan berhasil disimpan');
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                showSnackbar(result.error || 'Gagal menyimpan pengaturan', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            showSnackbar('Terjadi kesalahan saat menyimpan pengaturan', 'error');
         } finally {
-            setLoading(false);
+            setIsSaving(false);
         }
     };
 
     return (
-        <div>
-
-            <div style={{
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                padding: '1rem',
-                maxWidth: '600px',
-            }}>
-                <div style={{ marginBottom: '1.25rem' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
-                        Informasi Akun
-                    </h2>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 500, color: '#374151', display: 'inline-block', width: '100px' }}>Username: </span>
-                        <span style={{ color: '#6b7280' }}>{clientData?.username}</span>
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 500, color: '#374151', display: 'inline-block', width: '100px' }}>Undangan: </span>
-                        <span style={{ color: clientData?.slug ? '#6b7280' : '#dc2626' }}>
-                            {clientData?.slug ? `Aktif (${clientData.slug})` : 'Belum ada undangan'}
-                        </span>
-                    </div>
+        <div className="p-6 relative">
+            {/* Snackbar */}
+            {snackbar.show && (
+                <div
+                    className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white text-sm font-medium transition-all transform ${snackbar.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+                        }`}
+                >
+                    {snackbar.message}
                 </div>
+            )}
 
-                {message.text && (
-                    <div style={{
-                        padding: '0.65rem 0.75rem',
-                        borderRadius: '0.375rem',
-                        marginBottom: '1rem',
-                        backgroundColor: message.type === 'error' ? '#fee2e2' : '#dcfce7',
-                        color: message.type === 'error' ? '#991b1b' : '#166534',
-                        fontSize: '0.85rem',
-                    }}>
-                        {message.text}
-                    </div>
-                )}
+            <h1 className="text-2xl font-bold mb-6">Pengaturan Akun</h1>
 
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: '#374151',
-                            marginBottom: '0.5rem',
-                        }}>
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.65rem 0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
-                                fontFamily: 'Segoe UI, sans-serif',
-                            }}
-                        />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Email Section */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Email</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Alamat Email
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="nama@email.com"
+                                    required
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', marginTop: '1.5rem', color: '#111827' }}>
-                        Ubah Password
-                    </h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>
-                        Kosongkan jika tidak ingin mengubah password.
-                    </p>
+                    <hr className="border-gray-100" />
 
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: '#374151',
-                            marginBottom: '0.5rem',
-                        }}>
-                            Password Saat Ini
-                        </label>
-                        <input
-                            type="password"
-                            value={formData.currentPassword}
-                            onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.65rem 0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
-                                fontFamily: 'Segoe UI, sans-serif',
-                            }}
-                        />
+                    {/* Password Section */}
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Ganti Password</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Password Saat Ini
+                                </label>
+                                <input
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Masukkan password saat ini"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Diperlukan jika ingin mengubah password
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Password Baru
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="Password baru"
+                                        minLength={6}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Konfirmasi Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="Ulangi password baru"
+                                        minLength={6}
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: '#374151',
-                            marginBottom: '0.5rem',
-                        }}>
-                            Password Baru
-                        </label>
-                        <input
-                            type="password"
-                            value={formData.newPassword}
-                            onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.65rem 0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
-                                fontFamily: 'Segoe UI, sans-serif',
-                            }}
-                        />
+                    <div className="pt-4">
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className={`w-full text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium ${isSaving ? 'bg-gray-400' : 'bg-blue-600'}`}
+                        >
+                            {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        </button>
                     </div>
-
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: '#374151',
-                            marginBottom: '0.5rem',
-                        }}>
-                            Konfirmasi Password Baru
-                        </label>
-                        <input
-                            type="password"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.65rem 0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
-                                fontFamily: 'Segoe UI, sans-serif',
-                            }}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            padding: '0.65rem 1.25rem',
-                            background: loading ? '#9ca3af' : 'linear-gradient(to right, #2563eb, #06b6d4)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.375rem',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            fontWeight: 600,
-                            fontFamily: 'Segoe UI, sans-serif',
-                        }}
-                    >
-                        {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
-                    </button>
                 </form>
             </div>
         </div>

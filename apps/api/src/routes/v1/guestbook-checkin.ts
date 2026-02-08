@@ -54,9 +54,98 @@ guestbookCheckin.post('/', async (c) => {
             success: true,
             data: guest,
             message: 'Guest checked in successfully',
+            updated: true, // Marker to indicate valid response
         });
     } catch (error) {
         console.error('Checkin error:', error);
+        return c.json(
+            { success: false, error: 'Internal server error' },
+            500
+        );
+    }
+});
+
+/**
+ * GET /v1/guestbook/checkin/logs?event_id=xxx&limit=20
+ * Get check-in logs
+ */
+guestbookCheckin.get('/logs', async (c) => {
+    try {
+        const clientId = c.get('clientId') as string;
+        const eventId = c.req.query('event_id');
+        const limit = parseInt(c.req.query('limit') || '20');
+
+        if (!eventId) {
+            return c.json(
+                { success: false, error: 'Event ID required' },
+                400
+            );
+        }
+
+        const supabase = getSupabaseClient(c.env);
+
+        // Verify access to event
+        const { data: event, error: eventError } = await supabase
+            .from('guestbook_events')
+            .select('id')
+            .eq('id', eventId)
+            .eq('client_id', clientId)
+            .single();
+
+        if (eventError || !event) {
+            return c.json(
+                { success: false, error: 'Event not found or access denied' },
+                404
+            );
+        }
+
+        // Get logs
+        // Note: performing join manually or utilizing Supabase's relational query
+        const { data: logs, error } = await supabase
+            .from('staff_logs')
+            .select(`
+                *,
+                invitation_guests!inner(
+                    id,
+                    event_id,
+                    guest_name,
+                    guest_phone,
+                    guest_type_id
+                ),
+                guestbook_staff(
+                    id,
+                    username,
+                    full_name
+                )
+            `)
+            .eq('invitation_guests.event_id', eventId)
+            .eq('action', 'checkin')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching checkin logs:', error);
+            return c.json(
+                { success: false, error: 'Failed to fetch checkin logs' },
+                500
+            );
+        }
+
+        // Transform data to match expected format if needed
+        const formattedLogs = logs?.map(log => ({
+            id: log.id,
+            guest_name: log.invitation_guests?.guest_name,
+            staff_name: log.guestbook_staff?.full_name || 'System',
+            checkin_method: log.notes?.includes('QR') ? 'QR_SCAN' : 'MANUAL_SEARCH',
+            checked_in_at: log.created_at
+        }));
+
+        return c.json({
+            success: true,
+            data: formattedLogs || []
+        });
+    } catch (error) {
+        console.error('Get checkin logs error:', error);
         return c.json(
             { success: false, error: 'Internal server error' },
             500
