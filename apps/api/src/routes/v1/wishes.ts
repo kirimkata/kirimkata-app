@@ -1,8 +1,18 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { RateLimiter } from '@/middleware/rateLimit';
 
 const wishes = new Hono<{ Bindings: Env }>();
+
+const wishesRateLimiter = new RateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // 10 requests per minute
+    message: 'Too many requests, please try again later.'
+});
+
+// Apply rate limiting to all wishes routes
+wishes.use('*', wishesRateLimiter.middleware());
 
 /**
  * GET /v1/wishes/:slug

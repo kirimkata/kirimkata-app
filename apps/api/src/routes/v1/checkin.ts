@@ -326,8 +326,8 @@ checkin.get('/stats', async (c) => {
             data: {
                 total_checkins: totalCheckins ?? 0,
                 total_guests: totalGuests ?? 0,
-                checkin_percentage: totalGuests > 0
-                    ? Math.round((totalCheckins ?? 0) / totalGuests * 100)
+                checkin_percentage: (totalGuests ?? 0) > 0
+                    ? Math.round((totalCheckins ?? 0) / (totalGuests ?? 1) * 100)
                     : 0
             }
         });

@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { Context } from 'hono';
 import type { Env } from '../../lib/types';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
 import { loveStoryRepo } from '../../repositories/loveStoryRepository';
@@ -10,6 +11,13 @@ import { themeSettingsRepo } from '../../repositories/themeSettingsRepository';
 import { greetingSectionRepo } from '../../repositories/greetingSectionRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
 import { fetchFullInvitationContent } from '../../repositories/invitationContentRepository';
+import { RateLimiter } from '../../middleware/rateLimit';
+
+const publicRateLimiter = new RateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // 10 requests per minute
+    message: 'Too many requests'
+});
 
 const router = new OpenAPIHono<{ Bindings: Env }>();
 
@@ -144,7 +152,7 @@ const UpdateMusicBodySchema = z.object({
 // Theme Schemas
 const ThemeSettingsSchema = z.object({
     theme_key: z.string().optional(),
-    custom_images: z.record(z.any()).optional(),
+    custom_images: z.record(z.string(), z.any()).optional(),
     enable_gallery: z.boolean().optional(),
     enable_love_story: z.boolean().optional(),
     enable_wedding_gift: z.boolean().optional(),
@@ -562,16 +570,27 @@ router.openapi(
         request: { params: SlugParamsSchema },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.any()) } }, description: 'Compile invitation data' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
         },
     }),
-    async (c) => {
+    async (c: Context<{ Bindings: Env }>) => {
         const slug = c.req.param('slug');
+        const adminSecret = c.env.ADMIN_SECRET;
+        const providedSecret = c.req.header('x-admin-secret');
+
+        if (!adminSecret || providedSecret !== adminSecret) {
+            return c.json({ error: 'Unauthorized: Admin access required' }, 401);
+        }
+
         const compiled = await invitationCompiler.compileAndCache(slug);
-        return c.json({ success: true, data: compiled, message: 'Invitation compiled successfully' });
+        return c.json({ success: true, data: compiled, message: 'Invitation compiled successfully' }, 200);
     }
 );
 
 // Compile Route (GET) - Public access for frontend
+// Apply rate limit specifically to GET /compile
+router.get('/:slug/compile', publicRateLimiter.middleware());
+
 router.openapi(
     createRoute({
         method: 'get',

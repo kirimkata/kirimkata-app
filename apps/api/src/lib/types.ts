@@ -5,6 +5,7 @@ export interface Env {
     SUPABASE_SERVICE_ROLE_KEY: string;
     JWT_SECRET: string;
     ENCRYPTION_KEY: string;
+    ADMIN_SECRET?: string;
 
     // Variables (from wrangler.toml)
     ENVIRONMENT: 'development' | 'production';
