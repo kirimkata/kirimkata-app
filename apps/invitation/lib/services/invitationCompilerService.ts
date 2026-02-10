@@ -13,7 +13,7 @@ import type {
     GroomContent,
     EventContent,
     CloudsContent,
-    EventCloudContent,
+    eventDetailsContent,
     LoveStoryContent,
     GalleryContent,
     WeddingGiftContent,
@@ -68,7 +68,7 @@ class InvitationCompilerService {
             groom: this.buildGroomContent(registration),
             event: this.buildEventContent(registration),
             greetings: this.buildCloudsContent(greetings),
-            eventDetails: this.buildEventCloudContent(registration),
+            eventDetails: this.buildeventDetailsContent(registration),
             loveStory: this.buildLoveStoryContent(loveStorySettings, loveStoryBlocks),
             gallery: this.buildGalleryContent(gallerySettings),
             weddingGift: this.buildWeddingGiftContent(weddingGiftSettings, weddingGiftBankAccounts),
@@ -197,7 +197,7 @@ class InvitationCompilerService {
         return clouds;
     }
 
-    private buildEventCloudContent(reg: WeddingRegistration): EventCloudContent {
+    private buildeventDetailsContent(reg: WeddingRegistration): eventDetailsContent {
         const event1Label = this.getEventLabel(reg, 1);
         const event2Label = this.getEventLabel(reg, 2);
 

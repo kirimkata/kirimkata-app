@@ -49,7 +49,7 @@ export interface CloudText {
   groomText?: string;
 }
 
-interface EventCloudSectionDetail {
+interface eventDetailsSectionDetail {
   title: string;
   dateLabel: string;
   timeLabel: string;
@@ -59,16 +59,16 @@ interface EventCloudSectionDetail {
   mapsLabel: string;
 }
 
-interface EventCloudStreamingDetail {
+interface eventDetailsStreamingDetail {
   description: string;
   url: string;
   buttonLabel: string;
 }
 
-export interface EventCloudTextConfig {
-  holyMatrimony: EventCloudSectionDetail;
-  reception: EventCloudSectionDetail;
-  streaming: EventCloudStreamingDetail;
+export interface eventDetailsTextConfig {
+  holyMatrimony: eventDetailsSectionDetail;
+  reception: eventDetailsSectionDetail;
+  streaming: eventDetailsStreamingDetail;
 }
 
 // Default generic configurations (NOT client-specific)
@@ -105,7 +105,7 @@ export const saveTheDateConfig: SaveTheDateConfig = {
 // Keep empty; getCloudText will fall back to a generic welcome message.
 const CLOUD_TEXTS: Record<string, CloudText> = {};
 
-const EVENT_CLOUD_TEXT: EventCloudTextConfig = {
+const EVENT_CLOUD_TEXT: eventDetailsTextConfig = {
   holyMatrimony: {
     title: '[CEREMONY_TITLE]',
     dateLabel: '[CEREMONY_DATE]',
@@ -167,7 +167,7 @@ export function getCloudText(section: string): CloudText {
   };
 }
 
-export function getEventCloudText(): EventCloudTextConfig {
+export function geteventDetailsText(): eventDetailsTextConfig {
   return EVENT_CLOUD_TEXT;
 }
 
@@ -193,7 +193,7 @@ export interface ThemeTextConfigSnapshot {
   weddingDate: WeddingDateConfig;
   saveTheDate: SaveTheDateConfig;
   cloudTexts: Record<string, CloudText>;
-  eventCloud: EventCloudTextConfig;
+  eventDetails: eventDetailsTextConfig;
 }
 
 export function getThemeTextConfig(): ThemeTextConfigSnapshot {
@@ -203,7 +203,7 @@ export function getThemeTextConfig(): ThemeTextConfigSnapshot {
     weddingDate: getWeddingDateConfig(),
     saveTheDate: getSaveTheDateConfig(),
     cloudTexts: CLOUD_TEXTS,
-    eventCloud: getEventCloudText(),
+    eventDetails: geteventDetailsText(),
   };
 }
 

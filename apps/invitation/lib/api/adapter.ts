@@ -10,7 +10,7 @@ import type {
     GroomContent,
     EventContent,
     CloudsContent,
-    EventCloudContent,
+    eventDetailsContent,
     LoveStoryContent,
     GalleryContent,
     WeddingGiftContent,
@@ -79,7 +79,7 @@ export function adaptApiDataToFullContent(
     };
 
     // Event cloud content
-    const eventCloud: EventCloudContent = {
+    const eventDetails: eventDetailsContent = {
         holyMatrimony: {
             title: 'Akad Nikah',
             dateLabel: formatFullDate(registration?.event1Date),
@@ -191,17 +191,17 @@ export function adaptApiDataToFullContent(
 
     return {
         slug,
-        clientProfile,
+        profile: clientProfile,
         bride,
         groom,
         event,
-        clouds,
-        eventCloud,
+        greetings: clouds,
+        eventDetails,
         loveStory: loveStoryContent,
         gallery: galleryContent,
         weddingGift: weddingGiftContent,
         closing: closingContent,
-        backgroundMusic,
+        musicSettings: backgroundMusic,
     };
 }
 

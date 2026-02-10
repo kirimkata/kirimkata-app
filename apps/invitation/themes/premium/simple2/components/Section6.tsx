@@ -136,14 +136,14 @@ export default function Section6({
             formattedDates = `${formattedDate}/${formattedDate}`;
         }
 
-        const receptionVenue = invitationContent?.eventCloud?.reception?.venueName;
-        const receptionVenueAddress = invitationContent?.eventCloud?.reception?.venueAddress;
-        const receptionDateLabel = invitationContent?.eventCloud?.reception?.dateLabel;
-        const receptionMapsUrl = invitationContent?.eventCloud?.reception?.mapsUrl;
-        const holyMatrimonyVenue = invitationContent?.eventCloud?.holyMatrimony?.venueName;
-        const holyMatrimonyVenueAddress = invitationContent?.eventCloud?.holyMatrimony?.venueAddress;
-        const holyMatrimonyDateLabel = invitationContent?.eventCloud?.holyMatrimony?.dateLabel;
-        const holyMatrimonyMapsUrl = invitationContent?.eventCloud?.holyMatrimony?.mapsUrl;
+        const receptionVenue = invitationContent?.eventDetails?.reception?.venueName;
+        const receptionVenueAddress = invitationContent?.eventDetails?.reception?.venueAddress;
+        const receptionDateLabel = invitationContent?.eventDetails?.reception?.dateLabel;
+        const receptionMapsUrl = invitationContent?.eventDetails?.reception?.mapsUrl;
+        const holyMatrimonyVenue = invitationContent?.eventDetails?.holyMatrimony?.venueName;
+        const holyMatrimonyVenueAddress = invitationContent?.eventDetails?.holyMatrimony?.venueAddress;
+        const holyMatrimonyDateLabel = invitationContent?.eventDetails?.holyMatrimony?.dateLabel;
+        const holyMatrimonyMapsUrl = invitationContent?.eventDetails?.holyMatrimony?.mapsUrl;
 
         const locationName = receptionVenue || holyMatrimonyVenue || '';
         const locationAddress = receptionVenueAddress || holyMatrimonyVenueAddress || '';

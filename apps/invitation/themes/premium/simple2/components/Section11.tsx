@@ -49,7 +49,7 @@ export default function Section11({
 
     const brideDisplayName = invitationContent?.bride?.name || '[BRIDE_NAME]';
     const groomDisplayName = invitationContent?.groom?.name || '[GROOM_NAME]';
-    const coupleNames = invitationContent?.clientProfile?.coupleNames || `${brideDisplayName} & ${groomDisplayName}`;
+    const coupleNames = invitationContent?.profile?.coupleNames || `${brideDisplayName} & ${groomDisplayName}`;
 
     const activeTitle = galleryFromDb?.mainTitle || mainTitle;
     const activeShowYoutube = galleryFromDb?.showYoutube ?? showYoutube;

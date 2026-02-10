@@ -69,7 +69,7 @@ export const masterMockTest2 = {
   },
 
   // Event details used in big cloud (Section 4)
-  eventCloud: {
+  eventDetails: {
     holyMatrimony: {
       title: 'Akad',
       dateLabel: 'Sabtu, 27 Desember 2025',

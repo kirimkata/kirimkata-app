@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { getImage } from '@/themes/parallax/parallax-template1/config/imageConfig';
-import { getEventCloudText } from '@/themes/parallax/parallax-template1/config/textConfig';
+import { geteventDetailsText } from '@/themes/parallax/parallax-template1/config/textConfig';
 import { getDefaultTransitionValues, animationConfig } from '@/themes/parallax/parallax-template1/config/animationConfig';
 import { interpolate, easeInOutCubic } from '@/components/animation/animation-helpers';
 import { getCloudConfig } from '@/themes/parallax/parallax-template1/config/cloudConfig';
@@ -51,23 +51,23 @@ export default function Section4({
 }: Section4Props) {
   const cloudVisual = getCloudConfig('4-5');
   const invitationContent = useInvitationContent();
-  const defaultEventCloudText = getEventCloudText();
-  const eventCloudText = invitationContent
+  const defaulteventDetailsText = geteventDetailsText();
+  const eventDetailsText = invitationContent
     ? {
       holyMatrimony: {
-        ...defaultEventCloudText.holyMatrimony,
+        ...defaulteventDetailsText.holyMatrimony,
         ...invitationContent.eventDetails.holyMatrimony,
       },
       reception: {
-        ...defaultEventCloudText.reception,
+        ...defaulteventDetailsText.reception,
         ...invitationContent.eventDetails.reception,
       },
       streaming: {
-        ...defaultEventCloudText.streaming,
+        ...defaulteventDetailsText.streaming,
         ...invitationContent.eventDetails.streaming,
       },
     }
-    : defaultEventCloudText;
+    : defaulteventDetailsText;
   const defaultTransition = getDefaultTransitionValues(animationConfig);
 
   const clampedProgress = Math.max(0, Math.min(6, dragProgress));
@@ -217,7 +217,7 @@ export default function Section4({
                 ...getTypographyStyle(section4Typography.title),
               }}
             >
-              {eventCloudText.holyMatrimony.title}
+              {eventDetailsText.holyMatrimony.title}
             </h2>
             <p
               className="mb-0.5"
@@ -227,7 +227,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.holyMatrimony.dateLabel}
+              {eventDetailsText.holyMatrimony.dateLabel}
             </p>
             <p
               className="mb-2"
@@ -237,7 +237,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.holyMatrimony.timeLabel}
+              {eventDetailsText.holyMatrimony.timeLabel}
             </p>
 
             <p
@@ -248,7 +248,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.holyMatrimony.venueName}
+              {eventDetailsText.holyMatrimony.venueName}
             </p>
             <p
               className="mb-2"
@@ -259,11 +259,11 @@ export default function Section4({
                   : {}),
               }}
             >
-              {eventCloudText.holyMatrimony.venueAddress}
+              {eventDetailsText.holyMatrimony.venueAddress}
             </p>
 
             <a
-              href={eventCloudText.holyMatrimony.mapsUrl}
+              href={eventDetailsText.holyMatrimony.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block rounded-[5px] text-white text-xs font-medium"
@@ -274,7 +274,7 @@ export default function Section4({
                 padding: '5px 20px',
               }}
             >
-              {eventCloudText.holyMatrimony.mapsLabel}
+              {eventDetailsText.holyMatrimony.mapsLabel}
             </a>
           </div>
 
@@ -290,7 +290,7 @@ export default function Section4({
                 ...getTypographyStyle(section4Typography.title),
               }}
             >
-              {eventCloudText.reception.title}
+              {eventDetailsText.reception.title}
             </h2>
             <p
               className="mb-0.5"
@@ -300,7 +300,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.reception.dateLabel}
+              {eventDetailsText.reception.dateLabel}
             </p>
             <p
               className="mb-2"
@@ -310,7 +310,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.reception.timeLabel}
+              {eventDetailsText.reception.timeLabel}
             </p>
 
             <p
@@ -321,7 +321,7 @@ export default function Section4({
                   : {}
               }
             >
-              {eventCloudText.reception.venueName}
+              {eventDetailsText.reception.venueName}
             </p>
             <p
               className="mb-2"
@@ -332,11 +332,11 @@ export default function Section4({
                   : {}),
               }}
             >
-              {eventCloudText.reception.venueAddress}
+              {eventDetailsText.reception.venueAddress}
             </p>
 
             <a
-              href={eventCloudText.reception.mapsUrl}
+              href={eventDetailsText.reception.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block rounded-[5px] text-white text-xs font-medium"
@@ -347,7 +347,7 @@ export default function Section4({
                 padding: '5px 20px',
               }}
             >
-              {eventCloudText.reception.mapsLabel}
+              {eventDetailsText.reception.mapsLabel}
             </a>
           </div>
 
@@ -359,11 +359,11 @@ export default function Section4({
             }}
           >
             <p className="text-xs mb-2 leading-relaxed whitespace-pre-line">
-              {eventCloudText.streaming.description}
+              {eventDetailsText.streaming.description}
             </p>
 
             <a
-              href={eventCloudText.streaming.url}
+              href={eventDetailsText.streaming.url}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-[5px] text-white text-xs font-medium"
@@ -402,7 +402,7 @@ export default function Section4({
                   <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
                 </svg>
               </span>
-              {eventCloudText.streaming.buttonLabel}
+              {eventDetailsText.streaming.buttonLabel}
             </a>
           </div> */}
         </div>

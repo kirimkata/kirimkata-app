@@ -3,7 +3,7 @@ import { masterMockPoppyFadli } from '@/clients/mocks/masterMockPoppyFadli';
 export const masterMockBudiAni = {
   ...masterMockPoppyFadli,
   clientProfile: {
-    ...masterMockPoppyFadli.clientProfile,
+    ...masterMockPoppyFadli.profile,
     slug: 'budi-ani',
     coupleNames: 'Budi & Ani',
     metaTitle: 'Wedding Budi & Ani',

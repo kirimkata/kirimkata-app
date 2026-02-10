@@ -28,10 +28,10 @@ export function useEventData(): UseEventDataReturn {
     const event = invitationContent?.event ? {
         date: invitationContent.event.fullDateLabel,
         isoDate: invitationContent.event.isoDate,
-        time: invitationContent.eventCloud?.reception?.timeLabel || '',
-        location: invitationContent.eventCloud?.reception?.venueName || '',
-        address: invitationContent.eventCloud?.reception?.venueAddress || '',
-        mapUrl: invitationContent.eventCloud?.reception?.mapsUrl,
+        time: invitationContent.eventDetails?.reception?.timeLabel || '',
+        location: invitationContent.eventDetails?.reception?.venueName || '',
+        address: invitationContent.eventDetails?.reception?.venueAddress || '',
+        mapUrl: invitationContent.eventDetails?.reception?.mapsUrl,
     } : null;
 
     return {

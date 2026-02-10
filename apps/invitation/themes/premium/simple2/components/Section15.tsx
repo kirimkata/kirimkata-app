@@ -86,7 +86,7 @@ export default function Section15({
     const closing = invitationContent?.closing;
 
     const finalBackground = closing?.photoSrc || backgroundImageUrl;
-    const namesScript = closing?.namesScript || invitationContent?.clientProfile?.coupleNames || 'Bride & Groom';
+    const namesScript = closing?.namesScript || invitationContent?.profile?.coupleNames || 'Bride & Groom';
     const descriptionText = (closing?.messageLines?.length ? closing.messageLines.join('\n') : description) || '';
 
     return (

@@ -170,7 +170,7 @@ export default function SaveTheDateSection({
       formattedDates = `${formattedDate}/${formattedDate}`;
     }
 
-    // Get location from eventCloud (prioritize reception, fallback to holyMatrimony)
+    // Get location from eventDetails (prioritize reception, fallback to holyMatrimony)
     const receptionVenue = invitationContent?.eventDetails?.reception?.venueName;
     const receptionVenueAddress = invitationContent?.eventDetails?.reception?.venueAddress;
     const receptionDateLabel = invitationContent?.eventDetails?.reception?.dateLabel;

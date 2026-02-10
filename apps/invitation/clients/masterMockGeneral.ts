@@ -72,7 +72,7 @@ export const masterMockGeneral = {
   },
 
   // Event details used in big cloud (Section 4)
-  eventCloud: {
+  eventDetails: {
     holyMatrimony: {
       title: 'Akad',
       dateLabel: '[TANGGAL ACARA]',

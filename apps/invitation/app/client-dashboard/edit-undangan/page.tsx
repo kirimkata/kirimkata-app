@@ -139,85 +139,84 @@ export default function EditUndanganPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        try {
-          const token = localStorage.getItem('client_token');
-          if (!token) {
+        const token = localStorage.getItem('client_token');
+        if (!token) {
+          router.push('/client-dashboard/login');
+          return;
+        }
+
+        const data = await InvitationAPI.getInvitationContent(token);
+
+        if (!data.success) {
+          if (data.error === 'Unauthorized' || data.message === 'Unauthorized') {
+            localStorage.removeItem('client_token');
+            localStorage.removeItem('client_user');
             router.push('/client-dashboard/login');
             return;
           }
-
-          const data = await InvitationAPI.getInvitationContent(token);
-
-          if (!data.success) {
-            if (data.error === 'Unauthorized' || data.message === 'Unauthorized') {
-              localStorage.removeItem('client_token');
-              localStorage.removeItem('client_user');
-              router.push('/client-dashboard/login');
-              return;
-            }
-            if (data.error === 'Invitation not found' || data.message === 'Invitation not found') {
-              setMessage({
-                type: 'error',
-                text: 'Anda belum memiliki undangan yang di-assign. Silakan hubungi admin.',
-              });
-              setLoading(false);
-              return;
-            }
-            throw new Error(data.error || 'Failed to fetch data');
+          if (data.error === 'Invitation not found' || data.message === 'Invitation not found') {
+            setMessage({
+              type: 'error',
+              text: 'Anda belum memiliki undangan yang di-assign. Silakan hubungi admin.',
+            });
+            setLoading(false);
+            return;
           }
-
-          if (data.success && data.content) {
-            // Map eventCloud to event structure
-            const eventCloudData = data.content.eventCloud || {};
-            const eventData = data.content.event || {};
-
-            const loadedData = {
-              bride: data.content.bride || formData.bride,
-              groom: data.content.groom || formData.groom,
-              event: {
-                fullDateLabel: eventData.fullDateLabel || '',
-                isoDate: eventData.isoDate || '',
-                countdownDateTime: eventData.countdownDateTime || '',
-                holyMatrimony: {
-                  title: 'Akad',
-                  dateLabel: eventCloudData.holyMatrimony?.dateLabel || '',
-                  timeLabel: eventCloudData.holyMatrimony?.timeLabel || '',
-                  venueName: eventCloudData.holyMatrimony?.venueName || '',
-                  venueAddress: eventCloudData.holyMatrimony?.venueAddress || '',
-                  mapsUrl: eventCloudData.holyMatrimony?.mapsUrl || '',
-                },
-                reception: {
-                  title: 'Resepsi',
-                  dateLabel: eventCloudData.reception?.dateLabel || '',
-                  timeLabel: eventCloudData.reception?.timeLabel || '',
-                  venueName: eventCloudData.reception?.venueName || '',
-                  venueAddress: eventCloudData.reception?.venueAddress || '',
-                  mapsUrl: eventCloudData.reception?.mapsUrl || '',
-                },
-              },
-              loveStory: data.content.loveStory || formData.loveStory,
-              gallery: data.content.gallery || formData.gallery,
-              weddingGift: data.content.weddingGift || formData.weddingGift,
-              backgroundMusic: data.content.backgroundMusic || formData.backgroundMusic,
-              closing: data.content.closing || formData.closing,
-            };
-
-            setFormData(loadedData);
-            setSavedFormData(loadedData); // Initialize saved state
-          }
-        } catch (error: any) {
-          console.error('Error fetching data:', error);
-          setMessage({
-            type: 'error',
-            text: error.message || 'Gagal memuat data. Silakan refresh halaman.',
-          });
-        } finally {
-          setLoading(false);
+          throw new Error(data.error || 'Failed to fetch data');
         }
-      };
 
-      fetchData();
-    }, []);
+        if (data.success && data.content) {
+          // Map eventDetails to event structure
+          const eventDetailsData = data.content.eventDetails || {};
+          const eventData = data.content.event || {};
+
+          const loadedData = {
+            bride: data.content.bride || formData.bride,
+            groom: data.content.groom || formData.groom,
+            event: {
+              fullDateLabel: eventData.fullDateLabel || '',
+              isoDate: eventData.isoDate || '',
+              countdownDateTime: eventData.countdownDateTime || '',
+              holyMatrimony: {
+                title: 'Akad',
+                dateLabel: eventDetailsData.holyMatrimony?.dateLabel || '',
+                timeLabel: eventDetailsData.holyMatrimony?.timeLabel || '',
+                venueName: eventDetailsData.holyMatrimony?.venueName || '',
+                venueAddress: eventDetailsData.holyMatrimony?.venueAddress || '',
+                mapsUrl: eventDetailsData.holyMatrimony?.mapsUrl || '',
+              },
+              reception: {
+                title: 'Resepsi',
+                dateLabel: eventDetailsData.reception?.dateLabel || '',
+                timeLabel: eventDetailsData.reception?.timeLabel || '',
+                venueName: eventDetailsData.reception?.venueName || '',
+                venueAddress: eventDetailsData.reception?.venueAddress || '',
+                mapsUrl: eventDetailsData.reception?.mapsUrl || '',
+              },
+            },
+            loveStory: data.content.loveStory || formData.loveStory,
+            gallery: data.content.gallery || formData.gallery,
+            weddingGift: data.content.weddingGift || formData.weddingGift,
+            backgroundMusic: data.content.musicSettings || formData.backgroundMusic,
+            closing: data.content.closing || formData.closing,
+          };
+
+          setFormData(loadedData);
+          setSavedFormData(loadedData); // Initialize saved state
+        }
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        setMessage({
+          type: 'error',
+          text: error.message || 'Gagal memuat data. Silakan refresh halaman.',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Close tooltip when clicking outside
   useEffect(() => {

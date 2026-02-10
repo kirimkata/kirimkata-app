@@ -12,7 +12,7 @@ import { greetingSectionRepo } from '../../repositories/greetingSectionRepositor
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
 import { fetchFullInvitationContent } from '../../repositories/invitationContentRepository';
 import { RateLimiter } from '../../middleware/rateLimit';
-import { clientAuthMiddleware } from '../../middleware/auth';
+import { verifyToken } from '../../services/jwt';
 
 const publicRateLimiter = new RateLimiter({
     windowMs: 60 * 1000, // 1 minute
@@ -20,7 +20,26 @@ const publicRateLimiter = new RateLimiter({
     message: 'Too many requests'
 });
 
-const router = new OpenAPIHono<{ Bindings: Env; Variables: { clientId: string } }>();
+const router = new OpenAPIHono<{ Bindings: Env }>();
+
+/**
+ * Helper function to validate JWT and get client ID
+ */
+async function getAuthenticatedClientId(c: Context<{ Bindings: Env }>): Promise<{ clientId: string | null; error?: string }> {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return { clientId: null, error: 'Missing or invalid authorization header' };
+    }
+
+    const token = authHeader.substring(7);
+    const payload = await verifyToken(token, c.env.JWT_SECRET);
+
+    if (!payload || payload.type !== 'CLIENT') {
+        return { clientId: null, error: 'Invalid or expired token' };
+    }
+
+    return { clientId: payload.client_id };
+}
 
 /**
  * Helper function to validate ownership
@@ -240,18 +259,23 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update love story' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        // Authenticate
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings, blocks } = c.req.valid('json');
 
         // Validate ownership
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -307,17 +331,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update gallery' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -361,17 +389,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update wedding gift' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings, bankAccounts } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -428,17 +460,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update closing settings' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -481,17 +517,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update music settings' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -534,17 +574,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update theme settings' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -587,17 +631,21 @@ router.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SuccessResponseSchema(z.object({})) } }, description: 'Update greeting sections' },
-            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Unauthorized' },
+            403: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Forbidden' },
             404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'Not found' },
         },
     }),
-    clientAuthMiddleware,
     async (c) => {
+        const auth = await getAuthenticatedClientId(c);
+        if (!auth.clientId) {
+            return c.json({ error: auth.error || 'Unauthorized' }, 401);
+        }
+
         const slug = c.req.param('slug');
-        const clientId = c.get('clientId') as string;
         const { greetings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, clientId);
+        const validation = await validateOwnership(slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }

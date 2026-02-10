@@ -80,7 +80,7 @@ export default function LayoutSimple2({
 
     const eventTitle =
         invitationContent?.event?.eventTitle ||
-        invitationContent?.clientProfile?.coupleNames ||
+        invitationContent?.profile?.coupleNames ||
         `${finalBrideName} & ${finalGroomName}`;
 
     const calendarLink = invitationContent?.event?.calendarLink;
@@ -233,22 +233,22 @@ export default function LayoutSimple2({
                             overlayOpacity={section7Config.overlayOpacity}
                             fullDateLabel={invitationContent?.event?.fullDateLabel || section7Config.fullDateLabel}
                             holyMatrimony={{
-                                title: invitationContent?.eventCloud?.holyMatrimony?.title || section7Config.holyMatrimony.title,
-                                dateLabel: invitationContent?.eventCloud?.holyMatrimony?.dateLabel || section7Config.holyMatrimony.dateLabel,
-                                timeLabel: invitationContent?.eventCloud?.holyMatrimony?.timeLabel || section7Config.holyMatrimony.timeLabel,
-                                venueName: invitationContent?.eventCloud?.holyMatrimony?.venueName || section7Config.holyMatrimony.venueName,
-                                venueAddress: invitationContent?.eventCloud?.holyMatrimony?.venueAddress || section7Config.holyMatrimony.venueAddress,
-                                mapsUrl: invitationContent?.eventCloud?.holyMatrimony?.mapsUrl || section7Config.holyMatrimony.mapsUrl,
-                                mapsLabel: invitationContent?.eventCloud?.holyMatrimony?.mapsLabel || section7Config.holyMatrimony.mapsLabel,
+                                title: invitationContent?.eventDetails?.holyMatrimony?.title || section7Config.holyMatrimony.title,
+                                dateLabel: invitationContent?.eventDetails?.holyMatrimony?.dateLabel || section7Config.holyMatrimony.dateLabel,
+                                timeLabel: invitationContent?.eventDetails?.holyMatrimony?.timeLabel || section7Config.holyMatrimony.timeLabel,
+                                venueName: invitationContent?.eventDetails?.holyMatrimony?.venueName || section7Config.holyMatrimony.venueName,
+                                venueAddress: invitationContent?.eventDetails?.holyMatrimony?.venueAddress || section7Config.holyMatrimony.venueAddress,
+                                mapsUrl: invitationContent?.eventDetails?.holyMatrimony?.mapsUrl || section7Config.holyMatrimony.mapsUrl,
+                                mapsLabel: invitationContent?.eventDetails?.holyMatrimony?.mapsLabel || section7Config.holyMatrimony.mapsLabel,
                             }}
                             reception={{
-                                title: invitationContent?.eventCloud?.reception?.title || section7Config.reception.title,
-                                dateLabel: invitationContent?.eventCloud?.reception?.dateLabel || section7Config.reception.dateLabel,
-                                timeLabel: invitationContent?.eventCloud?.reception?.timeLabel || section7Config.reception.timeLabel,
-                                venueName: invitationContent?.eventCloud?.reception?.venueName || section7Config.reception.venueName,
-                                venueAddress: invitationContent?.eventCloud?.reception?.venueAddress || section7Config.reception.venueAddress,
-                                mapsUrl: invitationContent?.eventCloud?.reception?.mapsUrl || section7Config.reception.mapsUrl,
-                                mapsLabel: invitationContent?.eventCloud?.reception?.mapsLabel || section7Config.reception.mapsLabel,
+                                title: invitationContent?.eventDetails?.reception?.title || section7Config.reception.title,
+                                dateLabel: invitationContent?.eventDetails?.reception?.dateLabel || section7Config.reception.dateLabel,
+                                timeLabel: invitationContent?.eventDetails?.reception?.timeLabel || section7Config.reception.timeLabel,
+                                venueName: invitationContent?.eventDetails?.reception?.venueName || section7Config.reception.venueName,
+                                venueAddress: invitationContent?.eventDetails?.reception?.venueAddress || section7Config.reception.venueAddress,
+                                mapsUrl: invitationContent?.eventDetails?.reception?.mapsUrl || section7Config.reception.mapsUrl,
+                                mapsLabel: invitationContent?.eventDetails?.reception?.mapsLabel || section7Config.reception.mapsLabel,
                             }}
                         />
                     </div>
@@ -270,14 +270,14 @@ export default function LayoutSimple2({
                             thumbnailImageUrl={section9Config.thumbnailImageUrl}
                             title={section9Config.title}
                             dateLabel={
-                                invitationContent?.eventCloud?.holyMatrimony?.dateLabel ||
+                                invitationContent?.eventDetails?.holyMatrimony?.dateLabel ||
                                 invitationContent?.event?.fullDateLabel ||
                                 section9Config.dateLabel
                             }
-                            timeLabel={invitationContent?.eventCloud?.holyMatrimony?.timeLabel || section9Config.timeLabel}
-                            description={invitationContent?.eventCloud?.streaming?.description || section9Config.description}
-                            streamingUrl={invitationContent?.eventCloud?.streaming?.url || undefined}
-                            linkLabel={invitationContent?.eventCloud?.streaming?.buttonLabel || section9Config.linkLabel}
+                            timeLabel={invitationContent?.eventDetails?.holyMatrimony?.timeLabel || section9Config.timeLabel}
+                            description={invitationContent?.eventDetails?.streaming?.description || section9Config.description}
+                            streamingUrl={invitationContent?.eventDetails?.streaming?.url || undefined}
+                            linkLabel={invitationContent?.eventDetails?.streaming?.buttonLabel || section9Config.linkLabel}
                         />
                     </div>
 

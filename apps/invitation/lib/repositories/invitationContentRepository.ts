@@ -39,7 +39,7 @@ export interface CloudTextContent {
 
 export type CloudsContent = Record<string, CloudTextContent>;
 
-export interface EventCloudSectionDetailContent {
+export interface eventDetailsSectionDetailContent {
   title: string;
   dateLabel: string;
   timeLabel: string;
@@ -49,16 +49,16 @@ export interface EventCloudSectionDetailContent {
   mapsLabel: string;
 }
 
-export interface EventCloudStreamingDetailContent {
+export interface eventDetailsStreamingDetailContent {
   description: string;
   url: string;
   buttonLabel: string;
 }
 
-export interface EventCloudContent {
-  holyMatrimony: EventCloudSectionDetailContent;
-  reception: EventCloudSectionDetailContent;
-  streaming: EventCloudStreamingDetailContent;
+export interface eventDetailsContent {
+  holyMatrimony: eventDetailsSectionDetailContent;
+  reception: eventDetailsSectionDetailContent;
+  streaming: eventDetailsStreamingDetailContent;
 }
 
 export interface LoveStoryBlockContent {
@@ -133,7 +133,7 @@ export interface FullInvitationContent {
   groom: GroomContent;
   event: EventContent;
   greetings: CloudsContent;
-  eventDetails: EventCloudContent;
+  eventDetails: eventDetailsContent;
   loveStory: LoveStoryContent;
   gallery: GalleryContent;
   weddingGift: WeddingGiftContent;
@@ -186,12 +186,12 @@ function mapRowToFullContent(row: InvitationContentRow): FullInvitationContent {
 function buildFullContentFromGeneralMock(slug: string): FullInvitationContent {
   return {
     slug,
-    profile: masterMockGeneral.clientProfile,
+    profile: masterMockGeneral.profile,
     bride: masterMockGeneral.bride as BrideContent,
     groom: masterMockGeneral.groom as GroomContent,
     event: masterMockGeneral.event as EventContent,
     greetings: masterMockGeneral.clouds as CloudsContent,
-    eventDetails: masterMockGeneral.eventCloud as EventCloudContent,
+    eventDetails: masterMockGeneral.eventDetails as eventDetailsContent,
     loveStory: masterMockGeneral.loveStory as unknown as LoveStoryContent,
     gallery: masterMockGeneral.gallery as unknown as GalleryContent,
     weddingGift: masterMockGeneral.weddingGift as unknown as WeddingGiftContent,
@@ -205,12 +205,12 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'poppy-fadli':
       return {
         slug,
-        profile: masterMockPoppyFadli.clientProfile,
+        profile: masterMockPoppyFadli.profile,
         bride: masterMockPoppyFadli.bride as BrideContent,
         groom: masterMockPoppyFadli.groom as GroomContent,
         event: masterMockPoppyFadli.event as EventContent,
         greetings: masterMockPoppyFadli.clouds as CloudsContent,
-        eventDetails: masterMockPoppyFadli.eventCloud as EventCloudContent,
+        eventDetails: masterMockPoppyFadli.eventDetails as eventDetailsContent,
         loveStory: masterMockPoppyFadli.loveStory as unknown as LoveStoryContent,
         gallery: masterMockPoppyFadli.gallery as unknown as GalleryContent,
         weddingGift: masterMockPoppyFadli.weddingGift as unknown as WeddingGiftContent,
@@ -220,12 +220,12 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'budi-ani':
       return {
         slug,
-        profile: masterMockBudiAni.clientProfile,
+        profile: masterMockBudiAni.profile,
         bride: masterMockBudiAni.bride as BrideContent,
         groom: masterMockBudiAni.groom as GroomContent,
         event: masterMockBudiAni.event as EventContent,
         greetings: masterMockBudiAni.clouds as CloudsContent,
-        eventDetails: masterMockBudiAni.eventCloud as EventCloudContent,
+        eventDetails: masterMockBudiAni.eventDetails as eventDetailsContent,
         loveStory: masterMockBudiAni.loveStory as unknown as LoveStoryContent,
         gallery: masterMockBudiAni.gallery as unknown as GalleryContent,
         weddingGift: masterMockBudiAni.weddingGift as unknown as WeddingGiftContent,
@@ -235,12 +235,12 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'test-2':
       return {
         slug,
-        profile: masterMockTest2.clientProfile,
+        profile: masterMockTest2.profile,
         bride: masterMockTest2.bride as BrideContent,
         groom: masterMockTest2.groom as GroomContent,
         event: masterMockTest2.event as EventContent,
         greetings: masterMockTest2.clouds as CloudsContent,
-        eventDetails: masterMockTest2.eventCloud as EventCloudContent,
+        eventDetails: masterMockTest2.eventDetails as eventDetailsContent,
         loveStory: masterMockTest2.loveStory as unknown as LoveStoryContent,
         gallery: masterMockTest2.gallery as unknown as GalleryContent,
         weddingGift: masterMockTest2.weddingGift as unknown as WeddingGiftContent,
@@ -250,12 +250,12 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'test-simple':
       return {
         slug,
-        profile: masterMockTestSimple.clientProfile,
+        profile: masterMockTestSimple.profile,
         bride: masterMockTestSimple.bride as BrideContent,
         groom: masterMockTestSimple.groom as GroomContent,
         event: masterMockTestSimple.event as EventContent,
         greetings: masterMockTestSimple.clouds as CloudsContent,
-        eventDetails: masterMockTestSimple.eventCloud as EventCloudContent,
+        eventDetails: masterMockTestSimple.eventDetails as eventDetailsContent,
         loveStory: masterMockTestSimple.loveStory as unknown as LoveStoryContent,
         gallery: masterMockTestSimple.gallery as unknown as GalleryContent,
         weddingGift: masterMockTestSimple.weddingGift as unknown as WeddingGiftContent,

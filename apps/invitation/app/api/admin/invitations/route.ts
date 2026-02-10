@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Prepare eventCloud from event data
-        const eventCloud = {
+        // Prepare eventDetails from event data
+        const eventDetails = {
             holyMatrimony: payload.event.holyMatrimony,
             reception: payload.event.reception,
             streaming: {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
             .insert({
                 slug: payload.slug,
                 theme_key: payload.themeKey,
-                client_profile: payload.clientProfile,
+                client_profile: payload.profile,
                 bride: payload.bride,
                 groom: payload.groom,
                 event: {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
                     countdownDateTime: payload.event.countdownDateTime,
                 },
                 clouds: {}, // Empty for now, can be filled later
-                event_cloud: eventCloud,
+                event_cloud: eventDetails,
                 love_story: payload.loveStory,
                 gallery: payload.gallery,
                 wedding_gift: payload.weddingGift,
