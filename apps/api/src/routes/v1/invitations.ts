@@ -44,19 +44,12 @@ router.get('/:slug/love-story', async (c) => {
     return c.json({ success: true, data: { settings, blocks } });
 });
 
-router.post('/:slug/love-story', clientAuthMiddleware, async (c) => {
+router.post('/:slug/love-story', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    // Ownership validation
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings, blocks } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     if (settings) {
         await loveStoryRepo.upsertSettings({ registration_id: registration.id, ...settings });
@@ -86,18 +79,12 @@ router.get('/:slug/gallery', async (c) => {
     return c.json({ success: true, data: { settings } });
 });
 
-router.post('/:slug/gallery', clientAuthMiddleware, async (c) => {
+router.post('/:slug/gallery', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     await galleryRepo.upsertSettings({ registration_id: registration.id, ...settings });
     await invitationCompiler.compileAndCache(slug);
@@ -115,18 +102,12 @@ router.get('/:slug/wedding-gift', async (c) => {
     return c.json({ success: true, data: { settings, bankAccounts } });
 });
 
-router.post('/:slug/wedding-gift', clientAuthMiddleware, async (c) => {
+router.post('/:slug/wedding-gift', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings, bankAccounts } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     if (settings) {
         await weddingGiftRepo.upsertSettings({ registration_id: registration.id, ...settings });
@@ -157,18 +138,12 @@ router.get('/:slug/closing', async (c) => {
     return c.json({ success: true, data: { settings } });
 });
 
-router.post('/:slug/closing', clientAuthMiddleware, async (c) => {
+router.post('/:slug/closing', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     await closingRepo.upsertSettings({ registration_id: registration.id, ...settings });
     await invitationCompiler.compileAndCache(slug);
@@ -185,18 +160,12 @@ router.get('/:slug/music', async (c) => {
     return c.json({ success: true, data: { settings } });
 });
 
-router.post('/:slug/music', clientAuthMiddleware, async (c) => {
+router.post('/:slug/music', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     await backgroundMusicRepo.upsertSettings({ registration_id: registration.id, ...settings });
     await invitationCompiler.compileAndCache(slug);
@@ -213,18 +182,12 @@ router.get('/:slug/theme', async (c) => {
     return c.json({ success: true, data: { settings } });
 });
 
-router.post('/:slug/theme', clientAuthMiddleware, async (c) => {
+router.post('/:slug/theme', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { settings } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     await themeSettingsRepo.upsertSettings({ registration_id: registration.id, ...settings });
     await invitationCompiler.compileAndCache(slug);
@@ -241,18 +204,12 @@ router.get('/:slug/greetings', async (c) => {
     return c.json({ success: true, data: { greetings } });
 });
 
-router.post('/:slug/greetings', clientAuthMiddleware, async (c) => {
+router.post('/:slug/greetings', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const body = await c.req.json();
     const { greetings } = body;
-    const registration = ownershipCheck.registration;
+    const registration = await weddingRegistrationRepo.findBySlug(slug);
+    if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
     if (greetings) {
         const existing = await greetingSectionRepo.findByRegistrationId(registration.id);
@@ -268,15 +225,8 @@ router.post('/:slug/greetings', clientAuthMiddleware, async (c) => {
 });
 
 // Compile Route
-router.post('/:slug/compile', clientAuthMiddleware, async (c) => {
+router.post('/:slug/compile', async (c) => {
     const slug = c.req.param('slug');
-    const clientId = c.get('clientId') as string;
-
-    const ownershipCheck = await validateOwnership(slug, clientId);
-    if (!ownershipCheck.valid) {
-        return c.json({ error: ownershipCheck.error }, 403);
-    }
-
     const compiled = await invitationCompiler.compileAndCache(slug);
     return c.json({ success: true, data: compiled, message: 'Invitation compiled successfully' });
 });
