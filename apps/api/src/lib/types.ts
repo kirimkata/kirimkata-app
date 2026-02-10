@@ -6,6 +6,11 @@ export interface Env {
     JWT_SECRET: string;
     ENCRYPTION_KEY: string;
 
+    // Email service (Resend)
+    EMAIL_API_KEY: string;
+    EMAIL_FROM: string;
+    FRONTEND_URL: string;
+
     // Variables (from wrangler.toml)
     ENVIRONMENT: 'development' | 'production';
 

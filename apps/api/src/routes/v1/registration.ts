@@ -3,19 +3,22 @@ import { getSupabaseClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
+import { clientAuthMiddleware } from '../../middleware/auth';
 
-const router = new Hono<{ Bindings: Env }>();
+const router = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
 
 /**
  * POST /v1/registration
  * Create new wedding registration
+ * Requires authentication
  */
-router.post('/', async (c) => {
+router.post('/', clientAuthMiddleware, async (c) => {
     try {
         const body = await c.req.json();
+        const clientId = c.get('clientId') as string; // Get from JWT token
 
-        // Validate required fields
-        const requiredFields = ['slug', 'client_id', 'bride_name', 'bride_full_name', 'groom_name', 'groom_full_name', 'event1_date', 'event1_time'];
+        // Validate required fields (removed client_id from required fields)
+        const requiredFields = ['slug', 'bride_name', 'bride_full_name', 'groom_name', 'groom_full_name', 'event1_date', 'event1_time'];
         for (const field of requiredFields) {
             if (!body[field]) {
                 return c.json({ error: `Missing required field: ${field}` }, 400);
@@ -28,9 +31,9 @@ router.post('/', async (c) => {
             return c.json({ error: 'Slug already exists' }, 409);
         }
 
-        // Create wedding registration
+        // Create wedding registration (use clientId from JWT)
         const registration = await weddingRegistrationRepo.create({
-            client_id: body.client_id,
+            client_id: clientId, // Use authenticated client_id
             slug: body.slug,
             event_type: body.event_type || 'islam',
             custom_event1_label: body.custom_event1_label,
@@ -91,14 +94,22 @@ router.post('/', async (c) => {
 /**
  * GET /v1/registration/:slug
  * Get wedding registration by slug
+ * Requires authentication and ownership
  */
-router.get('/:slug', async (c) => {
+router.get('/:slug', clientAuthMiddleware, async (c) => {
     try {
         const slug = c.req.param('slug');
+        const clientId = c.get('clientId') as string;
+
         const registration = await weddingRegistrationRepo.findBySlug(slug);
 
         if (!registration) {
             return c.json({ error: 'Registration not found' }, 404);
+        }
+
+        // Ownership validation
+        if (registration.client_id !== clientId) {
+            return c.json({ error: 'Unauthorized access to this registration' }, 403);
         }
 
         return c.json({
@@ -117,14 +128,22 @@ router.get('/:slug', async (c) => {
 /**
  * PUT /v1/registration/:slug
  * Update wedding registration
+ * Requires authentication and ownership
  */
-router.put('/:slug', async (c) => {
+router.put('/:slug', clientAuthMiddleware, async (c) => {
     try {
         const slug = c.req.param('slug');
+        const clientId = c.get('clientId') as string;
+
         const registration = await weddingRegistrationRepo.findBySlug(slug);
 
         if (!registration) {
             return c.json({ error: 'Registration not found' }, 404);
+        }
+
+        // Ownership validation
+        if (registration.client_id !== clientId) {
+            return c.json({ error: 'Unauthorized access to this registration' }, 403);
         }
 
         const updates = await c.req.json();

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ClientLoginPage() {
     const router = useRouter();
@@ -10,11 +11,17 @@ export default function ClientLoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailNotVerified, setEmailNotVerified] = useState(false);
+    const [userEmail, setUserEmail] = useState('');
+    const [resending, setResending] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+        setEmailNotVerified(false);
+        setResendSuccess(false);
 
         try {
             const { API_ENDPOINTS } = await import('@/lib/api-config');
@@ -30,7 +37,14 @@ export default function ClientLoginPage() {
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                setError(data.error || 'Login failed');
+                // Check if email not verified
+                if (data.code === 'EMAIL_NOT_VERIFIED') {
+                    setEmailNotVerified(true);
+                    setUserEmail(data.email);
+                    setError('Please verify your email before logging in.');
+                } else {
+                    setError(data.error || 'Login failed');
+                }
                 setLoading(false);
                 return;
             }
@@ -45,6 +59,39 @@ export default function ClientLoginPage() {
             console.error('Login error:', err);
             setError('An error occurred. Please try again.');
             setLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        setResending(true);
+        setResendSuccess(false);
+        setError('');
+
+        try {
+            const { API_ENDPOINTS } = await import('@/lib/api-config');
+
+            const response = await fetch(API_ENDPOINTS.auth.resendVerification, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: userEmail }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                setError(data.error || 'Failed to resend verification email');
+                setResending(false);
+                return;
+            }
+
+            setResendSuccess(true);
+            setResending(false);
+        } catch (err) {
+            console.error('Resend error:', err);
+            setError('An error occurred. Please try again.');
+            setResending(false);
         }
     };
 
@@ -179,6 +226,42 @@ export default function ClientLoginPage() {
                         </div>
                     )}
 
+                    {resendSuccess && (
+                        <div style={{
+                            padding: '0.75rem',
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            marginBottom: '1rem',
+                        }}>
+                            Verification email sent! Please check your inbox.
+                        </div>
+                    )}
+
+                    {emailNotVerified && (
+                        <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={resending}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: resending ? '#9ca3af' : '#f3f4f6',
+                                color: '#374151',
+                                fontWeight: 500,
+                                borderRadius: '0.375rem',
+                                border: '1px solid #d1d5db',
+                                cursor: resending ? 'not-allowed' : 'pointer',
+                                fontSize: '0.875rem',
+                                fontFamily: 'Segoe UI, sans-serif',
+                                marginBottom: '1rem',
+                            }}
+                        >
+                            {resending ? 'Sending...' : 'Resend Verification Email'}
+                        </button>
+                    )}
+
                     <button
                         type="submit"
                         disabled={loading}
@@ -193,10 +276,29 @@ export default function ClientLoginPage() {
                             cursor: loading ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontFamily: 'Segoe UI, sans-serif',
+                            marginBottom: '1rem',
                         }}
                     >
                         {loading ? 'Logging in...' : 'Login'}
                     </button>
+
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: '0.875rem',
+                        color: '#6b7280',
+                    }}>
+                        Don't have an account?{' '}
+                        <Link
+                            href="/client-dashboard/register"
+                            style={{
+                                color: '#2563eb',
+                                textDecoration: 'none',
+                                fontWeight: 500,
+                            }}
+                        >
+                            Register here
+                        </Link>
+                    </div>
                 </form>
             </div>
         </div>

@@ -11,3 +11,8 @@ JWT_SECRET=your-jwt-secret-here
 
 # Encryption
 ENCRYPTION_KEY=your-encryption-key-here
+
+# Email Service (Resend)
+EMAIL_API_KEY=your-resend-api-key-here
+EMAIL_FROM=noreply@kirimkata.com
+FRONTEND_URL=http://localhost:3000
