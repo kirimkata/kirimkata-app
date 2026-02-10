@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { API_ENDPOINTS } from '@/lib/api-config';
+import { useRef, useState, useEffect } from 'react';
+import { InvitationAPI } from '@/lib/api/client';
 
 interface MediaFile {
     id: number;
@@ -51,14 +51,11 @@ export default function MediaLibraryPage() {
     const fetchQuota = async () => {
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch(API_ENDPOINTS.media.quota, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            if (!token) return;
 
-            if (response.ok) {
-                const data = await response.json();
+            const data = await InvitationAPI.getMediaQuota(token);
+
+            if (data.photos) {
                 setQuota(data);
             }
         } catch (error) {
@@ -70,14 +67,11 @@ export default function MediaLibraryPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('client_token');
-            const response = await fetch(`${API_ENDPOINTS.media.list}?type=${activeTab}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            if (!token) return;
 
-            if (response.ok) {
-                const data = await response.json();
+            const data = await InvitationAPI.getMediaList(token, activeTab);
+
+            if (data.files) {
                 setFiles(data.files);
             }
         } catch (error) {
@@ -129,29 +123,19 @@ export default function MediaLibraryPage() {
 
         try {
             const token = localStorage.getItem('client_token');
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('type', fileType);
+            if (!token) throw new Error('No token');
 
-            const response = await fetch(API_ENDPOINTS.media.upload, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: formData,
-            });
+            const data = await InvitationAPI.uploadMedia(token, file, fileType);
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (data.success) {
                 await fetchQuota();
                 await fetchFiles();
                 setError(null);
             } else {
-                setError(data.message || 'Upload gagal');
+                setError(data.message || data.error || 'Upload gagal');
             }
-        } catch (error) {
-            setError('Terjadi kesalahan saat upload');
+        } catch (error: any) {
+            setError(error.message || 'Terjadi kesalahan saat upload');
             console.error('Upload error:', error);
         } finally {
             setUploading(false);
@@ -166,24 +150,18 @@ export default function MediaLibraryPage() {
 
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch(API_ENDPOINTS.media.delete, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ fileId }),
-            });
+            if (!token) return;
 
-            if (response.ok) {
+            const data = await InvitationAPI.deleteMedia(token, String(fileId));
+
+            if (data.success) {
                 await fetchQuota();
                 await fetchFiles();
                 if (previewFile?.id === fileId) {
                     setPreviewFile(null);
                 }
             } else {
-                const data = await response.json();
-                setError(data.message || 'Gagal menghapus file');
+                setError(data.message || data.error || 'Gagal menghapus file');
             }
         } catch (error) {
             setError('Terjadi kesalahan saat menghapus file');

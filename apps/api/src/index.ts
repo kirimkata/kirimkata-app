@@ -21,6 +21,7 @@ import guestbookCheckinRoutes from './routes/v1/guestbook-checkin';
 import guestbookAdvancedRoutes from './routes/v1/guestbook-advanced';
 import guestbookQrRoutes from './routes/v1/guestbook-qr';
 import guestbookExportRoutes from './routes/v1/guestbook-export';
+import guestbookStaffRoutes from './routes/v1/guestbook-staff';
 import sharedRoutes from './routes/v1/shared';
 import registrationRoutes from './routes/v1/registration';
 import invitationsRoutes from './routes/v1/invitations';
@@ -66,6 +67,7 @@ app.route('/v1/guestbook/guests', guestbookGuestsRoutes);
 app.route('/v1/guestbook/benefits', guestbookBenefitsRoutes);
 app.route('/v1/guestbook/seating', guestbookSeatingRoutes);
 app.route('/v1/guestbook/checkin', guestbookCheckinRoutes);
+app.route('/v1/guestbook/staff', guestbookStaffRoutes);
 
 // Guestbook advanced features (Phase 2)
 app.route('/v1/guestbook/advanced', guestbookAdvancedRoutes);

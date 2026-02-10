@@ -9,6 +9,8 @@ import {
   BackgroundMusicData,
   ClosingData,
 } from './types';
+import { InvitationAPI } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api-config';
 import { BrideGroomSection } from './components/BrideGroomSection';
 import { EventSection } from './components/EventSection';
 import { LoveStorySection } from './components/LoveStorySection';
@@ -137,76 +139,85 @@ export default function EditUndanganPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/client/invitation-content', {
-          headers: getAuthHeaders(),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setMessage({
-              type: 'error',
-              text: 'Anda belum memiliki undangan yang di-assign. Silakan hubungi admin.',
-            });
-            setLoading(false);
+        try {
+          const token = localStorage.getItem('client_token');
+          if (!token) {
+            router.push('/client-dashboard/login');
             return;
           }
-          throw new Error(data.error || 'Failed to fetch data');
-        }
 
-        if (data.success && data.content) {
-          // Map eventCloud to event structure
-          const eventCloudData = data.content.eventCloud || {};
-          const eventData = data.content.event || {};
+          const data = await InvitationAPI.getInvitationContent(token);
 
-          const loadedData = {
-            bride: data.content.bride || formData.bride,
-            groom: data.content.groom || formData.groom,
-            event: {
-              fullDateLabel: eventData.fullDateLabel || '',
-              isoDate: eventData.isoDate || '',
-              countdownDateTime: eventData.countdownDateTime || '',
-              holyMatrimony: {
-                title: 'Akad',
-                dateLabel: eventCloudData.holyMatrimony?.dateLabel || '',
-                timeLabel: eventCloudData.holyMatrimony?.timeLabel || '',
-                venueName: eventCloudData.holyMatrimony?.venueName || '',
-                venueAddress: eventCloudData.holyMatrimony?.venueAddress || '',
-                mapsUrl: eventCloudData.holyMatrimony?.mapsUrl || '',
+          if (!data.success) {
+            if (data.error === 'Unauthorized' || data.message === 'Unauthorized') {
+              localStorage.removeItem('client_token');
+              localStorage.removeItem('client_user');
+              router.push('/client-dashboard/login');
+              return;
+            }
+            if (data.error === 'Invitation not found' || data.message === 'Invitation not found') {
+              setMessage({
+                type: 'error',
+                text: 'Anda belum memiliki undangan yang di-assign. Silakan hubungi admin.',
+              });
+              setLoading(false);
+              return;
+            }
+            throw new Error(data.error || 'Failed to fetch data');
+          }
+
+          if (data.success && data.content) {
+            // Map eventCloud to event structure
+            const eventCloudData = data.content.eventCloud || {};
+            const eventData = data.content.event || {};
+
+            const loadedData = {
+              bride: data.content.bride || formData.bride,
+              groom: data.content.groom || formData.groom,
+              event: {
+                fullDateLabel: eventData.fullDateLabel || '',
+                isoDate: eventData.isoDate || '',
+                countdownDateTime: eventData.countdownDateTime || '',
+                holyMatrimony: {
+                  title: 'Akad',
+                  dateLabel: eventCloudData.holyMatrimony?.dateLabel || '',
+                  timeLabel: eventCloudData.holyMatrimony?.timeLabel || '',
+                  venueName: eventCloudData.holyMatrimony?.venueName || '',
+                  venueAddress: eventCloudData.holyMatrimony?.venueAddress || '',
+                  mapsUrl: eventCloudData.holyMatrimony?.mapsUrl || '',
+                },
+                reception: {
+                  title: 'Resepsi',
+                  dateLabel: eventCloudData.reception?.dateLabel || '',
+                  timeLabel: eventCloudData.reception?.timeLabel || '',
+                  venueName: eventCloudData.reception?.venueName || '',
+                  venueAddress: eventCloudData.reception?.venueAddress || '',
+                  mapsUrl: eventCloudData.reception?.mapsUrl || '',
+                },
               },
-              reception: {
-                title: 'Resepsi',
-                dateLabel: eventCloudData.reception?.dateLabel || '',
-                timeLabel: eventCloudData.reception?.timeLabel || '',
-                venueName: eventCloudData.reception?.venueName || '',
-                venueAddress: eventCloudData.reception?.venueAddress || '',
-                mapsUrl: eventCloudData.reception?.mapsUrl || '',
-              },
-            },
-            loveStory: data.content.loveStory || formData.loveStory,
-            gallery: data.content.gallery || formData.gallery,
-            weddingGift: data.content.weddingGift || formData.weddingGift,
-            backgroundMusic: data.content.backgroundMusic || formData.backgroundMusic,
-            closing: data.content.closing || formData.closing,
-          };
+              loveStory: data.content.loveStory || formData.loveStory,
+              gallery: data.content.gallery || formData.gallery,
+              weddingGift: data.content.weddingGift || formData.weddingGift,
+              backgroundMusic: data.content.backgroundMusic || formData.backgroundMusic,
+              closing: data.content.closing || formData.closing,
+            };
 
-          setFormData(loadedData);
-          setSavedFormData(loadedData); // Initialize saved state
+            setFormData(loadedData);
+            setSavedFormData(loadedData); // Initialize saved state
+          }
+        } catch (error: any) {
+          console.error('Error fetching data:', error);
+          setMessage({
+            type: 'error',
+            text: error.message || 'Gagal memuat data. Silakan refresh halaman.',
+          });
+        } finally {
+          setLoading(false);
         }
-      } catch (error: any) {
-        console.error('Error fetching data:', error);
-        setMessage({
-          type: 'error',
-          text: error.message || 'Gagal memuat data. Silakan refresh halaman.',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchData();
-  }, []);
+      fetchData();
+    }, []);
 
   // Close tooltip when clicking outside
   useEffect(() => {
@@ -305,24 +316,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -342,24 +350,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -379,24 +384,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -415,24 +417,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -451,24 +450,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -487,24 +483,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -523,24 +516,21 @@ export default function EditUndanganPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 
@@ -596,24 +586,21 @@ export default function EditUndanganPage() {
     setSaving(true);
 
     try {
-      const response = await fetch('/api/client/invitation-content', {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bride: formData.bride,
-          groom: formData.groom,
-          event: formData.event,
-          loveStory: formData.loveStory,
-          gallery: formData.gallery,
-          weddingGift: formData.weddingGift,
-          backgroundMusic: formData.backgroundMusic,
-          closing: formData.closing,
-        }),
-      });
+      const token = localStorage.getItem('client_token');
+      if (!token) throw new Error('Not authenticated');
 
-      const data = await response.json();
+      const data = await InvitationAPI.saveInvitationContent({
+        bride: formData.bride,
+        groom: formData.groom,
+        event: formData.event,
+        loveStory: formData.loveStory,
+        gallery: formData.gallery,
+        weddingGift: formData.weddingGift,
+        backgroundMusic: formData.backgroundMusic,
+        closing: formData.closing,
+      }, token);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || 'Gagal menyimpan data');
       }
 

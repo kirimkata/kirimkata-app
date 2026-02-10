@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface Wish {
     id: number;
@@ -21,15 +22,19 @@ export default function DaftarUcapanPage() {
         setError('');
         try {
             const token = localStorage.getItem('client_token');
-            const response = await fetch('/api/client/messages', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            if (!token) return;
 
-            const data = await response.json();
+            const { InvitationAPI } = await import('@/lib/api/client');
+            const data = await InvitationAPI.getMessages(token);
 
-            if (!response.ok) {
+            if (!data.success && !data.wishes) { // InvitationAPI doesn't return ok/status directly, we infer from success or data presence
+                if (data.error === 'Unauthorized' || data.error === 'Invalid token') {
+                    localStorage.removeItem('client_token');
+                    localStorage.removeItem('client_user');
+                    window.location.href = '/client-dashboard/login';
+                    return;
+                }
+
                 // Check if error is about no slug assigned
                 if (data.error && data.error.includes('no slug assigned')) {
                     setError('no-slug');

@@ -275,13 +275,13 @@ client.get('/invitation-content', async (c) => {
                 bride: content.bride,
                 groom: content.groom,
                 event: content.event,
-                eventCloud: content.event_cloud,
+                eventDetails: content.event_details,
                 loveStory: content.love_story,
                 gallery: content.gallery,
                 weddingGift: content.wedding_gift,
                 closing: content.closing,
-                backgroundMusic: content.background_music,
-                clientProfile: content.client_profile,
+                musicSettings: content.music_settings,
+                profile: content.profile,
             },
         });
     } catch (error) {
@@ -340,15 +340,15 @@ client.put('/invitation-content', async (c) => {
                 eventTitle: `The Wedding of ${body.bride?.name || ''} & ${body.groom?.name || ''}`.trim(),
             };
 
-            // Also update event_cloud for backward compatibility
-            updateData.event_cloud = {
+            // Also update event_details for backward compatibility
+            updateData.event_details = {
                 holyMatrimony: body.event.holyMatrimony || {},
                 reception: body.event.reception || {},
             };
         }
 
-        if (body.eventCloud) {
-            updateData.event_cloud = body.eventCloud;
+        if (body.eventDetails) {
+            updateData.event_details = body.eventDetails;
         }
         if (body.loveStory) {
             updateData.love_story = body.loveStory;
@@ -359,14 +359,14 @@ client.put('/invitation-content', async (c) => {
         if (body.weddingGift) {
             updateData.wedding_gift = body.weddingGift;
         }
-        if (body.backgroundMusic) {
-            updateData.background_music = body.backgroundMusic;
+        if (body.musicSettings) {
+            updateData.music_settings = body.musicSettings;
         }
         if (body.closing) {
             updateData.closing = body.closing;
         }
-        if (body.clientProfile) {
-            updateData.client_profile = body.clientProfile;
+        if (body.profile) {
+            updateData.profile = body.profile;
         }
 
         // Update invitation content
@@ -422,29 +422,59 @@ client.get('/messages', async (c) => {
             );
         }
 
-        // Fetch wishes for the client's slug
-        const { data: wishes, error: wishesError } = await supabase
+        // Parse pagination params
+        const page = parseInt(c.req.query('page') || '1');
+        const limit = parseInt(c.req.query('limit') || '10');
+        const offset = (page - 1) * limit;
+
+        console.log(`Fetching wishes for slug: ${clientData.slug}, page: ${page}, limit: ${limit}`);
+
+        // Fetch wishes with pagination
+        const { data: wishes, error: wishesError, count } = await supabase
             .from('wishes')
-            .select('*')
-            .eq('slug', clientData.slug)
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' })
+            .eq('invitation_slug', clientData.slug)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (wishesError) {
             console.error('Error fetching wishes:', wishesError);
             return c.json(
-                { success: false, error: 'Failed to fetch messages' },
+                {
+                    success: false,
+                    error: 'Failed to fetch messages',
+                    details: {
+                        message: wishesError.message,
+                        code: wishesError.code,
+                        details: wishesError.details,
+                        hint: wishesError.hint
+                    }
+                },
                 500
             );
         }
 
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limit);
+
         return c.json({
             success: true,
             wishes: wishes || [],
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages
+            }
         });
     } catch (error) {
         console.error('Error fetching messages:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            {
+                success: false,
+                error: 'Internal server error',
+                details: error instanceof Error ? error.message : String(error)
+            },
             500
         );
     }

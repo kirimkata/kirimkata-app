@@ -13,9 +13,11 @@ export async function GET(request: NextRequest) {
     try {
         // Verify JWT token
         const authHeader = request.headers.get('authorization');
+        console.log('Messages API Auth Header:', authHeader);
         const token = extractTokenFromHeader(authHeader);
 
         if (!token) {
+            console.log('No token extracted');
             return NextResponse.json(
                 { error: 'No token provided' },
                 { status: 401 }
@@ -23,6 +25,7 @@ export async function GET(request: NextRequest) {
         }
 
         const payload = verifyToken(token);
+        console.log('Messages API Payload:', payload);
 
         if (!payload || payload.type !== 'client') {
             return NextResponse.json(

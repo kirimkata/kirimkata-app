@@ -34,8 +34,8 @@ export default function ParallaxTemplateThemeRenderer({
     const enableCoverGate = parallaxTemplate1ThemeDefinition.opening.config?.enableCoverGate;
 
     useEffect(() => {
-        if (fullInvitationContent?.clientProfile?.custom_images) {
-            setCustomImages(fullInvitationContent.clientProfile.custom_images);
+        if (fullInvitationContent?.profile?.custom_images) {
+            setCustomImages(fullInvitationContent.profile.custom_images);
         }
         return () => {
             setCustomImages(null);

@@ -1,0 +1,3232 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "5",
+  "dialect": "pg",
+  "tables": {
+    "invitation_contents": {
+      "name": "invitation_contents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profile": {
+          "name": "profile",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bride": {
+          "name": "bride",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "groom": {
+          "name": "groom",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event": {
+          "name": "event",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "greetings": {
+          "name": "greetings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_details": {
+          "name": "event_details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "love_story": {
+          "name": "love_story",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gallery": {
+          "name": "gallery",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wedding_gift": {
+          "name": "wedding_gift",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "closing": {
+          "name": "closing",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "music_settings": {
+          "name": "music_settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "theme_key": {
+          "name": "theme_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'parallax/parallax-custom1'"
+        },
+        "custom_images": {
+          "name": "custom_images",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_invitation_contents_slug": {
+          "name": "idx_invitation_contents_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitation_contents_slug_key": {
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false,
+          "name": "invitation_contents_slug_key"
+        }
+      }
+    },
+    "client_media": {
+      "name": "client_media",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_url": {
+          "name": "file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_type": {
+          "name": "file_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_client_media_client_type": {
+          "name": "idx_client_media_client_type",
+          "columns": [
+            "client_id",
+            "file_type"
+          ],
+          "isUnique": false
+        },
+        "idx_client_media_uploaded_at": {
+          "name": "idx_client_media_uploaded_at",
+          "columns": [
+            "uploaded_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "client_media_client_id_fkey": {
+          "name": "client_media_client_id_fkey",
+          "tableFrom": "client_media",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "wishes": {
+      "name": "wishes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invitation_slug": {
+          "name": "invitation_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attendance": {
+          "name": "attendance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guest_count": {
+          "name": "guest_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_wishes_invitation_slug": {
+          "name": "idx_wishes_invitation_slug",
+          "columns": [
+            "invitation_slug"
+          ],
+          "isUnique": false
+        },
+        "idx_wishes_created_at": {
+          "name": "idx_wishes_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "invitation_guests": {
+      "name": "invitation_guests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "sent": {
+          "name": "sent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_code": {
+          "name": "guest_code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qr_code": {
+          "name": "qr_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_type_id": {
+          "name": "guest_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'registered'::character varying"
+        },
+        "max_companions": {
+          "name": "max_companions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "actual_companions": {
+          "name": "actual_companions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "table_number": {
+          "name": "table_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seat_number": {
+          "name": "seat_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seating_area": {
+          "name": "seating_area",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_checked_in": {
+          "name": "is_checked_in",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "checked_in_at": {
+          "name": "checked_in_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_group": {
+          "name": "guest_group",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seating_config_id": {
+          "name": "seating_config_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_invitation_guests_client_id": {
+          "name": "idx_invitation_guests_client_id",
+          "columns": [
+            "client_id"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_event_id": {
+          "name": "idx_invitation_guests_event_id",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_guest_code": {
+          "name": "idx_invitation_guests_guest_code",
+          "columns": [
+            "guest_code"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_is_checked_in": {
+          "name": "idx_invitation_guests_is_checked_in",
+          "columns": [
+            "is_checked_in"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_guest_type": {
+          "name": "idx_invitation_guests_guest_type",
+          "columns": [
+            "guest_type_id"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_seating_config": {
+          "name": "idx_invitation_guests_seating_config",
+          "columns": [
+            "seating_config_id"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_guest_group": {
+          "name": "idx_invitation_guests_guest_group",
+          "columns": [
+            "guest_group"
+          ],
+          "isUnique": false
+        },
+        "idx_invitation_guests_event_group": {
+          "name": "idx_invitation_guests_event_group",
+          "columns": [
+            "event_id",
+            "guest_group"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_client_id": {
+          "name": "fk_client_id",
+          "tableFrom": "invitation_guests",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_invitation_guests_event": {
+          "name": "fk_invitation_guests_event",
+          "tableFrom": "invitation_guests",
+          "tableTo": "events",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_invitation_guests_guest_type": {
+          "name": "fk_invitation_guests_guest_type",
+          "tableFrom": "invitation_guests",
+          "tableTo": "guest_types",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "guest_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "fk_invitation_guests_seating_config": {
+          "name": "fk_invitation_guests_seating_config",
+          "tableFrom": "invitation_guests",
+          "tableTo": "event_seating_config",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "seating_config_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitation_guests_guest_code_key": {
+          "columns": [
+            "guest_code"
+          ],
+          "nullsNotDistinct": false,
+          "name": "invitation_guests_guest_code_key"
+        }
+      }
+    },
+    "events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_date": {
+          "name": "event_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_time": {
+          "name": "event_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "venue_name": {
+          "name": "venue_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "venue_address": {
+          "name": "venue_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "staff_quota": {
+          "name": "staff_quota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 2
+        },
+        "staff_quota_used": {
+          "name": "staff_quota_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "has_invitation": {
+          "name": "has_invitation",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "has_guestbook": {
+          "name": "has_guestbook",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "invitation_config": {
+          "name": "invitation_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "guestbook_config": {
+          "name": "guestbook_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "seating_mode": {
+          "name": "seating_mode",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'no_seat'::character varying"
+        }
+      },
+      "indexes": {
+        "idx_events_client_id": {
+          "name": "idx_events_client_id",
+          "columns": [
+            "client_id"
+          ],
+          "isUnique": false
+        },
+        "idx_events_date": {
+          "name": "idx_events_date",
+          "columns": [
+            "event_date"
+          ],
+          "isUnique": false
+        },
+        "idx_events_has_invitation": {
+          "name": "idx_events_has_invitation",
+          "columns": [
+            "has_invitation"
+          ],
+          "isUnique": false
+        },
+        "idx_events_has_guestbook": {
+          "name": "idx_events_has_guestbook",
+          "columns": [
+            "has_guestbook"
+          ],
+          "isUnique": false
+        },
+        "idx_events_seating_mode": {
+          "name": "idx_events_seating_mode",
+          "columns": [
+            "seating_mode"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_events_client": {
+          "name": "fk_events_client",
+          "tableFrom": "events",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "guest_types": {
+      "name": "guest_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_name": {
+          "name": "type_name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color_code": {
+          "name": "color_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "priority_order": {
+          "name": "priority_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_guest_types_client_id": {
+          "name": "idx_guest_types_client_id",
+          "columns": [
+            "client_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guest_types_event_id": {
+          "name": "idx_guest_types_event_id",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guest_types_client_event": {
+          "name": "idx_guest_types_client_event",
+          "columns": [
+            "client_id",
+            "event_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_guest_types_client": {
+          "name": "fk_guest_types_client",
+          "tableFrom": "guest_types",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_guest_types_event": {
+          "name": "fk_guest_types_event",
+          "tableFrom": "guest_types",
+          "tableTo": "events",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_guest_type_per_client_event": {
+          "columns": [
+            "client_id",
+            "type_name",
+            "event_id"
+          ],
+          "nullsNotDistinct": false,
+          "name": "unique_guest_type_per_client_event"
+        }
+      }
+    },
+    "guest_type_benefits": {
+      "name": "guest_type_benefits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "guest_type_id": {
+          "name": "guest_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "benefit_type": {
+          "name": "benefit_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_guest_type_benefits_active": {
+          "name": "idx_guest_type_benefits_active",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        },
+        "idx_guest_type_benefits_guest_type": {
+          "name": "idx_guest_type_benefits_guest_type",
+          "columns": [
+            "guest_type_id",
+            "is_active"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_benefits_guest_type": {
+          "name": "fk_benefits_guest_type",
+          "tableFrom": "guest_type_benefits",
+          "tableTo": "guest_types",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "guest_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "guestbook_staff": {
+      "name": "guestbook_staff",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_encrypted": {
+          "name": "password_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "can_checkin": {
+          "name": "can_checkin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "can_redeem_souvenir": {
+          "name": "can_redeem_souvenir",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "can_redeem_snack": {
+          "name": "can_redeem_snack",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "can_access_vip_lounge": {
+          "name": "can_access_vip_lounge",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_guestbook_staff_client_id": {
+          "name": "idx_guestbook_staff_client_id",
+          "columns": [
+            "client_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_staff_event_id": {
+          "name": "idx_guestbook_staff_event_id",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_staff_client_username": {
+          "name": "idx_guestbook_staff_client_username",
+          "columns": [
+            "client_id",
+            "username"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_guestbook_staff_client": {
+          "name": "fk_guestbook_staff_client",
+          "tableFrom": "guestbook_staff",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_guestbook_staff_event": {
+          "name": "fk_guestbook_staff_event",
+          "tableFrom": "guestbook_staff",
+          "tableTo": "events",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_staff_username_per_client": {
+          "columns": [
+            "client_id",
+            "username"
+          ],
+          "nullsNotDistinct": false,
+          "name": "unique_staff_username_per_client"
+        }
+      }
+    },
+    "guestbook_checkins": {
+      "name": "guestbook_checkins",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "guest_id": {
+          "name": "guest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checked_in_at": {
+          "name": "checked_in_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "checkin_method": {
+          "name": "checkin_method",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_info": {
+          "name": "device_info",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_guestbook_checkins_guest_id": {
+          "name": "idx_guestbook_checkins_guest_id",
+          "columns": [
+            "guest_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_checkins_staff_id": {
+          "name": "idx_guestbook_checkins_staff_id",
+          "columns": [
+            "staff_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_checkins_checked_in_at": {
+          "name": "idx_guestbook_checkins_checked_in_at",
+          "columns": [
+            "checked_in_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_checkins_guest": {
+          "name": "fk_checkins_guest",
+          "tableFrom": "guestbook_checkins",
+          "tableTo": "invitation_guests",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "guest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_checkins_staff": {
+          "name": "fk_checkins_staff",
+          "tableFrom": "guestbook_checkins",
+          "tableTo": "guestbook_staff",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_guest_checkin": {
+          "columns": [
+            "guest_id"
+          ],
+          "nullsNotDistinct": false,
+          "name": "unique_guest_checkin"
+        }
+      }
+    },
+    "guestbook_redemptions": {
+      "name": "guestbook_redemptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "guest_id": {
+          "name": "guest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entitlement_type": {
+          "name": "entitlement_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "redeemed_at": {
+          "name": "redeemed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_guestbook_redemptions_guest_id": {
+          "name": "idx_guestbook_redemptions_guest_id",
+          "columns": [
+            "guest_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_redemptions_staff_id": {
+          "name": "idx_guestbook_redemptions_staff_id",
+          "columns": [
+            "staff_id"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_redemptions_type": {
+          "name": "idx_guestbook_redemptions_type",
+          "columns": [
+            "entitlement_type"
+          ],
+          "isUnique": false
+        },
+        "idx_guestbook_redemptions_redeemed_at": {
+          "name": "idx_guestbook_redemptions_redeemed_at",
+          "columns": [
+            "redeemed_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_redemptions_guest": {
+          "name": "fk_redemptions_guest",
+          "tableFrom": "guestbook_redemptions",
+          "tableTo": "invitation_guests",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "guest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_redemptions_staff": {
+          "name": "fk_redemptions_staff",
+          "tableFrom": "guestbook_redemptions",
+          "tableTo": "guestbook_staff",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "staff_logs": {
+      "name": "staff_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guest_id": {
+          "name": "guest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action_type": {
+          "name": "action_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_details": {
+          "name": "action_details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_staff_logs_staff_id": {
+          "name": "idx_staff_logs_staff_id",
+          "columns": [
+            "staff_id"
+          ],
+          "isUnique": false
+        },
+        "idx_staff_logs_guest_id": {
+          "name": "idx_staff_logs_guest_id",
+          "columns": [
+            "guest_id"
+          ],
+          "isUnique": false
+        },
+        "idx_staff_logs_created_at": {
+          "name": "idx_staff_logs_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_staff_logs_action_type": {
+          "name": "idx_staff_logs_action_type",
+          "columns": [
+            "action_type"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_staff_logs_guest": {
+          "name": "fk_staff_logs_guest",
+          "tableFrom": "staff_logs",
+          "tableTo": "invitation_guests",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "guest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_staff_logs_staff": {
+          "name": "fk_staff_logs_staff",
+          "tableFrom": "staff_logs",
+          "tableTo": "guestbook_staff",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "client_staff_quota": {
+      "name": "client_staff_quota",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_staff": {
+          "name": "max_staff",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 10
+        },
+        "staff_used": {
+          "name": "staff_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fk_staff_quota_client": {
+          "name": "fk_staff_quota_client",
+          "tableFrom": "client_staff_quota",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "client_staff_quota_client_id_key": {
+          "columns": [
+            "client_id"
+          ],
+          "nullsNotDistinct": false,
+          "name": "client_staff_quota_client_id_key"
+        }
+      }
+    },
+    "admins": {
+      "name": "admins",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_encrypted": {
+          "name": "password_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_admins_username": {
+          "name": "idx_admins_username",
+          "columns": [
+            "username"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "admins_username_key": {
+          "columns": [
+            "username"
+          ],
+          "nullsNotDistinct": false,
+          "name": "admins_username_key"
+        }
+      }
+    },
+    "clients": {
+      "name": "clients",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_encrypted": {
+          "name": "password_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "quota_photos": {
+          "name": "quota_photos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 10
+        },
+        "quota_music": {
+          "name": "quota_music",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "quota_videos": {
+          "name": "quota_videos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "message_template": {
+          "name": "message_template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guestbook_access": {
+          "name": "guestbook_access",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "idx_clients_username": {
+          "name": "idx_clients_username",
+          "columns": [
+            "username"
+          ],
+          "isUnique": false
+        },
+        "idx_clients_slug": {
+          "name": "idx_clients_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_clients_slug": {
+          "name": "fk_clients_slug",
+          "tableFrom": "clients",
+          "tableTo": "invitation_contents",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "slug"
+          ],
+          "columnsTo": [
+            "slug"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "clients_username_key": {
+          "columns": [
+            "username"
+          ],
+          "nullsNotDistinct": false,
+          "name": "clients_username_key"
+        },
+        "clients_slug_key": {
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false,
+          "name": "clients_slug_key"
+        }
+      }
+    },
+    "event_seating_config": {
+      "name": "event_seating_config",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seating_type": {
+          "name": "seating_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "allowed_guest_type_ids": {
+          "name": "allowed_guest_type_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "position_data": {
+          "name": "position_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_event_seating_config_event_id": {
+          "name": "idx_event_seating_config_event_id",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false
+        },
+        "idx_event_seating_config_type": {
+          "name": "idx_event_seating_config_type",
+          "columns": [
+            "seating_type"
+          ],
+          "isUnique": false
+        },
+        "idx_event_seating_config_active": {
+          "name": "idx_event_seating_config_active",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        },
+        "idx_event_seating_config_sort_order": {
+          "name": "idx_event_seating_config_sort_order",
+          "columns": [
+            "event_id",
+            "sort_order"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_seating_event": {
+          "name": "fk_seating_event",
+          "tableFrom": "event_seating_config",
+          "tableTo": "events",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "benefit_catalog": {
+      "name": "benefit_catalog",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "benefit_key": {
+          "name": "benefit_key",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "icon": {
+          "name": "icon",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_benefit_catalog_sort_order": {
+          "name": "idx_benefit_catalog_sort_order",
+          "columns": [
+            "sort_order"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "benefit_catalog_benefit_key_key": {
+          "columns": [
+            "benefit_key"
+          ],
+          "nullsNotDistinct": false,
+          "name": "benefit_catalog_benefit_key_key"
+        }
+      }
+    },
+    "wedding_registrations": {
+      "name": "wedding_registrations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'islam'::character varying"
+        },
+        "wedding_date": {
+          "name": "wedding_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'WIB'::character varying"
+        },
+        "bride_name": {
+          "name": "bride_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bride_full_name": {
+          "name": "bride_full_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bride_father_name": {
+          "name": "bride_father_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bride_mother_name": {
+          "name": "bride_mother_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bride_instagram": {
+          "name": "bride_instagram",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groom_name": {
+          "name": "groom_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "groom_full_name": {
+          "name": "groom_full_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "groom_father_name": {
+          "name": "groom_father_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groom_mother_name": {
+          "name": "groom_mother_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groom_instagram": {
+          "name": "groom_instagram",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_title": {
+          "name": "event1_title",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Akad Nikah'::character varying"
+        },
+        "event1_date": {
+          "name": "event1_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event1_start_time": {
+          "name": "event1_start_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event1_end_time": {
+          "name": "event1_end_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_venue_name": {
+          "name": "event1_venue_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_venue_address": {
+          "name": "event1_venue_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_venue_city": {
+          "name": "event1_venue_city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_venue_province": {
+          "name": "event1_venue_province",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event1_maps_url": {
+          "name": "event1_maps_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_title": {
+          "name": "event2_title",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Resepsi'::character varying"
+        },
+        "event2_date": {
+          "name": "event2_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_start_time": {
+          "name": "event2_start_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_end_time": {
+          "name": "event2_end_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_venue_name": {
+          "name": "event2_venue_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_venue_address": {
+          "name": "event2_venue_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_venue_city": {
+          "name": "event2_venue_city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_venue_province": {
+          "name": "event2_venue_province",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event2_maps_url": {
+          "name": "event2_maps_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "streaming_enabled": {
+          "name": "streaming_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "streaming_url": {
+          "name": "streaming_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "streaming_description": {
+          "name": "streaming_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "streaming_button_label": {
+          "name": "streaming_button_label",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Watch Live'::character varying"
+        },
+        "gift_recipient_name": {
+          "name": "gift_recipient_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_recipient_phone": {
+          "name": "gift_recipient_phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_address_line1": {
+          "name": "gift_address_line1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_address_line2": {
+          "name": "gift_address_line2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_address_city": {
+          "name": "gift_address_city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_address_province": {
+          "name": "gift_address_province",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gift_address_postal_code": {
+          "name": "gift_address_postal_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_wedding_registrations_slug": {
+          "name": "idx_wedding_registrations_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        },
+        "idx_wedding_registrations_client_id": {
+          "name": "idx_wedding_registrations_client_id",
+          "columns": [
+            "client_id"
+          ],
+          "isUnique": false
+        },
+        "idx_wedding_registrations_wedding_date": {
+          "name": "idx_wedding_registrations_wedding_date",
+          "columns": [
+            "wedding_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "wedding_registrations_client_id_fkey": {
+          "name": "wedding_registrations_client_id_fkey",
+          "tableFrom": "wedding_registrations",
+          "tableTo": "clients",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "wedding_registrations_slug_key": {
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false,
+          "name": "wedding_registrations_slug_key"
+        }
+      }
+    },
+    "greeting_sections": {
+      "name": "greeting_sections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "section_key": {
+          "name": "section_key",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "show_bride_name": {
+          "name": "show_bride_name",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "show_groom_name": {
+          "name": "show_groom_name",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_greeting_sections_registration": {
+          "name": "idx_greeting_sections_registration",
+          "columns": [
+            "display_order",
+            "registration_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "greeting_sections_registration_id_fkey": {
+          "name": "greeting_sections_registration_id_fkey",
+          "tableFrom": "greeting_sections",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_greeting_section_key": {
+          "columns": [
+            "registration_id",
+            "section_key"
+          ],
+          "nullsNotDistinct": false,
+          "name": "uq_greeting_section_key"
+        }
+      }
+    },
+    "love_story_blocks": {
+      "name": "love_story_blocks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body_text": {
+          "name": "body_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "story_date": {
+          "name": "story_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_love_story_blocks_registration": {
+          "name": "idx_love_story_blocks_registration",
+          "columns": [
+            "display_order",
+            "registration_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "love_story_blocks_registration_id_fkey": {
+          "name": "love_story_blocks_registration_id_fkey",
+          "tableFrom": "love_story_blocks",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "gallery_settings": {
+      "name": "gallery_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "main_title": {
+          "name": "main_title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Our Moments'::character varying"
+        },
+        "background_color": {
+          "name": "background_color",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'#F5F5F0'::character varying"
+        },
+        "show_youtube": {
+          "name": "show_youtube",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "youtube_embed_url": {
+          "name": "youtube_embed_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "images": {
+          "name": "images",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'RRAY['"
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gallery_settings_registration_id_fkey": {
+          "name": "gallery_settings_registration_id_fkey",
+          "tableFrom": "gallery_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "wedding_gift_bank_accounts": {
+      "name": "wedding_gift_bank_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bank_name": {
+          "name": "bank_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_holder_name": {
+          "name": "account_holder_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_gift_bank_accounts_registration": {
+          "name": "idx_gift_bank_accounts_registration",
+          "columns": [
+            "display_order",
+            "registration_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "wedding_gift_bank_accounts_registration_id_fkey": {
+          "name": "wedding_gift_bank_accounts_registration_id_fkey",
+          "tableFrom": "wedding_gift_bank_accounts",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "theme_settings": {
+      "name": "theme_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "theme_key": {
+          "name": "theme_key",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'premium/simple1'::character varying"
+        },
+        "custom_images": {
+          "name": "custom_images",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "enable_gallery": {
+          "name": "enable_gallery",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "enable_love_story": {
+          "name": "enable_love_story",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "enable_wedding_gift": {
+          "name": "enable_wedding_gift",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "enable_wishes": {
+          "name": "enable_wishes",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "enable_closing": {
+          "name": "enable_closing",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "custom_css": {
+          "name": "custom_css",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "theme_settings_registration_id_fkey": {
+          "name": "theme_settings_registration_id_fkey",
+          "tableFrom": "theme_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "love_story_settings": {
+      "name": "love_story_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "main_title": {
+          "name": "main_title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Our Love Story'::character varying"
+        },
+        "background_image_url": {
+          "name": "background_image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "overlay_opacity": {
+          "name": "overlay_opacity",
+          "type": "numeric(3, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "0.60"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "love_story_settings_registration_id_fkey": {
+          "name": "love_story_settings_registration_id_fkey",
+          "tableFrom": "love_story_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "wedding_gift_settings": {
+      "name": "wedding_gift_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Wedding Gift'::character varying"
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Doa restu Anda adalah hadiah terindah bagi kami. Namun jika ingin memberi hadiah, dapat melalui:'"
+        },
+        "button_label": {
+          "name": "button_label",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Kirim Hadiah'::character varying"
+        },
+        "gift_image_url": {
+          "name": "gift_image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "background_overlay_opacity": {
+          "name": "background_overlay_opacity",
+          "type": "numeric(3, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "0.55"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "recipient_name": {
+          "name": "recipient_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_phone": {
+          "name": "recipient_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_address_line1": {
+          "name": "recipient_address_line1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_address_line2": {
+          "name": "recipient_address_line2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_address_line3": {
+          "name": "recipient_address_line3",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wedding_gift_settings_registration_id_fkey": {
+          "name": "wedding_gift_settings_registration_id_fkey",
+          "tableFrom": "wedding_gift_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "background_music_settings": {
+      "name": "background_music_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artist": {
+          "name": "artist",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "loop": {
+          "name": "loop",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "audio_url": {
+          "name": "audio_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "register_as_background_audio": {
+          "name": "register_as_background_audio",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "background_music_settings_registration_id_fkey": {
+          "name": "background_music_settings_registration_id_fkey",
+          "tableFrom": "background_music_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "closing_settings": {
+      "name": "closing_settings",
+      "schema": "",
+      "columns": {
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "background_color": {
+          "name": "background_color",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'#F5F5F0'::character varying"
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "names_display": {
+          "name": "names_display",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message_line1": {
+          "name": "message_line1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Kami sangat menantikan kehadiran Anda untuk berbagi kebahagiaan di hari istimewa kami.'"
+        },
+        "message_line2": {
+          "name": "message_line2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Kehadiran dan doa restu Anda merupakan kebahagiaan bagi kami.'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "photo_alt": {
+          "name": "photo_alt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'Closing Photo'"
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "message_line3": {
+          "name": "message_line3",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "closing_settings_registration_id_fkey": {
+          "name": "closing_settings_registration_id_fkey",
+          "tableFrom": "closing_settings",
+          "tableTo": "wedding_registrations",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "buckettype": {
+      "name": "buckettype",
+      "values": {
+        "VECTOR": "VECTOR",
+        "ANALYTICS": "ANALYTICS",
+        "STANDARD": "STANDARD"
+      }
+    },
+    "equality_op": {
+      "name": "equality_op",
+      "values": {
+        "in": "in",
+        "gte": "gte",
+        "gt": "gt",
+        "lte": "lte",
+        "lt": "lt",
+        "neq": "neq",
+        "eq": "eq"
+      }
+    },
+    "action": {
+      "name": "action",
+      "values": {
+        "ERROR": "ERROR",
+        "TRUNCATE": "TRUNCATE",
+        "DELETE": "DELETE",
+        "UPDATE": "UPDATE",
+        "INSERT": "INSERT"
+      }
+    },
+    "factor_type": {
+      "name": "factor_type",
+      "values": {
+        "phone": "phone",
+        "webauthn": "webauthn",
+        "totp": "totp"
+      }
+    },
+    "factor_status": {
+      "name": "factor_status",
+      "values": {
+        "verified": "verified",
+        "unverified": "unverified"
+      }
+    },
+    "aal_level": {
+      "name": "aal_level",
+      "values": {
+        "aal3": "aal3",
+        "aal2": "aal2",
+        "aal1": "aal1"
+      }
+    },
+    "code_challenge_method": {
+      "name": "code_challenge_method",
+      "values": {
+        "plain": "plain",
+        "s256": "s256"
+      }
+    },
+    "one_time_token_type": {
+      "name": "one_time_token_type",
+      "values": {
+        "phone_change_token": "phone_change_token",
+        "email_change_token_current": "email_change_token_current",
+        "email_change_token_new": "email_change_token_new",
+        "recovery_token": "recovery_token",
+        "reauthentication_token": "reauthentication_token",
+        "confirmation_token": "confirmation_token"
+      }
+    },
+    "oauth_registration_type": {
+      "name": "oauth_registration_type",
+      "values": {
+        "manual": "manual",
+        "dynamic": "dynamic"
+      }
+    },
+    "oauth_authorization_status": {
+      "name": "oauth_authorization_status",
+      "values": {
+        "expired": "expired",
+        "denied": "denied",
+        "approved": "approved",
+        "pending": "pending"
+      }
+    },
+    "oauth_response_type": {
+      "name": "oauth_response_type",
+      "values": {
+        "code": "code"
+      }
+    },
+    "oauth_client_type": {
+      "name": "oauth_client_type",
+      "values": {
+        "confidential": "confidential",
+        "public": "public"
+      }
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}

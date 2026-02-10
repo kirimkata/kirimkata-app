@@ -31,7 +31,9 @@ export default function GallerySection() {
   const hasBottomGrid = bottomGridImages && bottomGridImages.length >= 2;
 
   const clickableImages: LightboxImage[] = middleImages
-    ? middleImages.map((img) => ({ src: img.src, alt: img.alt }))
+    ? middleImages
+      .filter((img) => img.src && img.src.trim() !== '')
+      .map((img) => ({ src: img.src, alt: img.alt }))
     : [];
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -536,9 +538,9 @@ function FramerCarouselThumbnails({ items, index, setIndex }: FramerCarouselThum
                   style={
                     i === index
                       ? {
-                          transform: `translate3d(${imageTransform.offsetX}px, ${imageTransform.offsetY}px, 0) scale(${imageTransform.scale})`,
-                          transition: pinchStateRef.current.active ? 'none' : 'transform 0.15s ease-out',
-                        }
+                        transform: `translate3d(${imageTransform.offsetX}px, ${imageTransform.offsetY}px, 0) scale(${imageTransform.scale})`,
+                        transition: pinchStateRef.current.active ? 'none' : 'transform 0.15s ease-out',
+                      }
                       : { transform: 'scale(1)' }
                   }
                   draggable={false}
@@ -552,10 +554,9 @@ function FramerCarouselThumbnails({ items, index, setIndex }: FramerCarouselThum
             disabled={index === 0}
             onClick={() => requestIndexChange(index > 0 ? index - 1 : 0, false)}
             className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-transform z-10
-              ${
-                index === 0
-                  ? 'opacity-40 cursor-not-allowed'
-                  : 'bg-white hover:scale-110 hover:opacity-100 opacity-70'
+              ${index === 0
+                ? 'opacity-40 cursor-not-allowed'
+                : 'bg-white hover:scale-110 hover:opacity-100 opacity-70'
               }`}
           >
             <svg
@@ -582,10 +583,9 @@ function FramerCarouselThumbnails({ items, index, setIndex }: FramerCarouselThum
               )
             }
             className={`absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-transform z-10
-              ${
-                index === items.length - 1
-                  ? 'opacity-40 cursor-not-allowed'
-                  : 'bg-white hover:scale-110 hover:opacity-100 opacity-70'
+              ${index === items.length - 1
+                ? 'opacity-40 cursor-not-allowed'
+                : 'bg-white hover:scale-110 hover:opacity-100 opacity-70'
               }`}
           >
             <svg

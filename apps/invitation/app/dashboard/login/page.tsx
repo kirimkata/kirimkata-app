@@ -36,7 +36,7 @@ export default function LoginPage() {
       if (data.success && data.token) {
         setAuthToken(data.token);
         localStorage.setItem('client_user', JSON.stringify(data.user));
-        router.push('/dashboard');
+        router.push('/client-dashboard');
       } else {
         setError(data.error || 'Login failed');
       }

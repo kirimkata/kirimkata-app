@@ -178,6 +178,24 @@ export default function Section15({
                 <div style={{ marginTop: 56 }}>
                     <div
                         style={{
+                            marginBottom: 16,
+                            display: 'flex',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <img
+                            src="/k_logo.png"
+                            alt="KirimKata"
+                            style={{
+                                width: 60,
+                                height: 60,
+                                objectFit: 'contain',
+                            }}
+                        />
+                    </div>
+
+                    <div
+                        style={{
                             fontFamily: getFontFamily('ebGaramond', 'serif'),
                             fontSize: 40,
                             fontWeight: 600,

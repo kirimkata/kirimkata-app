@@ -3,7 +3,7 @@ import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
 import { getSupabaseClient } from '@/lib/supabase';
 
-const guests = new Hono<{ Bindings: Env }>();
+const guests = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
 
 // All guests routes require client authentication
 guests.use('*', clientAuthMiddleware);

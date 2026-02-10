@@ -51,7 +51,7 @@ export default function Section5({
   const newCloudVisual = getCloudConfig('5-6');
   const invitationContent = useInvitationContent();
   const defaultNewCloudText = getCloudText(newCloudVisual.textKey);
-  const dbClouds = invitationContent?.clouds as
+  const dbClouds = invitationContent?.greetings as
     | Record<string, typeof defaultNewCloudText>
     | undefined;
   const newCloudText = dbClouds?.[newCloudVisual.textKey] ?? defaultNewCloudText;

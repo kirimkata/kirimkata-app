@@ -62,7 +62,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                     </label>
                     <input
                         type="text"
-                        value={data.title}
+                        value={data.title || ''}
                         onChange={(e) => handleFieldChange('title', e.target.value)}
                         placeholder="Wedding Gift"
                         disabled={disabled}
@@ -82,7 +82,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                         />
                     </label>
                     <textarea
-                        value={data.subtitle}
+                        value={data.subtitle || ''}
                         onChange={(e) => handleFieldChange('subtitle', e.target.value)}
                         placeholder="We're so grateful for your love and support..."
                         disabled={disabled}
@@ -96,7 +96,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                     <label>Label Tombol</label>
                     <input
                         type="text"
-                        value={data.buttonLabel}
+                        value={data.buttonLabel || ''}
                         onChange={(e) => handleFieldChange('buttonLabel', e.target.value)}
                         placeholder="Kirim Hadiah"
                         disabled={disabled}
@@ -134,7 +134,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                                 <label>Nama Bank</label>
                                 <input
                                     type="text"
-                                    value={bank.templateId}
+                                    value={bank.templateId || ''}
                                     onChange={(e) => handleBankChange(index, 'templateId', e.target.value)}
                                     placeholder="BCA / Mandiri / BNI"
                                     disabled={disabled}
@@ -144,7 +144,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                                 <label>Nomor Rekening</label>
                                 <input
                                     type="text"
-                                    value={bank.accountNumber}
+                                    value={bank.accountNumber || ''}
                                     onChange={(e) => handleBankChange(index, 'accountNumber', e.target.value)}
                                     placeholder="1234567890"
                                     disabled={disabled}
@@ -156,7 +156,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                                 <label>Nama Pemilik</label>
                                 <input
                                     type="text"
-                                    value={bank.accountName}
+                                    value={bank.accountName || ''}
                                     onChange={(e) => handleBankChange(index, 'accountName', e.target.value)}
                                     placeholder="Nama sesuai rekening"
                                     disabled={disabled}
@@ -174,7 +174,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                         <label>Nama Penerima</label>
                         <input
                             type="text"
-                            value={data.physicalGift.recipientName}
+                            value={data.physicalGift.recipientName || ''}
                             onChange={(e) => handlePhysicalGiftChange('recipientName', e.target.value)}
                             placeholder="Nama penerima"
                             disabled={disabled}
@@ -184,7 +184,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                         <label>Nomor Telepon</label>
                         <input
                             type="tel"
-                            value={data.physicalGift.phone}
+                            value={data.physicalGift.phone || ''}
                             onChange={(e) => handlePhysicalGiftChange('phone', e.target.value)}
                             placeholder="08123456789"
                             disabled={disabled}
@@ -203,7 +203,7 @@ export const WeddingGiftSection: React.FC<WeddingGiftSectionProps> = ({
                             />
                         </label>
                         <textarea
-                            value={data.physicalGift.addressLines.join('\n')}
+                            value={(data.physicalGift.addressLines || []).join('\n')}
                             onChange={(e) =>
                                 handlePhysicalGiftChange('addressLines', e.target.value.split('\n'))
                             }

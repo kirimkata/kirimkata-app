@@ -49,21 +49,47 @@ shared.get('/redeem', async (c) => {
             );
         }
 
-        // Get redemption logs
+        // Get redemption logs using staff_logs
+        // Matching logic from local logRepository.ts
         const { data: logs, error } = await supabase
-            .from('redemption_logs')
-            .select('*')
-            .eq('event_id', eventId)
-            .order('redeemed_at', { ascending: false })
+            .from('staff_logs')
+            .select(`
+                *,
+                invitation_guests!inner(
+                    id,
+                    event_id,
+                    guest_name,
+                    guest_phone,
+                    guest_type_id
+                ),
+                guestbook_staff(
+                    id,
+                    username,
+                    full_name
+                )
+            `)
+            .eq('invitation_guests.event_id', eventId)
+            .in('action', ['souvenir', 'snack', 'meal', 'vip_lounge'])
+            .order('created_at', { ascending: false })
             .limit(limit);
 
         if (error) {
             throw error;
         }
 
+        // Transform data
+        const formattedLogs = logs?.map(log => ({
+            id: log.id,
+            guest_name: log.invitation_guests?.guest_name,
+            staff_name: log.guestbook_staff?.full_name || 'System',
+            entitlement_type: log.action.toUpperCase(),
+            quantity: 1, // Default to 1 as staff_logs doesn't seem to have quantity
+            redeemed_at: log.created_at
+        }));
+
         return c.json({
             success: true,
-            data: logs || [],
+            data: formattedLogs || [],
         });
     } catch (error) {
         console.error('Get redemption logs error:', error);

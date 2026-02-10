@@ -36,7 +36,7 @@ media.post('/upload', async (c) => {
 
         // Parse multipart form data
         const formData = await c.req.formData();
-        const file = formData.get('file') as File;
+        const file = formData.get('file') as any as File;
         const fileType = formData.get('type') as string; // 'photo', 'music', or 'video'
 
         if (!file) {

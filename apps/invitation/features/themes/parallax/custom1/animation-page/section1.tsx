@@ -39,7 +39,7 @@ export default function Section1({
   const invitationContent = useInvitationContent();
   const defaultCloudText = getCloudText(cloudVisual.textKey);
 
-  const dbClouds = invitationContent?.clouds as
+  const dbClouds = invitationContent?.greetings as
     | Record<string, typeof defaultCloudText>
     | undefined;
   const mergedCloudText = {

@@ -1,8 +1,25 @@
 # Database Column Naming Analysis - invitation_contents
 
-## 📋 Current Schema
+## 📋 Current Schema Analysis (Hybrid Architecture)
 
-Based on your data:
+Based on code analysis (`invitationContentRepository.ts` & `invitationCompilerService.ts`) and database inspection:
+
+**The system currently uses a HYBRID approach:**
+1.  **Normalized Data (Source of Truth)**: 
+    -   Tables: `wedding_registrations`, `greeting_sections`, `love_story_settings`, `gallery_settings`, etc.
+    -   These tables store the authoritative data, edited via the dashboard.
+2.  **Denormalized Cache (Read Model)**:
+    -   Table: `invitation_contents`
+    -   This table acts as a **CACHE** for the invitation frontend.
+    -   It is populated by the `InvitationCompilerService`, which reads from the normalized tables and constructs the JSON blobs.
+
+**Implication for Refactoring:**
+-   Old column names (`clouds`, `event_cloud`) in `invitation_contents` are now "Cache Fields".
+-   **Good News**: We can rename these columns with minimal risk of data loss, because the data can always be re-generated from the normalized tables using the Compiler Service.
+-   **Challenge**: We must update the `InvitationCompilerService` (writer), `InvitationContentRepository` (reader), and the Frontend Types to match the new names.
+
+### Confirmed Table Structure
+The `invitation_contents` table likely still has the old structure, acting as the cache:
 ```sql
 CREATE TABLE invitation_contents (
   id UUID PRIMARY KEY,
@@ -11,23 +28,12 @@ CREATE TABLE invitation_contents (
   bride JSONB,
   groom JSONB,
   event JSONB,
-  clouds JSONB,          -- ❌ NAMA TIDAK RELATE
-  event_cloud JSONB,      -- ⚠️ BINGUNG dengan "clouds"
-  love_story JSONB,
-  gallery JSONB,
-  wedding_gift JSONB,
-  closing JSONB,
-  background_music JSONB,
-  theme_key TEXT,
-  custom_images JSONB,
-  created_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ
+  clouds JSONB,          -- ❌ To be renamed: greetings
+  event_cloud JSONB,     -- ❌ To be renamed: event_details
+  -- ... other columns
 );
 ```
 
----
-
-## ❌ Issues dengan Naming Saat Ini
 
 ### 1. **`clouds`** - Very Confusing!
 ```sql

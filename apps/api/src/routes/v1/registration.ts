@@ -4,8 +4,18 @@ import type { Env } from '../../lib/types';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
 import { clientAuthMiddleware } from '../../middleware/auth';
+import { RateLimiter } from '../../middleware/rateLimit';
 
 const router = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
+
+const registrationRateLimiter = new RateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5, // 5 requests per minute
+    message: 'Too many registration requests from this IP.'
+});
+
+// Apply rate limiting to all routes
+router.use('*', registrationRateLimiter.middleware());
 
 /**
  * POST /v1/registration
@@ -81,7 +91,7 @@ router.post('/', clientAuthMiddleware, async (c) => {
             success: true,
             data: registration,
             message: 'Wedding registration created successfully'
-        }, 201);
+        });
 
     } catch (error: any) {
         console.error('Error creating wedding registration:', error);
