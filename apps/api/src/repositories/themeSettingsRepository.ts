@@ -1,59 +1,48 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { themeSettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface ThemeSettings {
-    registration_id: string;
-    theme_key: string;
-    enable_gallery: boolean;
-    enable_love_story: boolean;
-    enable_wedding_gift: boolean;
-    enable_wishes: boolean;
-    enable_closing: boolean;
-    custom_css?: string;
-    created_at?: string;
-    updated_at?: string;
-}
+export type ThemeSettings = InferSelectModel<typeof themeSettings>;
+export type UpsertThemeSettingsInput = InferInsertModel<typeof themeSettings>;
 
 class ThemeSettingsRepository {
     /**
      * Get theme settings
      */
-    async getSettings(registrationId: string): Promise<ThemeSettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<ThemeSettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('theme_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(themeSettings)
+            .where(eq(themeSettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting theme settings:', error);
-            throw new Error(`Failed to get theme settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert theme settings
      */
-    async upsertSettings(data: ThemeSettings): Promise<ThemeSettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertThemeSettingsInput): Promise<ThemeSettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('theme_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting theme settings:', error);
-            throw new Error(`Failed to upsert theme settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(themeSettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: themeSettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -62,29 +51,39 @@ class ThemeSettingsRepository {
      * Toggle feature
      */
     async toggleFeature(
+        env: Env,
         registrationId: string,
         feature: 'gallery' | 'love_story' | 'wedding_gift' | 'wishes' | 'closing',
         enabled: boolean
     ): Promise<ThemeSettings> {
-        const settings = await this.getSettings(registrationId);
+        const settings = await this.getSettings(env, registrationId);
+
+        // If settings don't exist, likely need to create default.
+        // Or throw error? Original code threw "Theme settings not found".
         if (!settings) {
             throw new Error('Theme settings not found');
         }
 
         const featureMap = {
-            gallery: 'enable_gallery',
-            love_story: 'enable_love_story',
-            wedding_gift: 'enable_wedding_gift',
-            wishes: 'enable_wishes',
-            closing: 'enable_closing',
+            gallery: 'enableGallery',
+            love_story: 'enableLoveStory',
+            wedding_gift: 'enableWeddingGift',
+            wishes: 'enableWishes',
+            closing: 'enableClosing',
+        } as const;
+
+        const updateData: UpsertThemeSettingsInput = {
+            ...settings,
+            // Ensure registrationId is present if settings doesn't have it (unlikely given it came from DB via getSettings, but for type safety if needed)
+            // Actually settings is ThemeSettings which has registrationId.
+            [featureMap[feature]]: enabled,
+            updatedAt: new Date().toISOString(),
         };
 
-        return this.upsertSettings({
-            ...settings,
-            [featureMap[feature]]: enabled,
-        });
+        return this.upsertSettings(env, updateData);
     }
 }
 
 // Export singleton instance
 export const themeSettingsRepo = new ThemeSettingsRepository();
+

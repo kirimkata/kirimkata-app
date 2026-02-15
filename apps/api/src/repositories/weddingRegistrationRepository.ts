@@ -1,5 +1,7 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { weddingRegistrations } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
 
 export interface WeddingRegistration {
     id: string;
@@ -45,178 +47,229 @@ export type CreateWeddingRegistrationInput = Omit<WeddingRegistration, 'id' | 'c
 export type UpdateWeddingRegistrationInput = Partial<Omit<WeddingRegistration, 'id' | 'client_id' | 'created_at' | 'updated_at'>>;
 
 class WeddingRegistrationRepository {
-    private tableName = 'wedding_registrations';
+
+    // Helper to map DB result to Application model
+    private mapFromDb(record: any): WeddingRegistration {
+        const result: any = { ...record };
+
+        // Map snake_case or camelCase from DB to expected interface properties
+        // Drizzle schema uses camelCase for TypeScript keys (e.g. event1StartTime), but DB columns are snake_case.
+        // Drizzle results are returned with proper TS keys defined in schema.
+
+        // Map Drizzle schema keys (camelCase) to Interface keys (snake_case-ish for time)
+        // Check schema definition: event1StartTime -> event1_start_time
+
+        if (record.clientId) result.client_id = record.clientId;
+        if (record.eventType) result.event_type = record.eventType;
+        if (record.customEvent1Label) result.custom_event1_label = record.customEvent1Label;
+        if (record.customEvent2Label) result.custom_event2_label = record.customEvent2Label;
+
+        if (record.brideName) result.bride_name = record.brideName;
+        if (record.brideFullName) result.bride_full_name = record.brideFullName;
+        if (record.brideFatherName) result.bride_father_name = record.brideFatherName;
+        if (record.brideMotherName) result.bride_mother_name = record.brideMotherName;
+        if (record.brideInstagram) result.bride_instagram = record.brideInstagram;
+
+        if (record.groomName) result.groom_name = record.groomName;
+        if (record.groomFullName) result.groom_full_name = record.groomFullName;
+        if (record.groomFatherName) result.groom_father_name = record.groomFatherName;
+        if (record.groomMotherName) result.groom_mother_name = record.groomMotherName;
+        if (record.groomInstagram) result.groom_instagram = record.groomInstagram;
+
+        if (record.event1Date) result.event1_date = record.event1Date; // Date string usually
+        if (record.event2SameDate !== undefined) result.event2_same_date = record.event2SameDate;
+        if (record.event2Date) result.event2_date = record.event2Date;
+
+        // Time fields mapping
+        if (record.event1StartTime) result.event1_time = record.event1StartTime;
+        if (record.event1EndTime) result.event1_end_time = record.event1EndTime;
+
+        if (record.event1VenueName) result.event1_venue_name = record.event1VenueName;
+        if (record.event1VenueAddress) result.event1_venue_address = record.event1VenueAddress;
+        if (record.event1VenueCity) result.event1_venue_city = record.event1VenueCity;
+        if (record.event1VenueProvince) result.event1_venue_province = record.event1VenueProvince;
+        if (record.event1MapsUrl) result.event1_maps_url = record.event1MapsUrl;
+
+        if (record.event2SameVenue !== undefined) result.event2_same_venue = record.event2SameVenue;
+
+        if (record.event2StartTime) result.event2_time = record.event2StartTime;
+        if (record.event2EndTime) result.event2_end_time = record.event2EndTime;
+
+        if (record.event2VenueName) result.event2_venue_name = record.event2VenueName;
+        if (record.event2VenueAddress) result.event2_venue_address = record.event2VenueAddress;
+        if (record.event2VenueCity) result.event2_venue_city = record.event2VenueCity;
+        if (record.event2VenueProvince) result.event2_venue_province = record.event2VenueProvince;
+        if (record.event2MapsUrl) result.event2_maps_url = record.event2MapsUrl;
+
+        if (record.createdAt) result.created_at = new Date(record.createdAt).toISOString();
+        if (record.updatedAt) result.updated_at = new Date(record.updatedAt).toISOString();
+
+        return result;
+    }
+
+    // Helper to map Application model to DB Drizzle schema
+    private mapToDb(data: Partial<WeddingRegistration> & Record<string, any>): any {
+        const dbData: any = {};
+
+        // Helper to copy if exists
+        const copy = (sourceKey: string, targetKey: string) => {
+            if (data[sourceKey] !== undefined) dbData[targetKey] = data[sourceKey];
+        };
+
+        // Basic fields
+        copy('slug', 'slug');
+        copy('client_id', 'clientId');
+        copy('event_type', 'eventType');
+        copy('timezone', 'timezone');
+
+        copy('custom_event1_label', 'customEvent1Label');
+        copy('custom_event2_label', 'customEvent2Label');
+
+        copy('bride_name', 'brideName');
+        copy('bride_full_name', 'brideFullName');
+        copy('bride_father_name', 'brideFatherName');
+        copy('bride_mother_name', 'brideMotherName');
+        copy('bride_instagram', 'brideInstagram');
+
+        copy('groom_name', 'groomName');
+        copy('groom_full_name', 'groomFullName');
+        copy('groom_father_name', 'groomFatherName');
+        copy('groom_mother_name', 'groomMotherName');
+        copy('groom_instagram', 'groomInstagram');
+
+        copy('event1_date', 'event1Date');
+        copy('event2_same_date', 'event2SameDate');
+        copy('event2_date', 'event2Date');
+
+        // Time mapping
+        copy('event1_time', 'event1StartTime');
+        copy('event1_end_time', 'event1EndTime');
+
+        copy('event1_venue_name', 'event1VenueName');
+        copy('event1_venue_address', 'event1VenueAddress');
+        copy('event1_venue_city', 'event1VenueCity');
+        copy('event1_venue_province', 'event1VenueProvince');
+        copy('event1_maps_url', 'event1MapsUrl');
+
+        copy('event2_same_venue', 'event2SameVenue');
+
+        copy('event2_time', 'event2StartTime');
+        copy('event2_end_time', 'event2EndTime');
+
+        copy('event2_venue_name', 'event2VenueName');
+        copy('event2_venue_address', 'event2VenueAddress');
+        copy('event2_venue_city', 'event2VenueCity');
+        copy('event2_venue_province', 'event2VenueProvince');
+        copy('event2_maps_url', 'event2MapsUrl');
+
+        return dbData;
+    }
 
     /**
      * Create new wedding registration
      */
-    async create(data: CreateWeddingRegistrationInput): Promise<WeddingRegistration> {
-        const supabase = getSupabaseClient();
+    async create(env: Env, data: CreateWeddingRegistrationInput): Promise<WeddingRegistration> {
+        const db = getDb(env);
+        const dbData = this.mapToDb(data as any);
 
-        // Map API field names to database column names
-        const dbData: any = { ...data };
-        if ('event1_time' in data) {
-            dbData.event1_start_time = data.event1_time;
-            delete dbData.event1_time;
-        }
-        if ('event2_time' in data) {
-            dbData.event2_start_time = data.event2_time;
-            delete dbData.event2_time;
-        }
+        const [result] = await db
+            .insert(weddingRegistrations)
+            .values(dbData)
+            .returning();
 
-        const { data: result, error } = await supabase
-            .from(this.tableName)
-            .insert(dbData)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating wedding registration:', error);
-            throw new Error(`Failed to create wedding registration: ${error.message}`);
-        }
-
-        // Map DB column names back to API field names
-        const mapped: any = { ...result };
-        if (mapped.event1_start_time) mapped.event1_time = mapped.event1_start_time;
-        if (mapped.event2_start_time) mapped.event2_time = mapped.event2_start_time;
-
-        return mapped;
+        return this.mapFromDb(result);
     }
 
     /**
      * Find wedding registration by slug
      */
-    async findBySlug(slug: string): Promise<WeddingRegistration | null> {
-        const supabase = getSupabaseClient();
+    async findBySlug(env: Env, slug: string): Promise<WeddingRegistration | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('slug', slug)
-            .single();
+        const [result] = await db
+            .select()
+            .from(weddingRegistrations)
+            .where(eq(weddingRegistrations.slug, slug))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                // Not found
-                return null;
-            }
-            console.error('Error finding wedding registration by slug:', error);
-            throw new Error(`Failed to find wedding registration: ${error.message}`);
-        }
-
-        // Map DB column names to API field names
-        const result: any = { ...data };
-        if (result.event1_start_time) result.event1_time = result.event1_start_time;
-        if (result.event2_start_time) result.event2_time = result.event2_start_time;
-
-        return result;
+        if (!result) return null;
+        return this.mapFromDb(result);
     }
 
     /**
      * Find wedding registration by ID
      */
-    async findById(id: string): Promise<WeddingRegistration | null> {
-        const supabase = getSupabaseClient();
+    async findById(env: Env, id: string): Promise<WeddingRegistration | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('id', id)
-            .single();
+        const [result] = await db
+            .select()
+            .from(weddingRegistrations)
+            .where(eq(weddingRegistrations.id, id))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error finding wedding registration by ID:', error);
-            throw new Error(`Failed to find wedding registration: ${error.message}`);
-        }
-
-        return data;
+        if (!result) return null;
+        return this.mapFromDb(result);
     }
 
     /**
      * Update wedding registration
      */
-    async update(id: string, updates: UpdateWeddingRegistrationInput): Promise<WeddingRegistration> {
-        const supabase = getSupabaseClient();
+    async update(env: Env, id: string, updates: UpdateWeddingRegistrationInput): Promise<WeddingRegistration> {
+        const db = getDb(env);
+        const dbUpdates = this.mapToDb(updates as any);
 
-        // Map API field names to database column names
-        const dbUpdates: any = { ...updates };
-        if ('event1_time' in updates) {
-            dbUpdates.event1_start_time = updates.event1_time;
-            delete dbUpdates.event1_time;
-        }
-        if ('event2_time' in updates) {
-            dbUpdates.event2_start_time = updates.event2_time;
-            delete dbUpdates.event2_time;
-        }
+        // Add updated_at
+        dbUpdates.updatedAt = new Date(); // Drizzle usually needs Date object or string depending on driver
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .update(dbUpdates)
-            .eq('id', id)
-            .select()
-            .single();
+        const [result] = await db
+            .update(weddingRegistrations)
+            .set(dbUpdates)
+            .where(eq(weddingRegistrations.id, id))
+            .returning();
 
-        if (error) {
-            console.error('Error updating wedding registration:', error);
-            throw new Error(`Failed to update wedding registration: ${error.message}`);
+        if (!result) {
+            throw new Error('Failed to update registration: Record not found');
         }
 
-        // Map DB column names back to API field names
-        const result: any = { ...data };
-        if (result.event1_start_time) result.event1_time = result.event1_start_time;
-        if (result.event2_start_time) result.event2_time = result.event2_start_time;
-
-        return result;
+        return this.mapFromDb(result);
     }
 
     /**
      * Delete wedding registration
      */
-    async delete(id: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async delete(env: Env, id: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from(this.tableName)
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting wedding registration:', error);
-            throw new Error(`Failed to delete wedding registration: ${error.message}`);
-        }
+        await db
+            .delete(weddingRegistrations)
+            .where(eq(weddingRegistrations.id, id));
     }
 
     /**
      * Find all registrations by client ID
      */
-    async findByClientId(clientId: string): Promise<WeddingRegistration[]> {
-        const supabase = getSupabaseClient();
+    async findByClientId(env: Env, clientId: string): Promise<WeddingRegistration[]> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('client_id', clientId)
-            .order('created_at', { ascending: false });
+        const results = await db
+            .select()
+            .from(weddingRegistrations)
+            .where(eq(weddingRegistrations.clientId, clientId))
+            .orderBy(desc(weddingRegistrations.createdAt));
 
-        if (error) {
-            console.error('Error finding wedding registrations by client ID:', error);
-            throw new Error(`Failed to find wedding registrations: ${error.message}`);
-        }
-
-        return data || [];
+        return results.map(r => this.mapFromDb(r));
     }
 
     /**
      * Check if slug is available
      */
-    async isSlugAvailable(slug: string): Promise<boolean> {
-        const existing = await this.findBySlug(slug);
+    async isSlugAvailable(env: Env, slug: string): Promise<boolean> {
+        const existing = await this.findBySlug(env, slug);
         return !existing;
     }
 }
 
 // Export singleton instance
 export const weddingRegistrationRepo = new WeddingRegistrationRepository();
+

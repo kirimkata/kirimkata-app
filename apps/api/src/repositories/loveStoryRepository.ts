@@ -1,69 +1,55 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { loveStorySettings, invitationLoveStoryContent } from '@/db/schema';
+import { eq, asc, inArray } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface LoveStorySettings {
-    registration_id: string;
-    main_title: string;
-    background_image_url?: string;
-    overlay_opacity: number;
-    is_enabled: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+export type LoveStorySettings = InferSelectModel<typeof loveStorySettings>;
+export type LoveStoryBlock = InferSelectModel<typeof invitationLoveStoryContent>;
 
-export interface LoveStoryBlock {
-    id: string;
-    registration_id: string;
-    title: string;
-    body_text: string;
-    display_order: number;
-    created_at?: string;
-    updated_at?: string;
-}
+export type CreateLoveStoryBlockInput = InferInsertModel<typeof invitationLoveStoryContent>;
+export type UpdateLoveStoryBlockInput = Partial<CreateLoveStoryBlockInput>;
+export type UpsertLoveStorySettingsInput = InferInsertModel<typeof loveStorySettings>;
 
-export type CreateLoveStoryBlockInput = Omit<LoveStoryBlock, 'id' | 'created_at' | 'updated_at'>;
-export type UpdateLoveStoryBlockInput = Partial<Omit<LoveStoryBlock, 'id' | 'registration_id' | 'created_at' | 'updated_at'>>;
+export type CreateLoveStoryBlockInputOmit = Omit<CreateLoveStoryBlockInput, 'id' | 'createdAt' | 'updatedAt'>;
 
 class LoveStoryRepository {
+
     /**
      * Get love story settings
      */
-    async getSettings(registrationId: string): Promise<LoveStorySettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<LoveStorySettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('love_story_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(loveStorySettings)
+            .where(eq(loveStorySettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting love story settings:', error);
-            throw new Error(`Failed to get love story settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert love story settings
      */
-    async upsertSettings(data: LoveStorySettings): Promise<LoveStorySettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertLoveStorySettingsInput): Promise<LoveStorySettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('love_story_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting love story settings:', error);
-            throw new Error(`Failed to upsert love story settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(loveStorySettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: loveStorySettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -71,120 +57,100 @@ class LoveStoryRepository {
     /**
      * Get all love story blocks
      */
-    async getBlocks(registrationId: string): Promise<LoveStoryBlock[]> {
-        const supabase = getSupabaseClient();
+    async getBlocks(env: Env, registrationId: string): Promise<LoveStoryBlock[]> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('love_story_blocks')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .order('display_order', { ascending: true });
+        const results = await db
+            .select()
+            .from(invitationLoveStoryContent)
+            .where(eq(invitationLoveStoryContent.registrationId, registrationId))
+            .orderBy(asc(invitationLoveStoryContent.displayOrder));
 
-        if (error) {
-            console.error('Error getting love story blocks:', error);
-            throw new Error(`Failed to get love story blocks: ${error.message}`);
-        }
-
-        return data || [];
+        return results;
     }
 
     /**
      * Create love story block
      */
-    async createBlock(block: CreateLoveStoryBlockInput): Promise<LoveStoryBlock> {
-        const supabase = getSupabaseClient();
+    async createBlock(env: Env, block: CreateLoveStoryBlockInputOmit): Promise<LoveStoryBlock> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('love_story_blocks')
-            .insert(block)
-            .select()
-            .single();
+        const [result] = await db
+            .insert(invitationLoveStoryContent)
+            .values({
+                ...block,
+                updatedAt: new Date().toISOString(),
+            })
+            .returning();
 
-        if (error) {
-            console.error('Error creating love story block:', error);
-            throw new Error(`Failed to create love story block: ${error.message}`);
-        }
-
-        return data;
+        return result;
     }
 
     /**
      * Update love story block
      */
-    async updateBlock(id: string, updates: UpdateLoveStoryBlockInput): Promise<LoveStoryBlock> {
-        const supabase = getSupabaseClient();
+    async updateBlock(env: Env, id: string, updates: UpdateLoveStoryBlockInput): Promise<LoveStoryBlock> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('love_story_blocks')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        const [result] = await db
+            .update(invitationLoveStoryContent)
+            .set({
+                ...updates,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(invitationLoveStoryContent.id, id))
+            .returning();
 
-        if (error) {
-            console.error('Error updating love story block:', error);
-            throw new Error(`Failed to update love story block: ${error.message}`);
+        if (!result) {
+            throw new Error('Failed to update love story block: Record not found');
         }
 
-        return data;
+        return result;
     }
 
     /**
      * Delete love story block
      */
-    async deleteBlock(id: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async deleteBlock(env: Env, id: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from('love_story_blocks')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting love story block:', error);
-            throw new Error(`Failed to delete love story block: ${error.message}`);
-        }
+        await db
+            .delete(invitationLoveStoryContent)
+            .where(eq(invitationLoveStoryContent.id, id));
     }
 
     /**
      * Reorder love story blocks
      */
-    async reorderBlocks(registrationId: string, blockIds: string[]): Promise<void> {
-        const supabase = getSupabaseClient();
+    async reorderBlocks(env: Env, registrationId: string, blockIds: string[]): Promise<void> {
+        const db = getDb(env);
 
-        // Update display_order for each block
-        const updates = blockIds.map((id, index) => ({
-            id,
-            display_order: index,
-        }));
+        // Drizzle doesn't support bulk upsert efficiently with different values for same columns easily in one query generic way without raw SQL case/when
+        // But we can do individual updates in transaction or separate updates.
+        // Given typically small number of blocks (< 10), sequential updates are fine or Promise.all.
 
-        const { error } = await supabase
-            .from('love_story_blocks')
-            .upsert(updates);
-
-        if (error) {
-            console.error('Error reordering love story blocks:', error);
-            throw new Error(`Failed to reorder love story blocks: ${error.message}`);
-        }
+        await db.transaction(async (tx) => {
+            const updatePromises = blockIds.map((id, index) =>
+                tx.update(invitationLoveStoryContent)
+                    .set({ displayOrder: index, updatedAt: new Date().toISOString() })
+                    .where(eq(invitationLoveStoryContent.id, id))
+            );
+            await Promise.all(updatePromises);
+        });
     }
 
     /**
      * Delete all blocks for a registration
      */
-    async deleteAllBlocks(registrationId: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async deleteAllBlocks(env: Env, registrationId: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from('love_story_blocks')
-            .delete()
-            .eq('registration_id', registrationId);
-
-        if (error) {
-            console.error('Error deleting all love story blocks:', error);
-            throw new Error(`Failed to delete love story blocks: ${error.message}`);
-        }
+        await db
+            .delete(invitationLoveStoryContent)
+            .where(eq(invitationLoveStoryContent.registrationId, registrationId));
     }
 }
 
 // Export singleton instance
 export const loveStoryRepo = new LoveStoryRepository();
+

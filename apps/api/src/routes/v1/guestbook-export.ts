@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
 import { clientAuthMiddleware } from '@/middleware/auth';
+import { getDb } from '@/db';
+import { guestbookEvents, guests, eventSeatingConfig } from '@/db/schema';
+import { eq, and, desc, asc, count, isNotNull } from 'drizzle-orm';
 
 const exportRoutes = new Hono<{
     Bindings: Env;
@@ -28,17 +30,23 @@ exportRoutes.get('/guests', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('events')
-            .select('id, client_id, name')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({
+                id: guestbookEvents.id,
+                clientId: guestbookEvents.clientId,
+                name: guestbookEvents.eventName
+            })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -46,34 +54,28 @@ exportRoutes.get('/guests', clientAuthMiddleware, async (c) => {
         }
 
         // Fetch all guests for this event
-        const { data: guests, error: guestsError } = await supabase
-            .from('invitation_guests')
-            .select(`
-                id,
-                guest_name,
-                guest_phone,
-                guest_email,
-                guest_group,
-                max_companions,
-                actual_companions,
-                is_checked_in,
-                checked_in_at,
-                invitation_sent,
-                qr_token,
-                source,
-                created_at
-            `)
-            .eq('event_id', eventId)
-            .eq('client_id', clientId)
-            .order('created_at', { ascending: true });
-
-        if (guestsError) {
-            console.error('Error fetching guests for export:', guestsError);
-            return c.json(
-                { success: false, error: 'Failed to fetch guests' },
-                500
-            );
-        }
+        const guestData = await db
+            .select({
+                id: guests.id,
+                guest_name: guests.name,
+                guest_phone: guests.phone,
+                guest_email: guests.email,
+                guest_group: guests.guestGroup,
+                max_companions: guests.maxCompanions,
+                actual_companions: guests.actualCompanions,
+                is_checked_in: guests.isCheckedIn,
+                checked_in_at: guests.checkedInAt,
+                invitation_sent: guests.sent,
+                qr_token: guests.qrCode,
+                source: guests.source,
+                created_at: guests.createdAt
+            })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.clientId, clientId)
+            ))
+            .orderBy(asc(guests.createdAt));
 
         // Generate CSV content
         const headers = [
@@ -94,7 +96,7 @@ exportRoutes.get('/guests', clientAuthMiddleware, async (c) => {
 
         const csvRows = [headers.join(',')];
 
-        for (const guest of guests || []) {
+        for (const guest of guestData) {
             const row = [
                 guest.id,
                 `"${(guest.guest_name || '').replace(/"/g, '""')}"`,
@@ -108,7 +110,7 @@ exportRoutes.get('/guests', clientAuthMiddleware, async (c) => {
                 guest.invitation_sent ? 'Yes' : 'No',
                 guest.qr_token ? 'Yes' : 'No',
                 `"${(guest.source || '').replace(/"/g, '""')}"`,
-                new Date(guest.created_at).toLocaleString('en-US')
+                guest.created_at ? new Date(guest.created_at).toLocaleString('en-US') : ''
             ];
             csvRows.push(row.join(','));
         }
@@ -150,17 +152,23 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('events')
-            .select('id, client_id, name')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({
+                id: guestbookEvents.id,
+                clientId: guestbookEvents.clientId,
+                name: guestbookEvents.eventName
+            })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -172,30 +180,24 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
 
         if (reportType === 'overview' || reportType === 'checkin') {
             // Fetch guests with check-in data
-            const { data: guests, error: guestsError } = await supabase
-                .from('invitation_guests')
-                .select(`
-                    guest_name,
-                    guest_phone,
-                    guest_email,
-                    guest_group,
-                    max_companions,
-                    actual_companions,
-                    is_checked_in,
-                    checked_in_at,
-                    created_at
-                `)
-                .eq('event_id', eventId)
-                .eq('client_id', clientId)
-                .order('checked_in_at', { ascending: false, nullsFirst: false });
-
-            if (guestsError) {
-                console.error('Error fetching guests:', guestsError);
-                return c.json(
-                    { success: false, error: 'Failed to fetch guests' },
-                    500
-                );
-            }
+            const guestData = await db
+                .select({
+                    guest_name: guests.name,
+                    guest_phone: guests.phone,
+                    guest_email: guests.email,
+                    guest_group: guests.guestGroup,
+                    max_companions: guests.maxCompanions,
+                    actual_companions: guests.actualCompanions,
+                    is_checked_in: guests.isCheckedIn,
+                    checked_in_at: guests.checkedInAt,
+                    created_at: guests.createdAt
+                })
+                .from(guests)
+                .where(and(
+                    eq(guests.eventId, eventId),
+                    eq(guests.clientId, clientId)
+                ))
+                .orderBy(desc(guests.checkedInAt)); // nullsFirst/Last depends on DB, usually nulls last by default in desc
 
             const headers = [
                 'Name',
@@ -211,7 +213,7 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
 
             const csvRows = [headers.join(',')];
 
-            for (const guest of guests || []) {
+            for (const guest of guestData) {
                 const row = [
                     `"${(guest.guest_name || '').replace(/"/g, '""')}"`,
                     `"${(guest.guest_phone || '').replace(/"/g, '""')}"`,
@@ -221,7 +223,7 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
                     guest.actual_companions || 0,
                     guest.is_checked_in ? 'Yes' : 'No',
                     guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleString('en-US') : '',
-                    new Date(guest.created_at).toLocaleString('en-US')
+                    guest.created_at ? new Date(guest.created_at).toLocaleString('en-US') : ''
                 ];
                 csvRows.push(row.join(','));
             }
@@ -231,36 +233,33 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
 
         } else if (reportType === 'seating') {
             // Fetch guests with seating information
-            const { data: guests, error: guestsError } = await supabase
-                .from('invitation_guests')
-                .select(`
-                    guest_name,
-                    guest_phone,
-                    max_companions,
-                    actual_companions,
-                    seating_config_id,
-                    is_checked_in
-                `)
-                .eq('event_id', eventId)
-                .eq('client_id', clientId)
-                .order('seating_config_id', { ascending: true, nullsFirst: false });
-
-            if (guestsError) {
-                console.error('Error fetching guests:', guestsError);
-                return c.json(
-                    { success: false, error: 'Failed to fetch guests' },
-                    500
-                );
-            }
+            const guestData = await db
+                .select({
+                    guest_name: guests.name,
+                    guest_phone: guests.phone,
+                    max_companions: guests.maxCompanions,
+                    actual_companions: guests.actualCompanions,
+                    seating_config_id: guests.seatingConfigId,
+                    is_checked_in: guests.isCheckedIn
+                })
+                .from(guests)
+                .where(and(
+                    eq(guests.eventId, eventId),
+                    eq(guests.clientId, clientId)
+                ))
+                .orderBy(asc(guests.seatingConfigId));
 
             // Fetch seating configs
-            const { data: seatingConfigs } = await supabase
-                .from('seating_configs')
-                .select('id, section_name, table_number')
-                .eq('event_id', eventId);
+            const seatingConfigs = await db
+                .select({
+                    id: eventSeatingConfig.id,
+                    name: eventSeatingConfig.name
+                })
+                .from(eventSeatingConfig)
+                .where(eq(eventSeatingConfig.eventId, eventId));
 
             const seatingMap = new Map(
-                (seatingConfigs || []).map(s => [s.id, `${s.section_name} - Table ${s.table_number}`])
+                seatingConfigs.map(s => [s.id, s.name]) // Use name directly as it format is controlled by UI/Backend
             );
 
             const headers = [
@@ -274,8 +273,8 @@ exportRoutes.get('/report', clientAuthMiddleware, async (c) => {
 
             const csvRows = [headers.join(',')];
 
-            for (const guest of guests || []) {
-                const seating = guest.seating_config_id 
+            for (const guest of guestData) {
+                const seating = guest.seating_config_id
                     ? seatingMap.get(guest.seating_config_id) || 'Unknown'
                     : 'Not Assigned';
 
@@ -333,17 +332,24 @@ exportRoutes.get('/statistics', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('events')
-            .select('*')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({
+                id: guestbookEvents.id,
+                name: guestbookEvents.eventName,
+                event_date: guestbookEvents.eventDate,
+                location: guestbookEvents.venueName,
+            })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -351,40 +357,53 @@ exportRoutes.get('/statistics', clientAuthMiddleware, async (c) => {
         }
 
         // Get total guests
-        const { count: totalGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId);
+        const [totalGuestsResult] = await db
+            .select({ count: count() })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
+        const totalGuests = totalGuestsResult?.count || 0;
 
         // Get checked-in guests
-        const { count: checkedInGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('is_checked_in', true);
+        const [checkedInResult] = await db
+            .select({ count: count() })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const checkedInGuests = checkedInResult?.count || 0;
 
         // Get guests with QR codes
-        const { count: guestsWithQR } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .not('qr_token', 'is', null);
+        const [qrResult] = await db
+            .select({ count: count() })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                isNotNull(guests.qrCode)
+            ));
+        const guestsWithQR = qrResult?.count || 0;
 
         // Get guests with seating assigned
-        const { count: guestsWithSeating } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .not('seating_config_id', 'is', null);
+        const [seatingResult] = await db
+            .select({ count: count() })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                isNotNull(guests.seatingConfigId)
+            ));
+        const guestsWithSeating = seatingResult?.count || 0;
 
         // Get total companions
-        const { data: companionData } = await supabase
-            .from('invitation_guests')
-            .select('max_companions, actual_companions')
-            .eq('event_id', eventId);
+        const companionData = await db
+            .select({
+                max_companions: guests.maxCompanions,
+                actual_companions: guests.actualCompanions
+            })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
 
-        const maxCompanionsTotal = (companionData || []).reduce((sum, g) => sum + (g.max_companions || 0), 0);
-        const actualCompanionsTotal = (companionData || []).reduce((sum, g) => sum + (g.actual_companions || 0), 0);
+        const maxCompanionsTotal = companionData.reduce((sum, g) => sum + (g.max_companions || 0), 0);
+        const actualCompanionsTotal = companionData.reduce((sum, g) => sum + (g.actual_companions || 0), 0);
 
         const statistics = {
             event: {
@@ -426,3 +445,4 @@ exportRoutes.get('/statistics', clientAuthMiddleware, async (c) => {
 });
 
 export default exportRoutes;
+

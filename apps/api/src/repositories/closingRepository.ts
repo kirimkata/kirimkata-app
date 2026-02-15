@@ -1,60 +1,48 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { closingSettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface ClosingSettings {
-    registration_id: string;
-    background_color: string;
-    photo_url?: string;
-    photo_alt?: string;
-    names_script: string;
-    message_line1?: string;
-    message_line2?: string;
-    message_line3?: string;
-    is_enabled: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+export type ClosingSettings = InferSelectModel<typeof closingSettings>;
+export type UpsertClosingSettingsInput = InferInsertModel<typeof closingSettings>;
 
 class ClosingRepository {
     /**
      * Get closing settings
      */
-    async getSettings(registrationId: string): Promise<ClosingSettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<ClosingSettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('closing_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(closingSettings)
+            .where(eq(closingSettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting closing settings:', error);
-            throw new Error(`Failed to get closing settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert closing settings
      */
-    async upsertSettings(data: ClosingSettings): Promise<ClosingSettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertClosingSettingsInput): Promise<ClosingSettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('closing_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting closing settings:', error);
-            throw new Error(`Failed to upsert closing settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(closingSettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: closingSettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -62,3 +50,4 @@ class ClosingRepository {
 
 // Export singleton instance
 export const closingRepo = new ClosingRepository();
+

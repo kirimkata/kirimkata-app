@@ -1,58 +1,48 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { backgroundMusicSettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface BackgroundMusicSettings {
-    registration_id: string;
-    audio_url: string;
-    title?: string;
-    artist?: string;
-    loop: boolean;
-    register_as_background_audio: boolean;
-    is_enabled: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+export type BackgroundMusicSettings = InferSelectModel<typeof backgroundMusicSettings>;
+export type UpsertBackgroundMusicSettingsInput = InferInsertModel<typeof backgroundMusicSettings>;
 
 class BackgroundMusicRepository {
     /**
      * Get background music settings
      */
-    async getSettings(registrationId: string): Promise<BackgroundMusicSettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<BackgroundMusicSettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('background_music_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(backgroundMusicSettings)
+            .where(eq(backgroundMusicSettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting background music settings:', error);
-            throw new Error(`Failed to get background music settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert background music settings
      */
-    async upsertSettings(data: BackgroundMusicSettings): Promise<BackgroundMusicSettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertBackgroundMusicSettingsInput): Promise<BackgroundMusicSettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('background_music_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting background music settings:', error);
-            throw new Error(`Failed to upsert background music settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(backgroundMusicSettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: backgroundMusicSettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -60,3 +50,4 @@ class BackgroundMusicRepository {
 
 // Export singleton instance
 export const backgroundMusicRepo = new BackgroundMusicRepository();
+

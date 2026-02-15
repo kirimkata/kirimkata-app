@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
@@ -36,13 +35,13 @@ router.post('/', clientAuthMiddleware, async (c) => {
         }
 
         // Check if slug is available
-        const slugAvailable = await weddingRegistrationRepo.isSlugAvailable(body.slug);
+        const slugAvailable = await weddingRegistrationRepo.isSlugAvailable(c.env, body.slug);
         if (!slugAvailable) {
             return c.json({ error: 'Slug already exists' }, 409);
         }
 
         // Create wedding registration (use clientId from JWT)
-        const registration = await weddingRegistrationRepo.create({
+        const registration = await weddingRegistrationRepo.create(c.env, {
             client_id: clientId, // Use authenticated client_id
             slug: body.slug,
             event_type: body.event_type || 'islam',
@@ -81,7 +80,7 @@ router.post('/', clientAuthMiddleware, async (c) => {
 
         // Compile initial invitation content
         try {
-            await invitationCompiler.compileAndCache(registration.slug);
+            await invitationCompiler.compileAndCache(c.env, registration.slug);
         } catch (compileError) {
             console.error('Error compiling initial invitation:', compileError);
             // Don't fail the registration, just log the error
@@ -111,7 +110,7 @@ router.get('/:slug', clientAuthMiddleware, async (c) => {
         const slug = c.req.param('slug');
         const clientId = c.get('clientId') as string;
 
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
 
         if (!registration) {
             return c.json({ error: 'Registration not found' }, 404);
@@ -145,7 +144,7 @@ router.put('/:slug', clientAuthMiddleware, async (c) => {
         const slug = c.req.param('slug');
         const clientId = c.get('clientId') as string;
 
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
 
         if (!registration) {
             return c.json({ error: 'Registration not found' }, 404);
@@ -157,11 +156,11 @@ router.put('/:slug', clientAuthMiddleware, async (c) => {
         }
 
         const updates = await c.req.json();
-        const updated = await weddingRegistrationRepo.update(registration.id, updates);
+        const updated = await weddingRegistrationRepo.update(c.env, registration.id, updates);
 
         // Recompile invitation after update
         try {
-            await invitationCompiler.compileAndCache(slug);
+            await invitationCompiler.compileAndCache(c.env, slug);
         } catch (compileError) {
             console.error('Error recompiling invitation:', compileError);
         }

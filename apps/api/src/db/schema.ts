@@ -549,3 +549,28 @@ export const closingSettings = pgTable("closing_settings", {
     isEnabled: boolean("is_enabled").default(true),
     messageLine3: text("message_line3"),
 });
+
+export const invitationContents = pgTable("invitation_contents", {
+    id: uuid("id").primaryKey().notNull(),
+    slug: varchar("slug", { length: 255 }).notNull(),
+    themeKey: varchar("theme_key", { length: 100 }),
+    customImages: jsonb("custom_images"),
+    profile: jsonb("profile"),
+    bride: jsonb("bride"),
+    groom: jsonb("groom"),
+    event: jsonb("event"),
+    greetings: jsonb("greetings"),
+    eventDetails: jsonb("event_details"),
+    loveStory: jsonb("love_story"),
+    gallery: jsonb("gallery"),
+    weddingGift: jsonb("wedding_gift"),
+    closing: jsonb("closing"),
+    musicSettings: jsonb("music_settings"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            invitationContentsSlugKey: unique("invitation_contents_slug_key").on(table.slug),
+        }
+    });

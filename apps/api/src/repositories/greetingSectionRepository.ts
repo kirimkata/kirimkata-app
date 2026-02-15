@@ -1,164 +1,198 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { invitationGreetingSettings } from '@/db/schema';
+import { eq, asc, desc, and } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
 
 export interface GreetingSection {
     id: string;
-    registration_id: string;
-    section_type: 'opening_verse' | 'main_greeting' | 'countdown_title';
-    title?: string;
-    subtitle?: string;
-    content_text?: string;
-    bride_text?: string;
-    groom_text?: string;
-    display_order: number;
-    created_at?: string;
-    updated_at?: string;
+    registrationId: string;
+    sectionKey: string;
+    displayOrder: number;
+    title?: string | null;
+    subtitle?: string | null;
+    showBrideName?: boolean | null;
+    showGroomName?: boolean | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
 }
 
-export type CreateGreetingSectionInput = Omit<GreetingSection, 'id' | 'created_at' | 'updated_at'>;
-export type UpdateGreetingSectionInput = Partial<Omit<GreetingSection, 'id' | 'registration_id' | 'created_at' | 'updated_at'>>;
+export type CreateGreetingSectionInput = Omit<GreetingSection, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateGreetingSectionInput = Partial<Omit<GreetingSection, 'id' | 'registrationId' | 'createdAt' | 'updatedAt'>>;
 
 class GreetingSectionRepository {
-    private tableName = 'greeting_sections';
+
+    // Helper to map DB result to Application model
+    private mapFromDb(record: typeof invitationGreetingSettings.$inferSelect): GreetingSection {
+        return {
+            id: record.id,
+            registrationId: record.registrationId,
+            sectionKey: record.sectionKey,
+            displayOrder: record.displayOrder,
+            title: record.title,
+            subtitle: record.subtitle,
+            showBrideName: record.showBrideName,
+            showGroomName: record.showGroomName,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+        };
+    }
 
     /**
      * Create new greeting section
      */
-    async create(data: CreateGreetingSectionInput): Promise<GreetingSection> {
-        const supabase = getSupabaseClient();
+    async create(env: Env, data: CreateGreetingSectionInput): Promise<GreetingSection> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from(this.tableName)
-            .insert(data)
-            .select()
-            .single();
+        const [result] = await db
+            .insert(invitationGreetingSettings)
+            .values({
+                registrationId: data.registrationId,
+                sectionKey: data.sectionKey,
+                displayOrder: data.displayOrder,
+                title: data.title,
+                subtitle: data.subtitle,
+                showBrideName: data.showBrideName ?? false,
+                showGroomName: data.showGroomName ?? false,
+                updatedAt: new Date().toISOString(),
+            })
+            .returning();
 
-        if (error) {
-            console.error('Error creating greeting section:', error);
-            throw new Error(`Failed to create greeting section: ${error.message}`);
-        }
-
-        return result;
+        return this.mapFromDb(result);
     }
 
     /**
      * Find all greeting sections by registration ID
      */
-    async findByRegistrationId(registrationId: string): Promise<GreetingSection[]> {
-        const supabase = getSupabaseClient();
+    async findByRegistrationId(env: Env, registrationId: string): Promise<GreetingSection[]> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('registration_id', registrationId)
-            .order('display_order', { ascending: true });
+        const results = await db
+            .select()
+            .from(invitationGreetingSettings)
+            .where(eq(invitationGreetingSettings.registrationId, registrationId))
+            .orderBy(asc(invitationGreetingSettings.displayOrder));
 
-        if (error) {
-            console.error('Error finding greeting sections:', error);
-            throw new Error(`Failed to find greeting sections: ${error.message}`);
-        }
-
-        return data || [];
+        return results.map(r => this.mapFromDb(r));
     }
 
     /**
-     * Find greeting section by type
+     * Find greeting section by type (sectionKey)
      */
-    async findByType(registrationId: string, sectionType: GreetingSection['section_type']): Promise<GreetingSection | null> {
-        const supabase = getSupabaseClient();
+    async findByKey(env: Env, registrationId: string, sectionKey: string): Promise<GreetingSection | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('registration_id', registrationId)
-            .eq('section_type', sectionType)
-            .single();
+        const [result] = await db
+            .select()
+            .from(invitationGreetingSettings)
+            .where(
+                and(
+                    eq(invitationGreetingSettings.registrationId, registrationId),
+                    eq(invitationGreetingSettings.sectionKey, sectionKey)
+                )
+            )
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error finding greeting section by type:', error);
-            throw new Error(`Failed to find greeting section: ${error.message}`);
-        }
+        /* 
+           Note: Drizzle .where() chaining acts as AND.
+           Correct way for multiple conditions: .where(and(eq(...), eq(...))) or chaining .where()
+           Wait, .where(eq(...)).where(eq(...)) works as AND in Drizzle query builder.
+           Actually, checking Drizzle docs: yes, chaining `.where()` adds conditions with AND.
+           Better to be explicit import `and`? 
+           Let's stick to simple chaining for now or fetch by registration and filter (but safer to query).
+           Wait, `findByKey` implies finding a specific one.
+           
+           Let's use `and` import if I change implementation, but chaining `.where` is fine.
+           However, I will use `and` for better readability if I import it.
+           I didn't import `and`. Let's assume chaining works or use single where.
+           
+           Actually, let's fix the query to use `and` from drizzle-orm.
+        */
 
-        return data;
+        // I'll stick to chaining `where` if I don't import `and`. 
+        // But wait, key lookup needs AND.
+        // Re-checking imports: `import { eq, asc, desc } from 'drizzle-orm';`
+        // I should add `and`.
+
+        /* 
+           Refined query below.
+        */
+
+        if (!result) return null;
+        return this.mapFromDb(result);
     }
 
     /**
      * Update greeting section
      */
-    async update(id: string, updates: UpdateGreetingSectionInput): Promise<GreetingSection> {
-        const supabase = getSupabaseClient();
+    async update(env: Env, id: string, updates: UpdateGreetingSectionInput): Promise<GreetingSection> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        const [result] = await db
+            .update(invitationGreetingSettings)
+            .set({
+                ...updates,
+                updatedAt: new Date().toISOString(),
+            })
+            .where(eq(invitationGreetingSettings.id, id))
+            .returning();
 
-        if (error) {
-            console.error('Error updating greeting section:', error);
-            throw new Error(`Failed to update greeting section: ${error.message}`);
+        if (!result) {
+            throw new Error('Failed to update greeting section: Record not found');
         }
 
-        return data;
+        return this.mapFromDb(result);
     }
 
     /**
      * Delete greeting section
      */
-    async delete(id: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async delete(env: Env, id: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from(this.tableName)
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting greeting section:', error);
-            throw new Error(`Failed to delete greeting section: ${error.message}`);
-        }
+        await db
+            .delete(invitationGreetingSettings)
+            .where(eq(invitationGreetingSettings.id, id));
     }
 
     /**
      * Bulk create greeting sections
      */
-    async bulkCreate(items: CreateGreetingSectionInput[]): Promise<GreetingSection[]> {
-        const supabase = getSupabaseClient();
+    async bulkCreate(env: Env, items: CreateGreetingSectionInput[]): Promise<GreetingSection[]> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .insert(items)
-            .select();
+        if (items.length === 0) return [];
 
-        if (error) {
-            console.error('Error bulk creating greeting sections:', error);
-            throw new Error(`Failed to bulk create greeting sections: ${error.message}`);
-        }
+        const values = items.map(item => ({
+            registrationId: item.registrationId,
+            sectionKey: item.sectionKey,
+            displayOrder: item.displayOrder,
+            title: item.title,
+            subtitle: item.subtitle,
+            showBrideName: item.showBrideName ?? false,
+            showGroomName: item.showGroomName ?? false,
+            updatedAt: new Date().toISOString(),
+        }));
 
-        return data || [];
+        const results = await db
+            .insert(invitationGreetingSettings)
+            .values(values)
+            .returning();
+
+        return results.map(r => this.mapFromDb(r));
     }
 
     /**
      * Delete all greeting sections for a registration
      */
-    async deleteAllByRegistrationId(registrationId: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async deleteAllByRegistrationId(env: Env, registrationId: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from(this.tableName)
-            .delete()
-            .eq('registration_id', registrationId);
-
-        if (error) {
-            console.error('Error deleting all greeting sections:', error);
-            throw new Error(`Failed to delete greeting sections: ${error.message}`);
-        }
+        await db
+            .delete(invitationGreetingSettings)
+            .where(eq(invitationGreetingSettings.registrationId, registrationId));
     }
 }
 
 // Export singleton instance
 export const greetingSectionRepo = new GreetingSectionRepository();
+

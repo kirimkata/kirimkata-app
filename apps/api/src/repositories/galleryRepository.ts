@@ -1,58 +1,48 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { gallerySettings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface GallerySettings {
-    registration_id: string;
-    main_title: string;
-    background_color: string;
-    images: string[];
-    youtube_embed_url?: string;
-    show_youtube: boolean;
-    is_enabled: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+export type GallerySettings = InferSelectModel<typeof gallerySettings>;
+export type UpsertGallerySettingsInput = InferInsertModel<typeof gallerySettings>;
 
 class GalleryRepository {
     /**
      * Get gallery settings
      */
-    async getSettings(registrationId: string): Promise<GallerySettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<GallerySettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('gallery_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(gallerySettings)
+            .where(eq(gallerySettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting gallery settings:', error);
-            throw new Error(`Failed to get gallery settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert gallery settings
      */
-    async upsertSettings(data: GallerySettings): Promise<GallerySettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertGallerySettingsInput): Promise<GallerySettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('gallery_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting gallery settings:', error);
-            throw new Error(`Failed to upsert gallery settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(gallerySettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: gallerySettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -61,34 +51,52 @@ class GalleryRepository {
      * Add image to gallery
      */
     async addImage(
+        env: Env,
         registrationId: string,
         imageUrl: string
     ): Promise<GallerySettings> {
-        const settings = await this.getSettings(registrationId);
-        if (!settings) {
-            throw new Error('Gallery settings not found');
-        }
+        const settings = await this.getSettings(env, registrationId);
 
-        const updatedImages = [...(settings.images || []), imageUrl];
+        // If settings don't exist, create default
+        const currentImages = settings?.images || [];
+        const updatedImages = [...currentImages, imageUrl];
 
-        return this.upsertSettings({
-            ...settings,
+        // If settings exist, update. If not, we need mandatory fields.
+        // But mainTitle has default.
+        // We'll upsert.
+
+        const upsertData: UpsertGallerySettingsInput = {
+            registrationId,
             images: updatedImages,
-        });
+            // If settings existed, preserve content. If not, only defaults will be used via DB defaults
+            ...(settings ? {
+                mainTitle: settings.mainTitle,
+                backgroundColor: settings.backgroundColor,
+                showYoutube: settings.showYoutube,
+                youtubeEmbedUrl: settings.youtubeEmbedUrl,
+                isEnabled: settings.isEnabled,
+            } : {})
+        };
+
+        return this.upsertSettings(env, upsertData);
     }
 
     /**
      * Remove image from gallery
      */
-    async removeImage(registrationId: string, imageUrl: string): Promise<GallerySettings> {
-        const settings = await this.getSettings(registrationId);
+    async removeImage(env: Env, registrationId: string, imageUrl: string): Promise<GallerySettings> {
+        const settings = await this.getSettings(env, registrationId);
         if (!settings) {
             throw new Error('Gallery settings not found');
         }
 
-        return this.upsertSettings({
+        const currentImages = settings.images || [];
+        const updatedImages = currentImages.filter(img => img !== imageUrl);
+
+        return this.upsertSettings(env, {
             ...settings,
-            images: (settings.images || []).filter(img => img !== imageUrl),
+            images: updatedImages,
+            updatedAt: new Date().toISOString()
         });
     }
 
@@ -96,20 +104,26 @@ class GalleryRepository {
      * Reorder images
      */
     async reorderImages(
+        env: Env,
         registrationId: string,
         imageUrls: string[]
     ): Promise<GallerySettings> {
-        const settings = await this.getSettings(registrationId);
+        const settings = await this.getSettings(env, registrationId);
+
+        // If settings don't exist, we can create one with these images? 
+        // Logic says "Gallery settings not found" in original code.
         if (!settings) {
             throw new Error('Gallery settings not found');
         }
 
-        return this.upsertSettings({
+        return this.upsertSettings(env, {
             ...settings,
             images: imageUrls,
+            updatedAt: new Date().toISOString()
         });
     }
 }
 
 // Export singleton instance
 export const galleryRepo = new GalleryRepository();
+

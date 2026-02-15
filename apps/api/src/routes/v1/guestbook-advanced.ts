@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
 import { clientAuthMiddleware } from '@/middleware/auth';
+import { getDb } from '@/db';
+import { guests, guestbookEvents, eventSeatingConfig } from '@/db/schema';
+import { eq, inArray, and, isNull, count, sql } from 'drizzle-orm';
 
 const advanced = new Hono<{
     Bindings: Env;
@@ -39,23 +41,15 @@ advanced.post('/bulk-delete', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify all guests belong to the client
-        const { data: guests, error: fetchError } = await supabase
-            .from('invitation_guests')
-            .select('id, client_id')
-            .in('id', guest_ids);
+        const guestsVerification = await db
+            .select({ id: guests.id, clientId: guests.clientId })
+            .from(guests)
+            .where(inArray(guests.id, guest_ids));
 
-        if (fetchError) {
-            console.error('Error fetching guests for verification:', fetchError);
-            return c.json(
-                { success: false, error: 'Failed to verify guests' },
-                500
-            );
-        }
-
-        if (!guests || guests.length === 0) {
+        if (!guestsVerification || guestsVerification.length === 0) {
             return c.json(
                 { success: false, error: 'No guests found with provided IDs' },
                 404
@@ -63,7 +57,7 @@ advanced.post('/bulk-delete', clientAuthMiddleware, async (c) => {
         }
 
         // Check ownership
-        const unauthorizedGuests = guests.filter(g => g.client_id !== clientId);
+        const unauthorizedGuests = guestsVerification.filter(g => g.clientId !== clientId);
         if (unauthorizedGuests.length > 0) {
             return c.json(
                 { success: false, error: 'Access denied to some guests' },
@@ -72,18 +66,9 @@ advanced.post('/bulk-delete', clientAuthMiddleware, async (c) => {
         }
 
         // Perform bulk delete
-        const { error: deleteError } = await supabase
-            .from('invitation_guests')
-            .delete()
-            .in('id', guest_ids);
-
-        if (deleteError) {
-            console.error('Bulk delete error:', deleteError);
-            return c.json(
-                { success: false, error: 'Failed to delete guests' },
-                500
-            );
-        }
+        await db
+            .delete(guests)
+            .where(inArray(guests.id, guest_ids));
 
         return c.json({
             success: true,
@@ -138,19 +123,18 @@ advanced.post('/bulk-assign-seating', clientAuthMiddleware, async (c) => {
             }
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Extract unique guest IDs
-        const guestIds = [...new Set(assignments.map(a => a.guest_id))];
+        const guestIds = [...new Set(assignments.map((a: any) => a.guest_id))] as string[];
 
         // Verify all guests belong to client
-        const { data: guests, error: guestsError } = await supabase
-            .from('invitation_guests')
-            .select('id, client_id, event_id')
-            .in('id', guestIds);
+        const guestsVerification = await db
+            .select({ id: guests.id, clientId: guests.clientId, eventId: guests.eventId })
+            .from(guests)
+            .where(inArray(guests.id, guestIds));
 
-        if (guestsError || !guests) {
-            console.error('Error fetching guests:', guestsError);
+        if (!guestsVerification || guestsVerification.length === 0) {
             return c.json(
                 { success: false, error: 'Failed to verify guests' },
                 500
@@ -158,7 +142,7 @@ advanced.post('/bulk-assign-seating', clientAuthMiddleware, async (c) => {
         }
 
         // Check ownership
-        const unauthorizedGuests = guests.filter(g => g.client_id !== clientId);
+        const unauthorizedGuests = guestsVerification.filter(g => g.clientId !== clientId);
         if (unauthorizedGuests.length > 0) {
             return c.json(
                 { success: false, error: 'Access denied to some guests' },
@@ -167,7 +151,7 @@ advanced.post('/bulk-assign-seating', clientAuthMiddleware, async (c) => {
         }
 
         // Get event_id (should be same for all guests)
-        const eventId = guests[0]?.event_id;
+        const eventId = guestsVerification[0]?.eventId;
         if (!eventId) {
             return c.json(
                 { success: false, error: 'Invalid guest data' },
@@ -176,24 +160,22 @@ advanced.post('/bulk-assign-seating', clientAuthMiddleware, async (c) => {
         }
 
         // Extract unique seating config IDs
-        const seatingConfigIds = [...new Set(assignments.map(a => a.seating_config_id))];
+        const seatingConfigIds = [...new Set(assignments.map((a: any) => a.seating_config_id))] as string[];
 
         // Verify seating configs exist and have capacity
-        const { data: seatingConfigs, error: seatingError } = await supabase
-            .from('seating_configs')
-            .select('id, capacity, event_id')
-            .in('id', seatingConfigIds)
-            .eq('event_id', eventId);
+        const seatingConfigs = await db
+            .select({
+                id: eventSeatingConfig.id,
+                capacity: eventSeatingConfig.capacity,
+                eventId: eventSeatingConfig.eventId
+            })
+            .from(eventSeatingConfig)
+            .where(and(
+                inArray(eventSeatingConfig.id, seatingConfigIds),
+                eq(eventSeatingConfig.eventId, eventId)
+            ));
 
-        if (seatingError || !seatingConfigs) {
-            console.error('Error fetching seating configs:', seatingError);
-            return c.json(
-                { success: false, error: 'Failed to verify seating configurations' },
-                500
-            );
-        }
-
-        if (seatingConfigs.length !== seatingConfigIds.length) {
+        if (!seatingConfigs || seatingConfigs.length !== seatingConfigIds.length) {
             return c.json(
                 { success: false, error: 'Some seating configurations not found' },
                 404
@@ -202,19 +184,22 @@ advanced.post('/bulk-assign-seating', clientAuthMiddleware, async (c) => {
 
         // Perform bulk update
         let successCount = 0;
-        const errors = [];
+        const errors: any[] = [];
 
+        // Note: Drizzle doesn't support bulk update with different values easily in one query
+        // so we iterate. For < 100 items, this is acceptable.
         for (const assignment of assignments) {
-            const { error: updateError } = await supabase
-                .from('invitation_guests')
-                .update({ seating_config_id: assignment.seating_config_id })
-                .eq('id', assignment.guest_id)
-                .eq('client_id', clientId); // Double-check ownership
-
-            if (updateError) {
-                errors.push({ guest_id: assignment.guest_id, error: updateError.message });
-            } else {
+            try {
+                await db
+                    .update(guests)
+                    .set({ seatingConfigId: assignment.seating_config_id })
+                    .where(and(
+                        eq(guests.id, assignment.guest_id),
+                        eq(guests.clientId, clientId)
+                    ));
                 successCount++;
+            } catch (updateError: any) {
+                errors.push({ guest_id: assignment.guest_id, error: updateError.message });
             }
         }
 
@@ -254,17 +239,19 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('events')
-            .select('id, client_id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id, clientId: guestbookEvents.clientId })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -272,20 +259,17 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
         }
 
         // Get all seating configs for this event
-        const { data: seatingConfigs, error: seatingError } = await supabase
-            .from('seating_configs')
-            .select('id, section_name, table_number, capacity, allowed_guest_type_ids')
-            .eq('event_id', event_id)
-            .order('section_name', { ascending: true })
-            .order('table_number', { ascending: true });
-
-        if (seatingError) {
-            console.error('Error fetching seating configs:', seatingError);
-            return c.json(
-                { success: false, error: 'Failed to fetch seating configurations' },
-                500
-            );
-        }
+        const seatingConfigs = await db
+            .select({
+                id: eventSeatingConfig.id,
+                section_name: eventSeatingConfig.name, // Mapping name to section_name/table_number concept if needed, or just usage
+                table_number: eventSeatingConfig.sortOrder,
+                capacity: eventSeatingConfig.capacity,
+                allowed_guest_type_ids: eventSeatingConfig.allowedGuestTypeIds
+            })
+            .from(eventSeatingConfig)
+            .where(eq(eventSeatingConfig.eventId, event_id))
+            .orderBy(eventSeatingConfig.name, eventSeatingConfig.sortOrder);
 
         if (!seatingConfigs || seatingConfigs.length === 0) {
             return c.json(
@@ -295,21 +279,19 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
         }
 
         // Get unassigned guests
-        const { data: unassignedGuests, error: guestsError } = await supabase
-            .from('invitation_guests')
-            .select('id, guest_name, guest_type_id')
-            .eq('event_id', event_id)
-            .eq('client_id', clientId)
-            .is('seating_config_id', null)
-            .order('created_at', { ascending: true });
-
-        if (guestsError) {
-            console.error('Error fetching unassigned guests:', guestsError);
-            return c.json(
-                { success: false, error: 'Failed to fetch unassigned guests' },
-                500
-            );
-        }
+        const unassignedGuests = await db
+            .select({
+                id: guests.id,
+                guest_name: guests.name,
+                guest_type_id: guests.guestTypeId
+            })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, event_id),
+                eq(guests.clientId, clientId),
+                isNull(guests.seatingConfigId)
+            ))
+            .orderBy(guests.createdAt);
 
         if (!unassignedGuests || unassignedGuests.length === 0) {
             return c.json({
@@ -322,21 +304,19 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
 
         // Build seat availability map
         const seatAvailability = new Map<string, number>();
-        
+
         for (const config of seatingConfigs) {
             // Count current assignments
-            const { count, error: countError } = await supabase
-                .from('invitation_guests')
-                .select('*', { count: 'exact', head: true })
-                .eq('event_id', event_id)
-                .eq('seating_config_id', config.id);
+            const [countResult] = await db
+                .select({ count: count() })
+                .from(guests)
+                .where(and(
+                    eq(guests.eventId, event_id),
+                    eq(guests.seatingConfigId, config.id)
+                ));
 
-            if (countError) {
-                console.error('Error counting seats:', countError);
-                continue;
-            }
-
-            const available = config.capacity - (count || 0);
+            const currentCount = countResult?.count || 0;
+            const available = (config.capacity || 0) - currentCount;
             if (available > 0) {
                 seatAvailability.set(config.id, available);
             }
@@ -344,7 +324,7 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
 
         // Auto-assign algorithm
         let assignedCount = 0;
-        const assignments = [];
+        const assignments: { guest_id: string; seating_config_id: string }[] = [];
 
         for (const guest of unassignedGuests) {
             let assigned = false;
@@ -352,7 +332,7 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
             // Try to find suitable seat
             for (const config of seatingConfigs) {
                 const available = seatAvailability.get(config.id);
-                
+
                 if (!available || available <= 0) {
                     continue;
                 }
@@ -378,17 +358,17 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
             }
 
             if (!assigned) {
-                console.log(`No suitable seat found for guest: ${guest.guest_name}`);
+                // console.log(`No suitable seat found for guest: ${guest.guest_name}`);
             }
         }
 
         // Perform batch updates
         if (assignments.length > 0) {
             for (const assignment of assignments) {
-                await supabase
-                    .from('invitation_guests')
-                    .update({ seating_config_id: assignment.seating_config_id })
-                    .eq('id', assignment.guest_id);
+                await db
+                    .update(guests)
+                    .set({ seatingConfigId: assignment.seating_config_id })
+                    .where(eq(guests.id, assignment.guest_id));
             }
         }
 
@@ -409,3 +389,4 @@ advanced.post('/auto-assign-seating', clientAuthMiddleware, async (c) => {
 });
 
 export default advanced;
+

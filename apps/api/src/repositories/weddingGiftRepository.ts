@@ -1,77 +1,54 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { Env } from '../lib/types';
+import { getDb } from '@/db';
+import { weddingGiftSettings, weddingGiftBankAccounts } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
+import type { Env } from '@/lib/types';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
-export interface WeddingGiftSettings {
-    registration_id: string;
-    title: string;
-    subtitle: string;
-    button_label: string;
-    gift_image_url?: string;
-    background_overlay_opacity: number;
-    recipient_name?: string;
-    recipient_phone?: string;
-    recipient_address_line1?: string;
-    recipient_address_line2?: string;
-    recipient_address_line3?: string;
-    is_enabled: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+export type WeddingGiftSettings = InferSelectModel<typeof weddingGiftSettings>;
+export type WeddingGiftBankAccount = InferSelectModel<typeof weddingGiftBankAccounts>;
 
-export interface WeddingGiftBankAccount {
-    id: string;
-    registration_id: string;
-    bank_name: string;
-    account_number: string;
-    account_holder_name: string;
-    display_order: number;
-    created_at?: string;
-    updated_at?: string;
-}
+export type UpsertWeddingGiftSettingsInput = InferInsertModel<typeof weddingGiftSettings>;
+export type CreateWeddingGiftBankAccountInput = InferInsertModel<typeof weddingGiftBankAccounts>;
+export type UpdateWeddingGiftBankAccountInput = Partial<CreateWeddingGiftBankAccountInput>;
 
-export type CreateWeddingGiftBankAccountInput = Omit<WeddingGiftBankAccount, 'id' | 'created_at' | 'updated_at'>;
-export type UpdateWeddingGiftBankAccountInput = Partial<Omit<WeddingGiftBankAccount, 'id' | 'registration_id' | 'created_at' | 'updated_at'>>;
+export type CreateWeddingGiftBankAccountInputOmit = Omit<CreateWeddingGiftBankAccountInput, 'id' | 'createdAt' | 'updatedAt'>;
 
 class WeddingGiftRepository {
     /**
      * Get wedding gift settings
      */
-    async getSettings(registrationId: string): Promise<WeddingGiftSettings | null> {
-        const supabase = getSupabaseClient();
+    async getSettings(env: Env, registrationId: string): Promise<WeddingGiftSettings | null> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('wedding_gift_settings')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .single();
+        const [result] = await db
+            .select()
+            .from(weddingGiftSettings)
+            .where(eq(weddingGiftSettings.registrationId, registrationId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error getting wedding gift settings:', error);
-            throw new Error(`Failed to get wedding gift settings: ${error.message}`);
-        }
-
-        return data;
+        return result || null;
     }
 
     /**
      * Upsert wedding gift settings
      */
-    async upsertSettings(data: WeddingGiftSettings): Promise<WeddingGiftSettings> {
-        const supabase = getSupabaseClient();
+    async upsertSettings(env: Env, data: UpsertWeddingGiftSettingsInput): Promise<WeddingGiftSettings> {
+        const db = getDb(env);
 
-        const { data: result, error } = await supabase
-            .from('wedding_gift_settings')
-            .upsert(data, { onConflict: 'registration_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error upserting wedding gift settings:', error);
-            throw new Error(`Failed to upsert wedding gift settings: ${error.message}`);
-        }
+        const [result] = await db
+            .insert(weddingGiftSettings)
+            .values({
+                ...data,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: weddingGiftSettings.registrationId,
+                set: {
+                    ...data,
+                    updatedAt: new Date().toISOString(),
+                }
+            })
+            .returning();
 
         return result;
     }
@@ -79,119 +56,100 @@ class WeddingGiftRepository {
     /**
      * Get all bank accounts
      */
-    async getBankAccounts(registrationId: string): Promise<WeddingGiftBankAccount[]> {
-        const supabase = getSupabaseClient();
+    async getBankAccounts(env: Env, registrationId: string): Promise<WeddingGiftBankAccount[]> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .select('*')
-            .eq('registration_id', registrationId)
-            .order('display_order', { ascending: true });
+        const results = await db
+            .select()
+            .from(weddingGiftBankAccounts)
+            .where(eq(weddingGiftBankAccounts.registrationId, registrationId))
+            .orderBy(asc(weddingGiftBankAccounts.displayOrder));
 
-        if (error) {
-            console.error('Error getting bank accounts:', error);
-            throw new Error(`Failed to get bank accounts: ${error.message}`);
-        }
-
-        return data || [];
+        return results;
     }
 
     /**
      * Create bank account
      */
-    async createBankAccount(account: CreateWeddingGiftBankAccountInput): Promise<WeddingGiftBankAccount> {
-        const supabase = getSupabaseClient();
+    async createBankAccount(env: Env, account: CreateWeddingGiftBankAccountInputOmit): Promise<WeddingGiftBankAccount> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .insert(account)
-            .select()
-            .single();
+        const [result] = await db
+            .insert(weddingGiftBankAccounts)
+            .values({
+                ...account,
+                // updatedAt? Schema doesn't have updatedAt for accounts?
+                // Wait, checking schema in step 2460:
+                // createdAt is there. updatedAt is missing in schema view 471-479?
+                // Line 479: `},`. It just has createdAt.
+                // Ah, line 479 ends the table fields definition.
+                // So no updatedAt for bank accounts in schema provided.
+                // But CreateWeddingGiftBankAccountInput inferred from schema should match.
+                // So I won't add updatedAt.
+            })
+            .returning();
 
-        if (error) {
-            console.error('Error creating bank account:', error);
-            throw new Error(`Failed to create bank account: ${error.message}`);
-        }
-
-        return data;
+        return result;
     }
 
     /**
      * Update bank account
      */
-    async updateBankAccount(id: string, updates: UpdateWeddingGiftBankAccountInput): Promise<WeddingGiftBankAccount> {
-        const supabase = getSupabaseClient();
+    async updateBankAccount(env: Env, id: string, updates: UpdateWeddingGiftBankAccountInput): Promise<WeddingGiftBankAccount> {
+        const db = getDb(env);
 
-        const { data, error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        const [result] = await db
+            .update(weddingGiftBankAccounts)
+            .set(updates)
+            .where(eq(weddingGiftBankAccounts.id, id))
+            .returning();
 
-        if (error) {
-            console.error('Error updating bank account:', error);
-            throw new Error(`Failed to update bank account: ${error.message}`);
+        if (!result) {
+            throw new Error('Failed to update bank account: Record not found');
         }
 
-        return data;
+        return result;
     }
 
     /**
      * Delete bank account
      */
-    async deleteBankAccount(id: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async deleteBankAccount(env: Env, id: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting bank account:', error);
-            throw new Error(`Failed to delete bank account: ${error.message}`);
-        }
+        await db
+            .delete(weddingGiftBankAccounts)
+            .where(eq(weddingGiftBankAccounts.id, id));
     }
 
     /**
      * Reorder bank accounts
      */
-    async reorderBankAccounts(registrationId: string, accountIds: string[]): Promise<void> {
-        const supabase = getSupabaseClient();
+    async reorderBankAccounts(env: Env, registrationId: string, accountIds: string[]): Promise<void> {
+        const db = getDb(env);
 
-        const updates = accountIds.map((id, index) => ({
-            id,
-            display_order: index,
-        }));
-
-        const { error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .upsert(updates);
-
-        if (error) {
-            console.error('Error reordering bank accounts:', error);
-            throw new Error(`Failed to reorder bank accounts: ${error.message}`);
-        }
+        await db.transaction(async (tx) => {
+            const updatePromises = accountIds.map((id, index) =>
+                tx.update(weddingGiftBankAccounts)
+                    .set({ displayOrder: index })
+                    .where(eq(weddingGiftBankAccounts.id, id))
+            );
+            await Promise.all(updatePromises);
+        });
     }
 
     /**
      * Delete all bank accounts for a registration
      */
-    async deleteAllBankAccounts(registrationId: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async deleteAllBankAccounts(env: Env, registrationId: string): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from('wedding_gift_bank_accounts')
-            .delete()
-            .eq('registration_id', registrationId);
-
-        if (error) {
-            console.error('Error deleting all bank accounts:', error);
-            throw new Error(`Failed to delete bank accounts: ${error.message}`);
-        }
+        await db
+            .delete(weddingGiftBankAccounts)
+            .where(eq(weddingGiftBankAccounts.registrationId, registrationId));
     }
 }
 
 // Export singleton instance
 export const weddingGiftRepo = new WeddingGiftRepository();
+

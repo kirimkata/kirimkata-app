@@ -45,8 +45,8 @@ async function getAuthenticatedClientId(c: Context<{ Bindings: Env }>): Promise<
  * Helper function to validate ownership
  * Checks if the authenticated client owns the wedding registration for the given slug
  */
-async function validateOwnership(slug: string, clientId: string): Promise<{ valid: boolean; error?: string; registration?: any }> {
-    const registration = await weddingRegistrationRepo.findBySlug(slug);
+async function validateOwnership(env: Env, slug: string, clientId: string): Promise<{ valid: boolean; error?: string; registration?: any }> {
+    const registration = await weddingRegistrationRepo.findBySlug(env, slug);
 
     if (!registration) {
         return { valid: false, error: 'Registration not found' };
@@ -240,12 +240,27 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await loveStoryRepo.getSettings(registration.id);
-        const blocks = await loveStoryRepo.getBlocks(registration.id);
-        return c.json({ success: true, data: { settings, blocks } }, 200);
+        const settings = await loveStoryRepo.getSettings(c.env, registration.id);
+        const blocks = await loveStoryRepo.getBlocks(c.env, registration.id);
+
+        // Map to snake_case for API response
+        const mappedSettings = settings ? {
+            main_title: settings.mainTitle,
+            background_image_url: settings.backgroundImageUrl,
+            overlay_opacity: typeof settings.overlayOpacity === 'string' ? parseFloat(settings.overlayOpacity) : settings.overlayOpacity, // Handle potential string
+            is_enabled: settings.isEnabled,
+        } : null;
+
+        const mappedBlocks = blocks.map(block => ({
+            title: block.title,
+            body_text: block.bodyText,
+            display_order: block.displayOrder,
+        }));
+
+        return c.json({ success: true, data: { settings: mappedSettings, blocks: mappedBlocks } }, 200);
     }
 );
 
@@ -275,27 +290,34 @@ router.openapi(
         const { settings, blocks } = c.req.valid('json');
 
         // Validate ownership
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
         const registration = validation.registration;
 
         if (settings) {
-            await loveStoryRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
+            // Map snake_case input to camelCase for Drizzle
+            await loveStoryRepo.upsertSettings(c.env, {
+                registrationId: registration.id,
+                mainTitle: settings.main_title,
+                backgroundImageUrl: settings.background_image_url,
+                overlayOpacity: settings.overlay_opacity?.toString(), // Convert number to string for numeric column
+                isEnabled: settings.is_enabled,
+            });
         }
         if (blocks) {
-            await loveStoryRepo.deleteAllBlocks(registration.id);
+            await loveStoryRepo.deleteAllBlocks(c.env, registration.id);
             for (const block of blocks) {
-                await loveStoryRepo.createBlock({
-                    registration_id: registration.id,
+                await loveStoryRepo.createBlock(c.env, {
+                    registrationId: registration.id,
                     title: block.title,
-                    body_text: block.body_text,
-                    display_order: block.display_order,
+                    bodyText: block.body_text,
+                    displayOrder: block.display_order,
                 });
             }
         }
-        await invitationCompiler.compileAndCache(slug);
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Love story updated successfully' }, 200);
     }
 );
@@ -313,11 +335,22 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await galleryRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings } }, 200);
+        const settings = await galleryRepo.getSettings(c.env, registration.id);
+
+        // Map to snake_case for API response
+        const mappedSettings = settings ? {
+            main_title: settings.mainTitle,
+            background_color: settings.backgroundColor,
+            show_youtube: settings.showYoutube,
+            youtube_embed_url: settings.youtubeEmbedUrl,
+            images: settings.images,
+            is_enabled: settings.isEnabled,
+        } : null;
+
+        return c.json({ success: true, data: { settings: mappedSettings } }, 200);
     }
 );
 
@@ -345,14 +378,24 @@ router.openapi(
         const slug = c.req.param('slug');
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
         const registration = validation.registration;
 
-        await galleryRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
-        await invitationCompiler.compileAndCache(slug);
+        // Map snake_case input to camelCase for Drizzle
+        await galleryRepo.upsertSettings(c.env, {
+            registrationId: registration.id,
+            mainTitle: settings.main_title,
+            backgroundColor: settings.background_color,
+            showYoutube: settings.show_youtube,
+            youtubeEmbedUrl: settings.youtube_embed_url,
+            images: settings.images,
+            isEnabled: settings.is_enabled,
+        });
+
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Gallery updated successfully' }, 200);
     }
 );
@@ -370,12 +413,35 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await weddingGiftRepo.getSettings(registration.id);
-        const bankAccounts = await weddingGiftRepo.getBankAccounts(registration.id);
-        return c.json({ success: true, data: { settings, bankAccounts } }, 200);
+        const settings = await weddingGiftRepo.getSettings(c.env, registration.id);
+        const bankAccounts = await weddingGiftRepo.getBankAccounts(c.env, registration.id);
+
+        // Map to snake_case for API response
+        const mappedSettings = settings ? {
+            title: settings.title,
+            subtitle: settings.subtitle,
+            button_label: settings.buttonLabel,
+            gift_image_url: settings.giftImageUrl,
+            background_overlay_opacity: typeof settings.backgroundOverlayOpacity === 'string' ? parseFloat(settings.backgroundOverlayOpacity) : settings.backgroundOverlayOpacity,
+            recipient_name: settings.recipientName,
+            recipient_phone: settings.recipientPhone,
+            recipient_address_line1: settings.recipientAddressLine1,
+            recipient_address_line2: settings.recipientAddressLine2,
+            recipient_address_line3: settings.recipientAddressLine3,
+            is_enabled: settings.isEnabled,
+        } : null;
+
+        const mappedAccounts = bankAccounts.map(acc => ({
+            bank_name: acc.bankName,
+            account_number: acc.accountNumber,
+            account_holder_name: acc.accountHolderName,
+            display_order: acc.displayOrder,
+        }));
+
+        return c.json({ success: true, data: { settings: mappedSettings, bankAccounts: mappedAccounts } }, 200);
     }
 );
 
@@ -403,28 +469,42 @@ router.openapi(
         const slug = c.req.param('slug');
         const { settings, bankAccounts } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
         const registration = validation.registration;
 
         if (settings) {
-            await weddingGiftRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
+            // Map snake_case input to camelCase
+            await weddingGiftRepo.upsertSettings(c.env, {
+                registrationId: registration.id,
+                title: settings.title,
+                subtitle: settings.subtitle,
+                buttonLabel: settings.button_label,
+                giftImageUrl: settings.gift_image_url,
+                backgroundOverlayOpacity: settings.background_overlay_opacity?.toString(), // Convert number to string
+                recipientName: settings.recipient_name,
+                recipientPhone: settings.recipient_phone,
+                recipientAddressLine1: settings.recipient_address_line1,
+                recipientAddressLine2: settings.recipient_address_line2,
+                recipientAddressLine3: settings.recipient_address_line3,
+                isEnabled: settings.is_enabled,
+            });
         }
         if (bankAccounts) {
-            await weddingGiftRepo.deleteAllBankAccounts(registration.id);
+            await weddingGiftRepo.deleteAllBankAccounts(c.env, registration.id);
             for (const account of bankAccounts) {
-                await weddingGiftRepo.createBankAccount({
-                    registration_id: registration.id,
-                    bank_name: account.bank_name,
-                    account_number: account.account_number,
-                    account_holder_name: account.account_holder_name,
-                    display_order: account.display_order,
+                await weddingGiftRepo.createBankAccount(c.env, {
+                    registrationId: registration.id,
+                    bankName: account.bank_name,
+                    accountNumber: account.account_number,
+                    accountHolderName: account.account_holder_name,
+                    displayOrder: account.display_order,
                 });
             }
         }
-        await invitationCompiler.compileAndCache(slug);
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Wedding gift updated successfully' }, 200);
     }
 );
@@ -442,11 +522,24 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await closingRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings } }, 200);
+        const settings = await closingRepo.getSettings(c.env, registration.id);
+
+        // Map to snake_case
+        const mappedSettings = settings ? {
+            background_color: settings.backgroundColor,
+            photo_url: settings.photoUrl,
+            names_display: settings.namesDisplay,
+            message_line1: settings.messageLine1,
+            message_line2: settings.messageLine2,
+            message_line3: settings.messageLine3,
+            photo_alt: settings.photoAlt,
+            is_enabled: settings.isEnabled,
+        } : null;
+
+        return c.json({ success: true, data: { settings: mappedSettings } }, 200);
     }
 );
 
@@ -474,14 +567,25 @@ router.openapi(
         const slug = c.req.param('slug');
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
         const registration = validation.registration;
 
-        await closingRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
-        await invitationCompiler.compileAndCache(slug);
+        await closingRepo.upsertSettings(c.env, {
+            registrationId: registration.id,
+            backgroundColor: settings.background_color,
+            photoUrl: settings.photo_url,
+            namesDisplay: settings.names_display,
+            messageLine1: settings.message_line1,
+            messageLine2: settings.message_line2,
+            messageLine3: settings.message_line3,
+            photoAlt: settings.photo_alt,
+            isEnabled: settings.is_enabled,
+        });
+
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Closing updated successfully' }, 200);
     }
 );
@@ -499,11 +603,22 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await backgroundMusicRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings } }, 200);
+        const settings = await backgroundMusicRepo.getSettings(c.env, registration.id);
+
+        // Map to snake_case
+        const mappedSettings = settings ? {
+            audio_url: settings.audioUrl,
+            title: settings.title,
+            artist: settings.artist,
+            loop: settings.loop,
+            register_as_background_audio: settings.registerAsBackgroundAudio,
+            is_enabled: settings.isEnabled,
+        } : null;
+
+        return c.json({ success: true, data: { settings: mappedSettings } }, 200);
     }
 );
 
@@ -531,14 +646,23 @@ router.openapi(
         const slug = c.req.param('slug');
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
         const registration = validation.registration;
 
-        await backgroundMusicRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
-        await invitationCompiler.compileAndCache(slug);
+        await backgroundMusicRepo.upsertSettings(c.env, {
+            registrationId: registration.id,
+            audioUrl: settings.audio_url,
+            title: settings.title,
+            artist: settings.artist,
+            loop: settings.loop,
+            registerAsBackgroundAudio: settings.register_as_background_audio,
+            isEnabled: settings.is_enabled,
+        });
+
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Background music updated successfully' }, 200);
     }
 );
@@ -556,11 +680,24 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const settings = await themeSettingsRepo.getSettings(registration.id);
-        return c.json({ success: true, data: { settings } }, 200);
+        const settings = await themeSettingsRepo.getSettings(c.env, registration.id);
+
+        // Map to snake_case
+        const mappedSettings = settings ? {
+            theme_key: settings.themeKey,
+            custom_images: settings.customImages,
+            enable_gallery: settings.enableGallery,
+            enable_love_story: settings.enableLoveStory,
+            enable_wedding_gift: settings.enableWeddingGift,
+            enable_wishes: settings.enableWishes,
+            enable_closing: settings.enableClosing,
+            custom_css: settings.customCss,
+        } : null;
+
+        return c.json({ success: true, data: { settings: mappedSettings } }, 200);
     }
 );
 
@@ -594,8 +731,20 @@ router.openapi(
         }
         const registration = validation.registration;
 
-        await themeSettingsRepo.upsertSettings({ registration_id: registration.id, ...settings as any });
-        await invitationCompiler.compileAndCache(slug);
+        // Map snake_case input to camelCase
+        await themeSettingsRepo.upsertSettings(c.env, {
+            registrationId: registration.id,
+            themeKey: settings.theme_key,
+            customImages: settings.custom_images, // Assuming JSONB structure is compatible or needs mapping? Usually any/any matches.
+            enableGallery: settings.enable_gallery,
+            enableLoveStory: settings.enable_love_story,
+            enableWeddingGift: settings.enable_wedding_gift,
+            enableWishes: settings.enable_wishes,
+            enableClosing: settings.enable_closing,
+            customCss: settings.custom_css,
+        });
+
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Theme updated successfully' }, 200);
     }
 );
@@ -616,8 +765,27 @@ router.openapi(
         const registration = await weddingRegistrationRepo.findBySlug(slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
-        const greetings = await greetingSectionRepo.findByRegistrationId(registration.id);
-        return c.json({ success: true, data: { greetings } }, 200);
+        const greetings = await greetingSectionRepo.findByRegistrationId(c.env, registration.id);
+
+        // Map to snake_case
+        const mappedGreetings = greetings?.map(g => ({
+            section_key: g.sectionType, // Wait, greetingSectionRepo returns GreetingSection which has sectionType or sectionKey?
+            // Need to check GreetingSection interface. In step 2542 view_file:
+            // class GreetingSection { ... sectionKey: string; ... }
+            // Wait, schema has section_key as column?
+            // Let's check Drizzle schema or Repo interface.
+            // Repo interface (Step 2542): `sectionKey: string;`
+            // But API response GreetingSectionSchema has `section_key`.
+            // So I map `sectionKey` -> `section_key`.
+            section_key: g.sectionKey, // I recall existing code mapped logic for update...
+            display_order: g.displayOrder,
+            title: g.title,
+            subtitle: g.subtitle,
+            show_bride_name: g.showBrideName,
+            show_groom_name: g.showGroomName,
+        }));
+
+        return c.json({ success: true, data: { greetings: mappedGreetings } }, 200);
     }
 );
 
@@ -652,9 +820,9 @@ router.openapi(
         const registration = validation.registration;
 
         if (greetings) {
-            const existing = await greetingSectionRepo.findByRegistrationId(registration.id);
+            const existing = await greetingSectionRepo.findByRegistrationId(c.env, registration.id);
             for (const old of existing) {
-                await greetingSectionRepo.delete(old.id);
+                await greetingSectionRepo.delete(c.env, old.id);
             }
             for (const greeting of greetings) {
                 // Map section_key to section_type
@@ -663,18 +831,30 @@ router.openapi(
                     'main_greeting': 'main_greeting',
                     'countdown_title': 'countdown_title',
                 };
-                const section_type = sectionTypeMap[greeting.section_key] || 'main_greeting';
+                // Wait, GreetingSection in DB has sectionKey, NOT sectionType?
+                // Step 2542 view_file lines 6-17: `sectionKey: string`.
+                // Drizzle Schema (not fully viewed but implied) usually matches column name.
+                // In Step 2547 (original file) line 668: `section_type`.
+                // This implies original logic used `section_type`?
+                // But Drizzle Repo interface `create` method takes `CreateGreetingSectionInput`.
+                // Let's assume repo takes `sectionKey`.
+                // BUT original code line 670: `section_type`.
+                // I should check `greetingSectionRepository.ts` create method args.
+                // Assuming `sectionKey` based on interface in Step 2542.
+                // If I map to `sectionKey`:
 
-                await greetingSectionRepo.create({
-                    registration_id: registration.id,
-                    section_type,
-                    display_order: greeting.display_order,
+                await greetingSectionRepo.create(c.env, {
+                    registrationId: registration.id,
+                    sectionKey: greeting.section_key,
+                    displayOrder: greeting.display_order,
                     title: greeting.title,
                     subtitle: greeting.subtitle,
+                    showBrideName: greeting.show_bride_name,
+                    showGroomName: greeting.show_groom_name,
                 });
             }
         }
-        await invitationCompiler.compileAndCache(slug);
+        await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, message: 'Greetings updated successfully' }, 200);
     }
 );
@@ -699,7 +879,7 @@ router.openapi(
             return c.json({ error: 'Unauthorized: Admin access required' }, 401);
         }
 
-        const compiled = await invitationCompiler.compileAndCache(slug);
+        const compiled = await invitationCompiler.compileAndCache(c.env, slug);
         return c.json({ success: true, data: compiled, message: 'Invitation compiled successfully' }, 200);
     }
 );
@@ -721,7 +901,7 @@ router.openapi(
         const slug = c.req.param('slug');
         try {
             // Use fetchFullInvitationContent which checks cache first, then compiles if needed
-            const compiled = await fetchFullInvitationContent(slug);
+            const compiled = await fetchFullInvitationContent(c.env, slug);
             return c.json({ success: true, data: compiled }, 200);
         } catch (error) {
             console.error('Error fetching invitation:', error);

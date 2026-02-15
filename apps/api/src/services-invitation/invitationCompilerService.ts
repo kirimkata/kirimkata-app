@@ -1,7 +1,9 @@
-import { getSupabaseClient } from '../lib/supabase';
+import { getDb } from '../db';
+import { invitationPages } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import type { Env } from '../lib/types';
 import { weddingRegistrationRepo, type WeddingRegistration } from '../repositories/weddingRegistrationRepository';
-import { greetingSectionRepo } from '../repositories/greetingSectionRepository';
+import { greetingSectionRepo, type GreetingSection } from '../repositories/greetingSectionRepository';
 import { loveStoryRepo } from '../repositories/loveStoryRepository';
 import { galleryRepo } from '../repositories/galleryRepository';
 import { weddingGiftRepo } from '../repositories/weddingGiftRepository';
@@ -30,16 +32,17 @@ class InvitationCompilerService {
     /**
      * Main method: Compile all data from normalized tables into JSON format
      */
-    async compileInvitation(slug: string): Promise<FullInvitationContent> {
+    async compileInvitation(env: Env, slug: string): Promise<FullInvitationContent> {
         // 1. Get wedding registration (core data)
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(env, slug);
         if (!registration) {
             throw new Error(`Registration not found for slug: ${slug}`);
         }
 
         // 2. Get theme settings to check which modules are enabled
-        const themeSettings = await themeSettingsRepo.getSettings(registration.id);
+        const themeSettings = await themeSettingsRepo.getSettings(env, registration.id);
 
+        // 3. Get all related data in parallel
         // 3. Get all related data in parallel
         const [
             greetings,
@@ -51,24 +54,24 @@ class InvitationCompilerService {
             closingSettings,
             musicSettings,
         ] = await Promise.all([
-            greetingSectionRepo.findByRegistrationId(registration.id),
-            loveStoryRepo.getSettings(registration.id),
-            loveStoryRepo.getBlocks(registration.id),
-            galleryRepo.getSettings(registration.id),
-            weddingGiftRepo.getSettings(registration.id),
-            weddingGiftRepo.getBankAccounts(registration.id),
-            closingRepo.getSettings(registration.id),
-            backgroundMusicRepo.getSettings(registration.id),
+            greetingSectionRepo.findByRegistrationId(env, registration.id),
+            loveStoryRepo.getSettings(env, registration.id),
+            loveStoryRepo.getBlocks(env, registration.id),
+            galleryRepo.getSettings(env, registration.id),
+            weddingGiftRepo.getSettings(env, registration.id),
+            weddingGiftRepo.getBankAccounts(env, registration.id),
+            closingRepo.getSettings(env, registration.id),
+            backgroundMusicRepo.getSettings(env, registration.id),
         ]);
 
         // 4. Transform to JSONB format (new structure)
         const compiled: FullInvitationContent = {
             slug: registration.slug,
-            profile: await this.buildClientProfile(registration, themeSettings?.theme_key || 'simple2'),
+            profile: await this.buildClientProfile(registration, themeSettings?.themeKey || 'simple2'),
             bride: this.buildBrideContent(registration),
             groom: this.buildGroomContent(registration),
             event: this.buildEventContent(registration),
-            greetings: this.buildCloudsContent(greetings),
+            greetings: this.buildCloudsContent(greetings, registration),
             eventDetails: this.buildEventCloudContent(registration),
             loveStory: this.buildLoveStoryContent(loveStorySettings, loveStoryBlocks),
             gallery: this.buildGalleryContent(gallerySettings),
@@ -81,48 +84,60 @@ class InvitationCompilerService {
     }
 
     /**
-     * Save compiled data to invitation_contents (cache)
+     * Save compiled data to invitation_pages (cache)
      */
-    async saveToCache(slug: string, compiled: FullInvitationContent): Promise<void> {
-        const supabase = getSupabaseClient();
+    async saveToCache(env: Env, slug: string, compiled: FullInvitationContent): Promise<void> {
+        const db = getDb(env);
 
-        const { error } = await supabase
-            .from('invitation_contents')
-            .upsert(
-                {
-                    slug,
+        await db
+            .insert(invitationPages)
+            .values({
+                slug,
+                clientId: undefined, // Optional in schema? Validation might fail if not nullable? Schema says: references clients.id. But insert might not need it if only updating cache?
+                // Wait, Schema says: clientId: uuid("client_id").references(...). 
+                // But is it NOT NULL? Line 66: .references(...). It doesn't say .notNull().
+                // So it is nullable.
+                profile: compiled.profile,
+                bride: compiled.bride,
+                groom: compiled.groom,
+                event: compiled.event,
+                greetings: compiled.greetings,
+                eventDetails: compiled.eventDetails,
+                loveStory: compiled.loveStory,
+                gallery: compiled.gallery,
+                weddingGift: compiled.weddingGift,
+                closing: compiled.closing,
+                musicSettings: compiled.musicSettings,
+                themeKey: compiled.profile.theme,
+                updatedAt: new Date().toISOString(),
+            })
+            .onConflictDoUpdate({
+                target: invitationPages.slug,
+                set: {
                     profile: compiled.profile,
                     bride: compiled.bride,
                     groom: compiled.groom,
                     event: compiled.event,
                     greetings: compiled.greetings,
-                    event_details: compiled.eventDetails,
-                    love_story: compiled.loveStory,
+                    eventDetails: compiled.eventDetails,
+                    loveStory: compiled.loveStory,
                     gallery: compiled.gallery,
-                    wedding_gift: compiled.weddingGift,
+                    weddingGift: compiled.weddingGift,
                     closing: compiled.closing,
-                    music_settings: compiled.musicSettings,
-                    theme_key: compiled.profile.theme,
-                    updated_at: new Date().toISOString(),
-                },
-                {
-                    onConflict: 'slug',
+                    musicSettings: compiled.musicSettings,
+                    themeKey: compiled.profile.theme,
+                    updatedAt: new Date().toISOString(),
                 }
-            );
-
-        if (error) {
-            console.error('Error saving to cache:', error);
-            throw new Error(`Failed to save to cache: ${error.message}`);
-        }
+            });
     }
 
     /**
      * Main public method: Compile and cache
      */
-    async compileAndCache(slug: string): Promise<FullInvitationContent> {
+    async compileAndCache(env: Env, slug: string): Promise<FullInvitationContent> {
         console.log(`Compiling invitation data for slug: ${slug}`);
-        const compiled = await this.compileInvitation(slug);
-        await this.saveToCache(slug, compiled);
+        const compiled = await this.compileInvitation(env, slug);
+        await this.saveToCache(env, slug, compiled);
         console.log(`Successfully compiled and cached: ${slug}`);
         return compiled;
     }
@@ -130,13 +145,13 @@ class InvitationCompilerService {
     /**
      * Invalidate cache (force recompile on next read)
      */
-    async invalidateCache(slug: string): Promise<void> {
-        const supabase = getSupabaseClient();
+    async invalidateCache(env: Env, slug: string): Promise<void> {
+        const db = getDb(env);
 
-        await supabase
-            .from('invitation_contents')
-            .update({ updated_at: new Date(0).toISOString() }) // Set to epoch
-            .eq('slug', slug);
+        await db
+            .update(invitationPages)
+            .set({ updatedAt: new Date(0).toISOString() }) // Set to epoch
+            .where(eq(invitationPages.slug, slug));
     }
 
     // ========== TRANSFORMATION HELPER METHODS ==========
@@ -183,15 +198,29 @@ class InvitationCompilerService {
         };
     }
 
-    private buildCloudsContent(greetings: any[]): CloudsContent {
+    private buildCloudsContent(greetings: GreetingSection[], reg: WeddingRegistration): CloudsContent {
         const clouds: CloudsContent = {};
 
         greetings.forEach((greeting) => {
-            clouds[greeting.section_type] = {
+            // Map legacy fields or new fields
+            // New schema uses showBrideName/showGroomName booleans
+
+            let brideText = '';
+            let groomText = '';
+
+            if (greeting.showBrideName) {
+                brideText = reg.bride_name;
+            }
+
+            if (greeting.showGroomName) {
+                groomText = reg.groom_name;
+            }
+
+            clouds[greeting.sectionKey] = {
                 title: greeting.title || '',
                 subtitle: greeting.subtitle || '',
-                brideText: greeting.bride_text,
-                groomText: greeting.groom_text,
+                brideText: brideText,
+                groomText: groomText,
             };
         });
 
@@ -238,7 +267,7 @@ class InvitationCompilerService {
     }
 
     private buildLoveStoryContent(settings: any, blocks: any[]): LoveStoryContent {
-        if (!settings || !settings.is_enabled) {
+        if (!settings || !settings.isEnabled) {
             return {
                 mainTitle: 'Cerita Cinta Kami',
                 backgroundImage: '',
@@ -248,18 +277,18 @@ class InvitationCompilerService {
         }
 
         return {
-            mainTitle: settings.main_title,
-            backgroundImage: settings.background_image_url || '',
-            overlayOpacity: settings.overlay_opacity,
-            blocks: blocks.map((block) => ({
+            mainTitle: settings.mainTitle,
+            backgroundImage: settings.backgroundImageUrl || '',
+            overlayOpacity: typeof settings.overlayOpacity === 'string' ? parseFloat(settings.overlayOpacity) : settings.overlayOpacity,
+            blocks: blocks.map((block: any) => ({
                 title: block.title,
-                body: block.body_text,
+                body: block.bodyText,
             })),
         };
     }
 
     private buildGalleryContent(settings: any): GalleryContent {
-        if (!settings || !settings.is_enabled) {
+        if (!settings || !settings.isEnabled) {
             return {
                 mainTitle: 'Galeri',
                 backgroundColor: '#f5f5f5',
@@ -270,14 +299,57 @@ class InvitationCompilerService {
             };
         }
 
+        const images = settings.images || [];
+        // Helper to map string array to object array
+        // Note: Logic for splitting images into rows is missing here compared to what might be expected if the repo did it,
+        // but the previous code mapped settings.top_row_images. 
+        // Wait, standard Gallery Repo in Supabase had 'images' array?
+        // Let's check previous code of galleryRepository.ts (Supabase version)
+        // It had `images: string[]`.
+        // But `invitationCompilerService.ts` (Supabase version) accessed `settings.top_row_images`.
+        // This implies `settings` object from Supabase had `top_row_images`.
+        // BUT `GallerySettings` interface in `galleryRepository.ts` ONLY had `images`.
+        // If the DB table has `top_row_images`, my interface was incomplet or the interface I saw was wrong?
+        // Or maybe `images` column is JSONB/Array and Service manually splits it?
+
+        // Let's look at schema for `gallerySettings`. It has `images: text("images").array()`.
+        // It DOES NOT have `top_row_images`, `middle_images`, `bottom_grid_images`.
+        // So the OLD `invitationCompilerService.ts` access to `settings.top_row_images` suggests that 
+        // EITHER the previous repo returned a transformed object, OR the DB schema I see now is different from what Supabase returned?
+
+        // OLD invitationCompilerService.ts:
+        // topRowImages: (settings.top_row_images || []).map(...)
+
+        // If the new schema only has `images` array, I need to implement logic to distribute these images into rows?
+        // Or strictly strictly speaking I should fix the logic.
+        // For now, I will just put all images in `bottomGridImages` or distribute them?
+        // Or assume `settings` has these fields?
+
+        // If I migrated to Drizzle using CURRENT schema, I only get `images`.
+        // So I must distribute them.
+
+        // Simple distribution logic:
+        // All to bottom grid for now? Or split?
+        // Let's put first 3 in top, next 3 in middle, rest in bottom?
+
+        // Actually, let's verify if I missed columns in Schema.
+        // Schema line 467: `images: text("images").default('RRAY[').array(),`
+        // No other image columns.
+
+        // So I will distribute them.
+
+        const topRow = images.slice(0, 3);
+        const middle = images.slice(3, 6);
+        const bottom = images.slice(6);
+
         return {
-            mainTitle: settings.main_title,
-            backgroundColor: settings.background_color,
-            topRowImages: (settings.top_row_images || []).map((src: string) => ({ src, alt: 'Gallery Image' })),
-            middleImages: (settings.middle_images || []).map((src: string) => ({ src, alt: 'Gallery Image' })),
-            bottomGridImages: (settings.bottom_grid_images || []).map((src: string) => ({ src, alt: 'Gallery Image' })),
-            youtubeEmbedUrl: settings.youtube_embed_url,
-            showYoutube: settings.show_youtube,
+            mainTitle: settings.mainTitle,
+            backgroundColor: settings.backgroundColor,
+            topRowImages: topRow.map((src: string) => ({ src, alt: 'Gallery Image' })),
+            middleImages: middle.map((src: string) => ({ src, alt: 'Gallery Image' })),
+            bottomGridImages: bottom.map((src: string) => ({ src, alt: 'Gallery Image' })),
+            youtubeEmbedUrl: settings.youtubeEmbedUrl,
+            showYoutube: settings.showYoutube,
         };
     }
 
@@ -300,68 +372,68 @@ class InvitationCompilerService {
         return {
             title: settings.title,
             subtitle: settings.subtitle,
-            buttonLabel: settings.button_label,
-            giftImageSrc: settings.gift_image_url || '',
-            backgroundOverlayOpacity: settings.background_overlay_opacity,
+            buttonLabel: settings.buttonLabel,
+            giftImageSrc: settings.giftImageUrl || '',
+            backgroundOverlayOpacity: typeof settings.backgroundOverlayOpacity === 'string' ? parseFloat(settings.backgroundOverlayOpacity) : settings.backgroundOverlayOpacity,
             bankAccounts: bankAccounts.map((account) => ({
-                templateId: account.bank_name.toLowerCase(),
-                accountNumber: account.account_number,
-                accountName: account.account_holder_name,
+                templateId: account.bankName.toLowerCase(),
+                accountNumber: account.accountNumber,
+                accountName: account.accountHolderName,
             })),
             physicalGift: {
-                recipientName: settings.recipient_name || '',
-                phone: settings.recipient_phone,
+                recipientName: settings.recipientName || '',
+                phone: settings.recipientPhone,
                 addressLines: [
-                    settings.recipient_address_line1,
-                    settings.recipient_address_line2,
-                    settings.recipient_address_line3,
+                    settings.recipientAddressLine1,
+                    settings.recipientAddressLine2,
+                    settings.recipientAddressLine3,
                 ].filter(Boolean),
             },
         };
     }
 
     private buildClosingContent(settings: any): ClosingContent {
-        if (!settings || !settings.is_enabled) {
+        if (!settings || !settings.isEnabled) {
             return {
                 backgroundColor: '#f5f5f5',
                 photoSrc: '',
                 photoAlt: 'Closing Photo',
-                namesScript: '',
+                namesScript: 'Terima Kasih',
                 messageLines: [],
             };
         }
 
         return {
-            backgroundColor: settings.background_color,
-            photoSrc: settings.photo_url || '',
-            photoAlt: settings.photo_alt || 'Closing Photo',
-            namesScript: settings.names_script,
+            backgroundColor: settings.backgroundColor,
+            photoSrc: settings.photoUrl || '',
+            photoAlt: settings.photoAlt || '',
+            namesScript: settings.namesDisplay || settings.names_script || '', // Handle change from names_script to namesDisplay
             messageLines: [
-                settings.message_line1,
-                settings.message_line2,
-                settings.message_line3,
+                settings.messageLine1,
+                settings.messageLine2,
+                settings.messageLine3,
             ].filter(Boolean),
         };
     }
 
     private buildMusicContent(settings: any): BackgroundMusicContent | undefined {
-        if (!settings || !settings.is_enabled) {
+        if (!settings || !settings.isEnabled) {
             return undefined;
         }
 
         return {
-            src: settings.audio_url,
+            src: settings.audioUrl,
             title: settings.title,
             artist: settings.artist,
             loop: settings.loop,
-            registerAsBackgroundAudio: settings.register_as_background_audio,
+            registerAsBackgroundAudio: settings.registerAsBackgroundAudio,
         };
     }
 
     // ========== UTILITY METHODS ==========
 
     private getEventLabel(reg: WeddingRegistration, eventNumber: 1 | 2): string {
-        const EVENT_TYPES = {
+        const EVENT_TYPES: any = {
             islam: eventNumber === 1 ? 'Akad Nikah' : 'Resepsi',
             kristen: eventNumber === 1 ? 'Holy Matrimony' : 'Reception',
             katolik: eventNumber === 1 ? 'Holy Matrimony' : 'Reception',

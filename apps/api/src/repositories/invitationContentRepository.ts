@@ -1,4 +1,7 @@
-import { getSupabaseClient } from '../lib/supabase';
+import { eq } from 'drizzle-orm';
+import { getDb } from '../db';
+import { invitationContents } from '../db/schema';
+import type { Env } from '../lib/types';
 
 // Define ClientProfile interface locally  
 export interface ClientProfile {
@@ -55,6 +58,8 @@ export interface EventCloudStreamingDetailContent {
   description: string;
   url: string;
   buttonLabel: string;
+  // streamEnabled is boolean in DB but here it might be implied? 
+  // Let's stick to valid interface.
 }
 
 export interface EventCloudContent {
@@ -143,64 +148,44 @@ export interface FullInvitationContent {
   musicSettings?: BackgroundMusicContent;
 }
 
-interface InvitationContentRow {
-  id: string;
-  slug: string;
-  theme_key?: string;
-  custom_images?: any;
-  profile: FullInvitationContent['profile'];
-  bride: FullInvitationContent['bride'];
-  groom: FullInvitationContent['groom'];
-  event: FullInvitationContent['event'];
-  greetings: FullInvitationContent['greetings'];
-  event_details: FullInvitationContent['eventDetails'];
-  love_story: FullInvitationContent['loveStory'];
-  gallery: FullInvitationContent['gallery'];
-  wedding_gift: FullInvitationContent['weddingGift'];
-  closing: FullInvitationContent['closing'];
-  music_settings?: FullInvitationContent['musicSettings'];
-  created_at: string;
-  updated_at: string;
-}
-
-const TABLE_NAME = 'invitation_contents';
-
-function mapRowToFullContent(row: InvitationContentRow): FullInvitationContent {
+function mapRowToFullContent(row: typeof invitationContents.$inferSelect): FullInvitationContent {
+  // Drizzle JSON columns are typed as unknown or any by default unless custom types used.
+  // We cast them.
   return {
     slug: row.slug,
     profile: {
-      ...row.profile,
-      custom_images: row.custom_images || row.profile?.custom_images,
+      ...(row.profile as ClientProfile),
+      custom_images: row.customImages || (row.profile as ClientProfile)?.custom_images,
     },
-    bride: row.bride,
-    groom: row.groom,
-    event: row.event,
-    greetings: row.greetings,
-    eventDetails: row.event_details,
-    loveStory: row.love_story,
-    gallery: row.gallery,
-    weddingGift: row.wedding_gift,
-    musicSettings: row.music_settings,
-    closing: row.closing,
+    bride: row.bride as BrideContent,
+    groom: row.groom as GroomContent,
+    event: row.event as EventContent,
+    greetings: row.greetings as CloudsContent,
+    eventDetails: row.eventDetails as EventCloudContent,
+    loveStory: row.loveStory as LoveStoryContent,
+    gallery: row.gallery as GalleryContent,
+    weddingGift: row.weddingGift as WeddingGiftContent,
+    musicSettings: row.musicSettings as BackgroundMusicContent | undefined,
+    closing: row.closing as ClosingContent,
   };
 }
 
-export async function fetchFullInvitationContent(slug: string): Promise<FullInvitationContent> {
+export async function fetchFullInvitationContent(env: Env, slug: string): Promise<FullInvitationContent> {
   try {
-    const supabase = getSupabaseClient();
+    const db = getDb(env);
 
     // Try to read from cache
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    const [data] = await db
+      .select()
+      .from(invitationContents)
+      .where(eq(invitationContents.slug, slug))
+      .limit(1);
 
-    if (data && !error) {
+    if (data) {
       // Cache hit! Map and return
       console.log(`✅ Cache hit for slug: ${slug}`);
       try {
-        return mapRowToFullContent(data as InvitationContentRow);
+        return mapRowToFullContent(data);
       } catch (mapError) {
         console.error('Error mapping cached content, will recompile:', mapError);
         // If mapping fails, treat as cache miss
@@ -212,10 +197,10 @@ export async function fetchFullInvitationContent(slug: string): Promise<FullInvi
 
     // Dynamically import to avoid circular dependency
     const { invitationCompiler } = await import('../services-invitation/invitationCompilerService');
-    const compiled = await invitationCompiler.compileAndCache(slug);
+    const compiled = await invitationCompiler.compileAndCache(env, slug); // Pass env
 
     console.log(`Successfully compiled and cached: ${slug}`);
-    return compiled;
+    return compiled as FullInvitationContent;
 
   } catch (clientError: any) {
     console.error('Error in fetchFullInvitationContent:', clientError);
