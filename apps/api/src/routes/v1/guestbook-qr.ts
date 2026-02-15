@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guests, guestbookCheckins, guestbookEvents } from '@/db/schema';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { clientAuthMiddleware } from '@/middleware/auth';
 import { generateToken } from '@/services/jwt';
 
@@ -29,16 +31,22 @@ qr.post('/generate/:guestId', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify guest exists and belongs to client
-        const { data: guest, error: guestError } = await supabase
-            .from('invitation_guests')
-            .select('id, client_id, event_id, guest_name, guest_phone')
-            .eq('id', guestId)
-            .single();
+        const [guest] = await db
+            .select({
+                id: guests.id,
+                clientId: guests.clientId,
+                eventId: guests.eventId,
+                name: guests.name,
+                phone: guests.phone,
+            })
+            .from(guests)
+            .where(eq(guests.id, guestId))
+            .limit(1);
 
-        if (guestError || !guest) {
+        if (!guest) {
             return c.json(
                 { success: false, error: 'Guest not found' },
                 404
@@ -46,7 +54,7 @@ qr.post('/generate/:guestId', clientAuthMiddleware, async (c) => {
         }
 
         // Check ownership
-        if (guest.client_id !== clientId) {
+        if (guest.clientId !== clientId) {
             return c.json(
                 { success: false, error: 'Access denied' },
                 403
@@ -57,34 +65,25 @@ qr.post('/generate/:guestId', clientAuthMiddleware, async (c) => {
         const qrPayload = {
             type: 'QR',
             guest_id: guest.id,
-            event_id: guest.event_id,
-            guest_name: guest.guest_name,
+            event_id: guest.eventId,
+            guest_name: guest.name,
             issued_at: Date.now(),
         };
 
         const qrToken = await generateToken(qrPayload as any, c.env.JWT_SECRET, '365d'); // Valid for 1 year
 
         // Update guest with QR token
-        const { data: updatedGuest, error: updateError } = await supabase
-            .from('invitation_guests')
-            .update({ qr_token: qrToken })
-            .eq('id', guestId)
-            .select()
-            .single();
-
-        if (updateError || !updatedGuest) {
-            console.error('Error updating guest with QR token:', updateError);
-            return c.json(
-                { success: false, error: 'Failed to generate QR code' },
-                500
-            );
-        }
+        const [updatedGuest] = await db
+            .update(guests)
+            .set({ qrCode: qrToken })
+            .where(eq(guests.id, guestId))
+            .returning();
 
         return c.json({
             success: true,
             data: {
                 guest_id: updatedGuest.id,
-                guest_name: updatedGuest.guest_name,
+                guest_name: updatedGuest.name,
                 qr_token: qrToken,
             },
             message: 'QR code generated successfully',
@@ -124,23 +123,21 @@ qr.post('/bulk-generate', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify all guests belong to client
-        const { data: guests, error: guestsError } = await supabase
-            .from('invitation_guests')
-            .select('id, client_id, event_id, guest_name')
-            .in('id', guest_ids);
-
-        if (guestsError || !guests) {
-            return c.json(
-                { success: false, error: 'Failed to fetch guests' },
-                500
-            );
-        }
+        const guestsList = await db
+            .select({
+                id: guests.id,
+                clientId: guests.clientId,
+                eventId: guests.eventId,
+                name: guests.name,
+            })
+            .from(guests)
+            .where(inArray(guests.id, guest_ids));
 
         // Check ownership
-        const unauthorizedGuests = guests.filter(g => g.client_id !== clientId);
+        const unauthorizedGuests = guestsList.filter((g: any) => g.clientId !== clientId);
         if (unauthorizedGuests.length > 0) {
             return c.json(
                 { success: false, error: 'Access denied to some guests' },
@@ -152,46 +149,37 @@ qr.post('/bulk-generate', clientAuthMiddleware, async (c) => {
         let successCount = 0;
         const results = [];
 
-        for (const guest of guests) {
+        for (const guest of guestsList) {
             try {
                 const qrPayload = {
                     type: 'QR',
                     guest_id: guest.id,
-                    event_id: guest.event_id,
-                    guest_name: guest.guest_name,
+                    event_id: guest.eventId,
+                    guest_name: guest.name,
                     issued_at: Date.now(),
                 };
 
                 const qrToken = await generateToken(qrPayload as any, c.env.JWT_SECRET, '365d');
 
                 // Update guest
-                const { error: updateError } = await supabase
-                    .from('invitation_guests')
-                    .update({ qr_token: qrToken })
-                    .eq('id', guest.id);
+                await db
+                    .update(guests)
+                    .set({ qrCode: qrToken })
+                    .where(eq(guests.id, guest.id));
 
-                if (!updateError) {
-                    successCount++;
-                    results.push({
-                        guest_id: guest.id,
-                        guest_name: guest.guest_name,
-                        qr_token: qrToken,
-                        success: true,
-                    });
-                } else {
-                    results.push({
-                        guest_id: guest.id,
-                        guest_name: guest.guest_name,
-                        success: false,
-                        error: updateError.message,
-                    });
-                }
+                successCount++;
+                results.push({
+                    guest_id: guest.id,
+                    guest_name: guest.name,
+                    qr_token: qrToken,
+                    success: true,
+                });
             } catch (err) {
                 results.push({
                     guest_id: guest.id,
-                    guest_name: guest.guest_name,
+                    guest_name: guest.name,
                     success: false,
-                    error: 'Failed to generate QR token',
+                    error: err instanceof Error ? err.message : 'Unknown error',
                 });
             }
         }
@@ -230,17 +218,19 @@ qr.post('/checkin', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('events')
-            .select('id, client_id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -248,14 +238,16 @@ qr.post('/checkin', clientAuthMiddleware, async (c) => {
         }
 
         // Find guest by QR token
-        const { data: guest, error: guestError } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('qr_token', qr_token)
-            .eq('event_id', event_id)
-            .single();
+        const [guest] = await db
+            .select()
+            .from(guests)
+            .where(and(
+                eq(guests.qrCode, qr_token),
+                eq(guests.eventId, event_id)
+            ))
+            .limit(1);
 
-        if (guestError || !guest) {
+        if (!guest) {
             return c.json(
                 { success: false, error: 'Invalid QR code or guest not found' },
                 404
@@ -263,12 +255,12 @@ qr.post('/checkin', clientAuthMiddleware, async (c) => {
         }
 
         // Check if already checked in
-        if (guest.is_checked_in) {
+        if (guest.isCheckedIn) {
             return c.json(
-                { 
-                    success: false, 
+                {
+                    success: false,
                     error: 'Guest already checked in',
-                    checked_in_at: guest.checked_in_at,
+                    checked_in_at: guest.checkedInAt,
                 },
                 400
             );
@@ -276,39 +268,39 @@ qr.post('/checkin', clientAuthMiddleware, async (c) => {
 
         // Perform check-in
         const updateData: any = {
-            is_checked_in: true,
-            checked_in_at: new Date().toISOString(),
+            isCheckedIn: true,
+            checkedInAt: new Date().toISOString(),
         };
 
         // Update actual companions if provided
         if (actual_companions !== undefined && actual_companions !== null) {
-            updateData.actual_companions = actual_companions;
+            updateData.actualCompanions = actual_companions;
         }
 
-        const { data: updatedGuest, error: updateError } = await supabase
-            .from('invitation_guests')
-            .update(updateData)
-            .eq('id', guest.id)
-            .select()
-            .single();
+        const [updatedGuest] = await db
+            .update(guests)
+            .set(updateData)
+            .where(eq(guests.id, guest.id))
+            .returning();
 
-        if (updateError || !updatedGuest) {
-            console.error('Error checking in guest:', updateError);
-            return c.json(
-                { success: false, error: 'Failed to check in guest' },
-                500
-            );
-        }
+        // Log check-in
+        await db
+            .insert(guestbookCheckins)
+            .values({
+                guestId: guest.id,
+                checkedInAt: new Date().toISOString(),
+                checkinMethod: 'qr_scan',
+            });
 
         return c.json({
             success: true,
             data: {
                 guest_id: updatedGuest.id,
-                guest_name: updatedGuest.guest_name,
-                guest_phone: updatedGuest.guest_phone,
-                max_companions: updatedGuest.max_companions,
-                actual_companions: updatedGuest.actual_companions,
-                checked_in_at: updatedGuest.checked_in_at,
+                guest_name: updatedGuest.name,
+                guest_phone: updatedGuest.phone,
+                max_companions: updatedGuest.maxCompanions,
+                actual_companions: updatedGuest.actualCompanions,
+                checked_in_at: updatedGuest.checkedInAt,
             },
             message: 'Guest checked in successfully',
         });

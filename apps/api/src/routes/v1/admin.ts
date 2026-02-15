@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { adminAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { clients, admins, invitationPages } from '@/db/schema'; // Updated import
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@/services/encryption';
 
 const admin = new Hono<{
@@ -21,20 +23,27 @@ admin.use('*', adminAuthMiddleware);
  */
 admin.get('/clients', async (c) => {
     try {
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: clients, error } = await supabase
-            .from('clients')
-            .select('id, username, email, slug, guestbook_access, quota_photos, quota_music, quota_videos, created_at, updated_at')
-            .order('created_at', { ascending: false });
+        const clientsList = await db
+            .select({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
 
-        if (error) {
-            throw error;
-        }
+                guestbook_access: clients.guestbookAccess,
+                quota_photos: clients.quotaPhotos,
+                quota_music: clients.quotaMusic,
+                quota_videos: clients.quotaVideos,
+                created_at: clients.createdAt,
+                updated_at: clients.updatedAt,
+            })
+            .from(clients)
+            .orderBy(desc(clients.createdAt));
 
         return c.json({
             success: true,
-            clients: clients || [],
+            clients: clientsList,
         });
     } catch (error) {
         console.error('Error fetching clients:', error);
@@ -52,7 +61,7 @@ admin.get('/clients', async (c) => {
 admin.post('/clients', async (c) => {
     try {
         const body = await c.req.json();
-        const { username, password, email, slug } = body;
+        const { username, password, email } = body;
 
         if (!username || !password) {
             return c.json(
@@ -61,38 +70,35 @@ admin.post('/clients', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Hash password
-        const hashedPassword = await hashPassword(password, c.env.ENCRYPTION_KEY);
+        const passwordEncrypted = await hashPassword(password, c.env.ENCRYPTION_KEY);
 
         // Create client with default quotas
-        const { data: client, error } = await supabase
-            .from('clients')
-            .insert({
+        const [newClient] = await db
+            .insert(clients)
+            .values({
                 username,
-                password_encrypted: hashedPassword,
+                passwordEncrypted: passwordEncrypted,
                 email: email || null,
-                slug: slug || null,
-                quota_photos: 10,
-                quota_music: 5,
-                quota_videos: 3,
-                guestbook_access: true,
-            })
-            .select('id, username, email, slug, created_at')
-            .single();
 
-        if (error) {
-            console.error('Error creating client:', error);
-            return c.json(
-                { error: 'Failed to create client', message: error.message },
-                500
-            );
-        }
+                quotaPhotos: 10,
+                quotaMusic: 5,
+                quotaVideos: 3,
+                guestbookAccess: true,
+            })
+            .returning({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
+
+                created_at: clients.createdAt,
+            });
 
         return c.json({
             success: true,
-            client,
+            client: newClient,
         });
     } catch (error: any) {
         console.error('Error creating client:', error);
@@ -113,37 +119,44 @@ admin.put('/clients/:id', async (c) => {
         const body = await c.req.json();
         const { username, password, email, slug } = body;
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Build update object
         const updateData: any = {};
         if (username !== undefined) updateData.username = username;
         if (email !== undefined) updateData.email = email;
-        if (slug !== undefined) updateData.slug = slug;
+
 
         // Hash password if provided
         if (password) {
-            updateData.password_encrypted = await hashPassword(password, c.env.ENCRYPTION_KEY);
+            updateData.passwordEncrypted = await hashPassword(password, c.env.ENCRYPTION_KEY);
         }
 
-        const { data: client, error } = await supabase
-            .from('clients')
-            .update(updateData)
-            .eq('id', clientId)
-            .select('id, username, email, slug, updated_at')
-            .single();
+        // Add updated_at timestamp
+        updateData.updatedAt = new Date().toISOString();
 
-        if (error) {
-            console.error('Error updating client:', error);
+        const [updatedClient] = await db
+            .update(clients)
+            .set(updateData)
+            .where(eq(clients.id, clientId))
+            .returning({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
+
+                updated_at: clients.updatedAt,
+            });
+
+        if (!updatedClient) {
             return c.json(
-                { error: 'Failed to update client' },
-                500
+                { error: 'Client not found or update failed' },
+                404
             );
         }
 
         return c.json({
             success: true,
-            client,
+            client: updatedClient,
         });
     } catch (error) {
         console.error('Error updating client:', error);
@@ -161,20 +174,11 @@ admin.put('/clients/:id', async (c) => {
 admin.delete('/clients/:id', async (c) => {
     try {
         const clientId = c.req.param('id');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { error } = await supabase
-            .from('clients')
-            .delete()
-            .eq('id', clientId);
-
-        if (error) {
-            console.error('Error deleting client:', error);
-            return c.json(
-                { error: 'Failed to delete client' },
-                500
-            );
-        }
+        await db
+            .delete(clients)
+            .where(eq(clients.id, clientId));
 
         return c.json({
             success: true,
@@ -196,15 +200,19 @@ admin.delete('/clients/:id', async (c) => {
 admin.get('/clients/:id/quota', async (c) => {
     try {
         const clientId = c.req.param('id');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data, error } = await supabase
-            .from('clients')
-            .select('quota_photos, quota_music, quota_videos')
-            .eq('id', clientId)
-            .single();
+        const [data] = await db
+            .select({
+                quota_photos: clients.quotaPhotos,
+                quota_music: clients.quotaMusic,
+                quota_videos: clients.quotaVideos,
+            })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (error || !data) {
+        if (!data) {
             return c.json({ error: 'Client not found' }, 404);
         }
 
@@ -226,11 +234,15 @@ admin.get('/clients/:id/quota', async (c) => {
  * PATCH /v1/admin/clients/:id/quota
  * Update client quota
  */
+/**
+ * PATCH /v1/admin/clients/:id/quota
+ * Update client quota
+ */
 admin.patch('/clients/:id/quota', async (c) => {
     try {
         const clientId = c.req.param('id');
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         const { quota_photos, quota_music, quota_videos } = body;
 
@@ -247,28 +259,31 @@ admin.patch('/clients/:id/quota', async (c) => {
 
         // Build update object
         const updates: any = {};
-        if (quota_photos !== undefined) updates.quota_photos = quota_photos;
-        if (quota_music !== undefined) updates.quota_music = quota_music;
-        if (quota_videos !== undefined) updates.quota_videos = quota_videos;
+        if (quota_photos !== undefined) updates.quotaPhotos = quota_photos;
+        if (quota_music !== undefined) updates.quotaMusic = quota_music;
+        if (quota_videos !== undefined) updates.quotaVideos = quota_videos;
 
         if (Object.keys(updates).length === 0) {
             return c.json({ error: 'No quota values provided' }, 400);
         }
 
-        const { data, error } = await supabase
-            .from('clients')
-            .update(updates)
-            .eq('id', clientId)
-            .select('quota_photos, quota_music, quota_videos')
-            .single();
+        const [updatedClient] = await db
+            .update(clients)
+            .set(updates)
+            .where(eq(clients.id, clientId))
+            .returning({
+                quota_photos: clients.quotaPhotos,
+                quota_music: clients.quotaMusic,
+                quota_videos: clients.quotaVideos,
+            });
 
-        if (error || !data) {
+        if (!updatedClient) {
             return c.json({ error: 'Client not found' }, 404);
         }
 
         return c.json({
             success: true,
-            quota: data
+            quota: updatedClient
         });
     } catch (error: any) {
         console.error('Update quota error:', error);
@@ -295,14 +310,14 @@ admin.post('/invitations', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Check if slug already exists
-        const { data: existing } = await supabase
-            .from('invitation_contents')
-            .select('slug')
-            .eq('slug', payload.slug)
-            .single();
+        const [existing] = await db
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(eq(invitationPages.slug, payload.slug))
+            .limit(1);
 
         if (existing) {
             return c.json(
@@ -323,43 +338,94 @@ admin.post('/invitations', async (c) => {
         };
 
         // Insert new invitation
-        const { data, error } = await supabase
-            .from('invitation_contents')
-            .insert({
+        const [newInvitation] = await db
+            .insert(invitationPages)
+            .values({
                 slug: payload.slug,
-                theme_key: payload.themeKey,
-                client_profile: payload.clientProfile || {},
+                themeKey: payload.themeKey,
+                profile: payload.clientProfile || {}, // Mapped to profile
+                bride: payload.bride || {},
+                groom: payload.groom || {},
+                event: { // Mapped to jsonb event field
+                    fullDateLabel: payload.event?.fullDateLabel || '',
+                    isoDate: payload.event?.isoDate || '',
+                    countdownDateTime: payload.event?.countdownDateTime || '',
+                    ...eventCloud, // Includes holyMatrimony etc if strictly following schema structure
+                },
+                // Note: Schema has explicit columns for some, but payload structure from legacy code 
+                // seemed to group some things. 
+                // Let's look at schema: 
+                // profile, bride, groom, event, greetings, eventDetails, loveStory, gallery, weddingGift, closing, musicSettings
+                // Legacy insert: 
+                // client_profile -> profile
+                // event (with internal structure) -> event
+                // event_cloud -> ? Schema doesn't have event_cloud. 
+                // It seems legacy `event_cloud` was merged into `event` or `eventDetails` in new schema?
+                // Start with direct mapping based on schema names
+
+                greetings: {}, // detailed greetings structure not in payload? payload has 'clouds'?
+                eventDetails: {}, // explicit event details if different from 'event'
+
+                // ADJUSTMENT based on payload keys:
+                // payload.loveStory -> loveStory
+                loveStory: payload.loveStory || [],
+
+                // payload.gallery -> gallery
+                gallery: payload.gallery || [],
+
+                // payload.weddingGift -> weddingGift
+                weddingGift: payload.weddingGift || {},
+
+                // payload.backgroundMusic -> musicSettings
+                musicSettings: payload.backgroundMusic || {},
+
+                // payload.closing -> closing
+                closing: payload.closing || {},
+
+                // event_cloud in legacy was likely specific structure. 
+                // In new schema 'event' is a jsonb column. We can put it there.
+            })
+            .returning();
+
+        // Wait, I need to be careful with JSONB columns. Drizzle/Postgres expects correct JSON structure.
+        // And I need to verify if I missed any required columns.
+        // Schema:
+        // slug, profile, bride, groom, event, greetings, eventDetails, loveStory, gallery, weddingGift, closing
+        // All NOT NULL.
+        // I must provide default empty objects/arrays if payload is missing them.
+
+        const [data] = await db
+            .insert(invitationPages)
+            .values({
+                slug: payload.slug,
+                themeKey: payload.themeKey,
+                profile: payload.clientProfile || {},
                 bride: payload.bride || {},
                 groom: payload.groom || {},
                 event: {
                     fullDateLabel: payload.event?.fullDateLabel || '',
                     isoDate: payload.event?.isoDate || '',
                     countdownDateTime: payload.event?.countdownDateTime || '',
+                    ...eventCloud
                 },
-                clouds: {},
-                event_cloud: eventCloud,
-                love_story: payload.loveStory || [],
+                greetings: {},
+                eventDetails: {}, // New schema field, providing empty object
+                loveStory: payload.loveStory || [],
                 gallery: payload.gallery || [],
-                wedding_gift: payload.weddingGift || {},
-                background_music: payload.backgroundMusic || {},
+                weddingGift: payload.weddingGift || {},
                 closing: payload.closing || {},
+                musicSettings: payload.backgroundMusic || {},
             })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error inserting invitation:', error);
-            return c.json(
-                { success: false, error: 'Failed to create invitation: ' + error.message },
-                500
-            );
-        }
+            .returning({
+                slug: invitationPages.slug,
+                themeKey: invitationPages.themeKey,
+            });
 
         return c.json({
             success: true,
             data: {
                 slug: data.slug,
-                themeKey: data.theme_key,
+                themeKey: data.themeKey, // mapped from theme_key
             },
         });
     } catch (error: any) {
@@ -375,33 +441,21 @@ admin.post('/invitations', async (c) => {
  * GET /v1/admin/slugs
  * Get available slugs (slugs that exist in invitation_contents but not assigned to clients)
  */
+/**
+ * GET /v1/admin/slugs
+ * Get available slugs (slugs that exist in invitation_contents but not assigned to clients)
+ */
 admin.get('/slugs', async (c) => {
     try {
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Get all slugs from invitation_contents
-        const { data: invitations, error: invError } = await supabase
-            .from('invitation_contents')
-            .select('slug');
+        // Get slugs from invitationPages where clientId is NULL (unassigned)
+        const availableInvitations = await db
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(isNull(invitationPages.clientId));
 
-        if (invError) {
-            throw invError;
-        }
-
-        // Get all assigned slugs from clients
-        const { data: clients, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .not('slug', 'is', null);
-
-        if (clientError) {
-            throw clientError;
-        }
-
-        const assignedSlugs = new Set(clients?.map(c => c.slug) || []);
-        const availableSlugs = invitations
-            ?.filter(inv => !assignedSlugs.has(inv.slug))
-            .map(inv => inv.slug) || [];
+        const availableSlugs = availableInvitations.map(inv => inv.slug);
 
         return c.json({
             success: true,
@@ -441,16 +495,16 @@ admin.put('/settings', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Get current admin data
-        const { data: admin, error: fetchError } = await supabase
-            .from('admins')
-            .select('password_encrypted')
-            .eq('id', adminId)
-            .single();
+        const [adminData] = await db
+            .select({ passwordEncrypted: admins.passwordEncrypted })
+            .from(admins)
+            .where(eq(admins.id, adminId))
+            .limit(1);
 
-        if (fetchError || !admin) {
+        if (!adminData) {
             return c.json(
                 { success: false, error: 'Admin not found' },
                 404
@@ -460,7 +514,7 @@ admin.put('/settings', async (c) => {
         // Verify current password
         const isValid = await comparePassword(
             currentPassword,
-            admin.password_encrypted,
+            adminData.passwordEncrypted,
             c.env.ENCRYPTION_KEY
         );
 
@@ -472,17 +526,13 @@ admin.put('/settings', async (c) => {
         }
 
         // Hash new password
-        const hashedPassword = await hashPassword(newPassword, c.env.ENCRYPTION_KEY);
+        const passwordEncrypted = await hashPassword(newPassword, c.env.ENCRYPTION_KEY);
 
         // Update password
-        const { error: updateError } = await supabase
-            .from('admins')
-            .update({ password_encrypted: hashedPassword })
-            .eq('id', adminId);
-
-        if (updateError) {
-            throw updateError;
-        }
+        await db
+            .update(admins)
+            .set({ passwordEncrypted: passwordEncrypted })
+            .where(eq(admins.id, adminId));
 
         return c.json({
             success: true,

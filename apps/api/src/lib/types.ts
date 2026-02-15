@@ -7,6 +7,10 @@ export interface Env {
     ENCRYPTION_KEY: string;
     ADMIN_SECRET?: string;
 
+    // Database
+    DATABASE_URL: string;
+    DIRECT_URL?: string;
+
     // Email service (Resend)
     EMAIL_API_KEY: string;
     EMAIL_FROM: string;
@@ -123,3 +127,14 @@ export interface ApiResponse<T = any> {
 
 // Hono Context with custom env
 export type { Context } from 'hono';
+
+export interface AppVariables {
+    jwtPayload: JWTPayload;
+    clientId: string;
+    staffId: string;
+}
+
+export interface AppEnv {
+    Bindings: Env;
+    Variables: AppVariables;
+}

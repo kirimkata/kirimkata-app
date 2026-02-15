@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { benefitCatalog, guestTypeBenefits, guestTypes, guestbookEvents } from '@/db/schema';
+import { eq, desc, inArray, and } from 'drizzle-orm';
 
 const guestbookBenefits = new Hono<{
     Bindings: Env;
@@ -20,20 +22,16 @@ guestbookBenefits.use('*', clientAuthMiddleware);
  */
 guestbookBenefits.get('/', async (c) => {
     try {
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: benefits, error } = await supabase
-            .from('benefit_catalog')
-            .select('*')
-            .order('sort_order', { ascending: true });
-
-        if (error) {
-            throw error;
-        }
+        const benefits = await db
+            .select()
+            .from(benefitCatalog)
+            .orderBy(benefitCatalog.sortOrder);
 
         return c.json({
             success: true,
-            data: benefits || [],
+            data: benefits,
         });
     } catch (error) {
         console.error('Get benefits error:', error);
@@ -51,47 +49,38 @@ guestbookBenefits.get('/', async (c) => {
 guestbookBenefits.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const { benefit_type, display_name, description, icon } = body;
+        const { benefit_key, display_name, description, icon } = body;
 
-        if (!benefit_type || !display_name) {
+        if (!benefit_key || !display_name) {
             return c.json(
                 { success: false, error: 'Missing required fields' },
                 400
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Get existing benefits to determine sort order
-        const { data: existingBenefits } = await supabase
-            .from('benefit_catalog')
-            .select('sort_order')
-            .order('sort_order', { ascending: false })
+        const existingBenefits = await db
+            .select({ sortOrder: benefitCatalog.sortOrder })
+            .from(benefitCatalog)
+            .orderBy(desc(benefitCatalog.sortOrder))
             .limit(1);
 
-        const maxSortOrder = existingBenefits && existingBenefits.length > 0
-            ? existingBenefits[0].sort_order
+        const maxSortOrder = existingBenefits.length > 0
+            ? (existingBenefits[0].sortOrder ?? 0)
             : 0;
 
-        const { data: benefit, error } = await supabase
-            .from('benefit_catalog')
-            .insert({
-                benefit_type,
-                display_name,
+        const [benefit] = await db
+            .insert(benefitCatalog)
+            .values({
+                benefitKey: benefit_key,
+                displayName: display_name,
                 description: description || null,
                 icon: icon || null,
-                sort_order: maxSortOrder + 1,
+                sortOrder: maxSortOrder + 1,
             })
-            .select()
-            .single();
-
-        if (error || !benefit) {
-            console.error('Create benefit error:', error);
-            return c.json(
-                { success: false, error: 'Failed to create benefit' },
-                500
-            );
-        }
+            .returning();
 
         return c.json({
             success: true,
@@ -114,22 +103,20 @@ guestbookBenefits.put('/:benefitId', async (c) => {
     try {
         const benefitId = c.req.param('benefitId');
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: benefit, error } = await supabase
-            .from('benefit_catalog')
-            .update(body)
-            .eq('id', benefitId)
-            .select()
-            .single();
+        const updateData: any = {};
+        if (body.benefit_key !== undefined) updateData.benefitKey = body.benefit_key;
+        if (body.display_name !== undefined) updateData.displayName = body.display_name;
+        if (body.description !== undefined) updateData.description = body.description;
+        if (body.icon !== undefined) updateData.icon = body.icon;
+        if (body.sort_order !== undefined) updateData.sortOrder = body.sort_order;
 
-        if (error) {
-            console.error('Update benefit error:', error);
-            return c.json(
-                { success: false, error: 'Failed to update benefit' },
-                500
-            );
-        }
+        const [benefit] = await db
+            .update(benefitCatalog)
+            .set(updateData)
+            .where(eq(benefitCatalog.id, benefitId))
+            .returning();
 
         return c.json({
             success: true,
@@ -151,20 +138,11 @@ guestbookBenefits.put('/:benefitId', async (c) => {
 guestbookBenefits.delete('/:benefitId', async (c) => {
     try {
         const benefitId = c.req.param('benefitId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { error } = await supabase
-            .from('benefit_catalog')
-            .delete()
-            .eq('id', benefitId);
-
-        if (error) {
-            console.error('Delete benefit error:', error);
-            return c.json(
-                { success: false, error: 'Failed to delete benefit' },
-                500
-            );
-        }
+        await db
+            .delete(benefitCatalog)
+            .where(eq(benefitCatalog.id, benefitId));
 
         return c.json({
             success: true,
@@ -196,17 +174,19 @@ guestbookBenefits.post('/assign', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify guest type belongs to client
-        const { data: guestType, error: typeError } = await supabase
-            .from('guest_types')
-            .select('id')
-            .eq('id', guest_type_id)
-            .eq('client_id', clientId)
-            .single();
+        const [guestType] = await db
+            .select({ id: guestTypes.id })
+            .from(guestTypes)
+            .where(and(
+                eq(guestTypes.id, guest_type_id),
+                eq(guestTypes.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (typeError || !guestType) {
+        if (!guestType) {
             return c.json(
                 { success: false, error: 'Guest type not found or access denied' },
                 404
@@ -214,29 +194,20 @@ guestbookBenefits.post('/assign', async (c) => {
         }
 
         // Delete existing assignments
-        await supabase
-            .from('guest_type_benefits')
-            .delete()
-            .eq('guest_type_id', guest_type_id);
+        await db
+            .delete(guestTypeBenefits)
+            .where(eq(guestTypeBenefits.guestTypeId, guest_type_id));
 
         // Create new assignments
         if (benefit_ids.length > 0) {
-            const assignments = benefit_ids.map(benefit_id => ({
-                guest_type_id,
-                benefit_id,
+            const assignments = benefit_ids.map((benefit_type: string) => ({
+                guestTypeId: guest_type_id,
+                benefitType: benefit_type,
             }));
 
-            const { error } = await supabase
-                .from('guest_type_benefits')
-                .insert(assignments);
-
-            if (error) {
-                console.error('Assign benefits error:', error);
-                return c.json(
-                    { success: false, error: 'Failed to assign benefits' },
-                    500
-                );
-            }
+            await db
+                .insert(guestTypeBenefits)
+                .values(assignments);
         }
 
         return c.json({
@@ -268,17 +239,19 @@ guestbookBenefits.get('/matrix', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -286,51 +259,52 @@ guestbookBenefits.get('/matrix', async (c) => {
         }
 
         // Get guest types for event
-        const { data: guestTypes, error: typesError } = await supabase
-            .from('guest_types')
-            .select('id, type_name, display_name')
-            .eq('event_id', eventId);
-
-        if (typesError) {
-            throw typesError;
-        }
+        const guestTypesList = await db
+            .select({
+                id: guestTypes.id,
+                type_name: guestTypes.typeName,
+                display_name: guestTypes.displayName,
+            })
+            .from(guestTypes)
+            .where(eq(guestTypes.eventId, eventId));
 
         // Get all benefits
-        const { data: benefits, error: benefitsError } = await supabase
-            .from('benefit_catalog')
-            .select('id, benefit_type, display_name')
-            .order('sort_order', { ascending: true });
-
-        if (benefitsError) {
-            throw benefitsError;
-        }
+        const benefitsList = await db
+            .select({
+                id: benefitCatalog.id,
+                benefit_key: benefitCatalog.benefitKey,
+                display_name: benefitCatalog.displayName,
+            })
+            .from(benefitCatalog)
+            .orderBy(benefitCatalog.sortOrder);
 
         // Get assignments
-        const guestTypeIds = guestTypes?.map(gt => gt.id) || [];
-        const { data: assignments, error: assignError } = await supabase
-            .from('guest_type_benefits')
-            .select('guest_type_id, benefit_id')
-            .in('guest_type_id', guestTypeIds);
-
-        if (assignError) {
-            throw assignError;
-        }
+        const guestTypeIds = guestTypesList.map(gt => gt.id);
+        const assignments = guestTypeIds.length > 0
+            ? await db
+                .select({
+                    guest_type_id: guestTypeBenefits.guestTypeId,
+                    benefit_type: guestTypeBenefits.benefitType,
+                })
+                .from(guestTypeBenefits)
+                .where(inArray(guestTypeBenefits.guestTypeId, guestTypeIds))
+            : [];
 
         // Build matrix
-        const matrix = guestTypes?.map(guestType => ({
+        const matrix = guestTypesList.map(guestType => ({
             guest_type: guestType,
-            benefits: benefits?.filter(benefit =>
-                assignments?.some(a =>
-                    a.guest_type_id === guestType.id && a.benefit_id === benefit.id
+            benefits: benefitsList.filter(benefit =>
+                assignments.some(a =>
+                    a.guest_type_id === guestType.id && a.benefit_type === benefit.benefit_key
                 )
-            ) || [],
-        })) || [];
+            ),
+        }));
 
         return c.json({
             success: true,
             data: {
-                guest_types: guestTypes || [],
-                benefits: benefits || [],
+                guest_types: guestTypesList,
+                benefits: benefitsList,
                 matrix,
             },
         });

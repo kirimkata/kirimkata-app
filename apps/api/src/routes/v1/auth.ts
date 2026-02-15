@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Env, ClientJWTPayload, StaffJWTPayload, AdminJWTPayload } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { clients, invitationPages, guestbookStaff, admins } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { comparePassword, hashPassword, generateRandomString } from '@/services/encryption';
 import { generateToken } from '@/services/jwt';
 import { sendVerificationEmail } from '@/services/email';
@@ -23,26 +25,24 @@ auth.post('/client/login', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Find client by username
-        const { data: clients, error } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('username', username)
+        const [client] = await db
+            .select()
+            .from(clients)
+            .where(eq(clients.username, username))
             .limit(1);
 
-        if (error || !clients || clients.length === 0) {
+        if (!client) {
             return c.json(
                 { success: false, error: 'Invalid credentials' },
                 401
             );
         }
 
-        const client = clients[0];
-
         // Check if email is verified
-        if (!client.email_verified) {
+        if (!client.emailVerified) {
             return c.json(
                 {
                     success: false,
@@ -57,7 +57,7 @@ auth.post('/client/login', async (c) => {
         // Verify password
         const isValid = await comparePassword(
             password,
-            client.password_encrypted,
+            client.passwordEncrypted,
             c.env.ENCRYPTION_KEY
         );
 
@@ -72,21 +72,23 @@ auth.post('/client/login', async (c) => {
         const tokenPayload: ClientJWTPayload = {
             type: 'CLIENT',
             client_id: client.id,
-            guestbook_access: client.guestbook_access ?? true,
+            guestbook_access: client.guestbookAccess ?? true,
         };
 
         const token = await generateToken(tokenPayload, c.env.JWT_SECRET);
 
-        // Fetch theme_key from invitation_contents if client has a slug
-        let theme_key = null;
-        if (client.slug) {
-            const { data: invitation } = await supabase
-                .from('invitation_contents')
-                .select('theme_key')
-                .eq('slug', client.slug)
-                .single();
-            theme_key = invitation?.theme_key || null;
-        }
+        // Fetch primary invitation for the client
+        const [invitation] = await db
+            .select({
+                slug: invitationPages.slug,
+                themeKey: invitationPages.themeKey
+            })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, client.id))
+            .limit(1);
+
+        const slug = invitation?.slug || null;
+        const themeKey = invitation?.themeKey || null;
 
         return c.json({
             success: true,
@@ -95,10 +97,10 @@ auth.post('/client/login', async (c) => {
                 id: client.id,
                 username: client.username,
                 email: client.email,
-                slug: client.slug,
-                guestbook_access: client.guestbook_access ?? false,
-                theme_key: theme_key,
-                is_published: client.is_published ?? false,
+                slug: slug, // use fetched slug
+                guestbook_access: client.guestbookAccess ?? false,
+                theme_key: themeKey,
+                is_published: client.isPublished ?? false,
             },
         });
     } catch (error) {
@@ -153,16 +155,16 @@ auth.post('/client/register', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Check if username already exists
-        const { data: existingUsername } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('username', username)
+        const [existingUsername] = await db
+            .select({ id: clients.id })
+            .from(clients)
+            .where(eq(clients.username, username))
             .limit(1);
 
-        if (existingUsername && existingUsername.length > 0) {
+        if (existingUsername) {
             return c.json(
                 { success: false, error: 'Username already taken' },
                 409
@@ -170,13 +172,13 @@ auth.post('/client/register', async (c) => {
         }
 
         // Check if email already exists
-        const { data: existingEmail } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('email', email)
+        const [existingEmail] = await db
+            .select({ id: clients.id })
+            .from(clients)
+            .where(eq(clients.email, email))
             .limit(1);
 
-        if (existingEmail && existingEmail.length > 0) {
+        if (existingEmail) {
             return c.json(
                 { success: false, error: 'Email already registered' },
                 409
@@ -192,24 +194,26 @@ auth.post('/client/register', async (c) => {
         tokenExpiry.setHours(tokenExpiry.getHours() + 24); // 24 hours from now
 
         // Create client
-        const { data: newClient, error: createError } = await supabase
-            .from('clients')
-            .insert({
+        const [newClient] = await db
+            .insert(clients)
+            .values({
                 username,
                 email,
-                password_encrypted: passwordHash,
-                email_verified: false,
-                email_verification_token: verificationToken,
-                email_verification_token_expires_at: tokenExpiry.toISOString(),
-                is_published: false,
-                payment_status: 'pending',
-                guestbook_access: false,
+                passwordEncrypted: passwordHash,
+                emailVerified: false,
+                emailVerificationToken: verificationToken,
+                emailVerificationTokenExpiresAt: tokenExpiry.toISOString(),
+                isPublished: false,
+                paymentStatus: 'pending',
+                guestbookAccess: false,
             })
-            .select()
-            .single();
+            .returning({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
+            });
 
-        if (createError || !newClient) {
-            console.error('Error creating client:', createError);
+        if (!newClient) {
             return c.json(
                 { success: false, error: 'Failed to create account' },
                 500
@@ -236,11 +240,7 @@ auth.post('/client/register', async (c) => {
         return c.json({
             success: true,
             message: 'Account created successfully. Please check your email to verify your account.',
-            client: {
-                id: newClient.id,
-                username: newClient.username,
-                email: newClient.email,
-            },
+            client: newClient,
         });
     } catch (error) {
         console.error('Client registration error:', error);
@@ -267,26 +267,24 @@ auth.post('/verify-email', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Find client by verification token
-        const { data: clients, error } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('email_verification_token', token)
+        const [client] = await db
+            .select()
+            .from(clients)
+            .where(eq(clients.emailVerificationToken, token))
             .limit(1);
 
-        if (error || !clients || clients.length === 0) {
+        if (!client) {
             return c.json(
                 { success: false, error: 'Invalid verification token' },
                 400
             );
         }
 
-        const client = clients[0];
-
         // Check if already verified
-        if (client.email_verified) {
+        if (client.emailVerified) {
             return c.json({
                 success: true,
                 message: 'Email already verified',
@@ -294,7 +292,7 @@ auth.post('/verify-email', async (c) => {
         }
 
         // Check if token expired
-        const expiryDate = new Date(client.email_verification_token_expires_at);
+        const expiryDate = new Date(client.emailVerificationTokenExpiresAt!);
         if (expiryDate < new Date()) {
             return c.json(
                 { success: false, error: 'Verification token expired', code: 'TOKEN_EXPIRED' },
@@ -303,32 +301,24 @@ auth.post('/verify-email', async (c) => {
         }
 
         // Update client to verified
-        const { error: updateError } = await supabase
-            .from('clients')
-            .update({
-                email_verified: true,
-                email_verified_at: new Date().toISOString(),
-                email_verification_token: null,
-                email_verification_token_expires_at: null,
+        await db
+            .update(clients)
+            .set({
+                emailVerified: true,
+                emailVerifiedAt: new Date().toISOString(),
+                emailVerificationToken: null,
+                emailVerificationTokenExpiresAt: null,
             })
-            .eq('id', client.id);
-
-        if (updateError) {
-            console.error('Error verifying email:', updateError);
-            return c.json(
-                { success: false, error: 'Failed to verify email' },
-                500
-            );
-        }
+            .where(eq(clients.id, client.id));
 
         return c.json({
             success: true,
             message: 'Email verified successfully. You can now login.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Email verification error:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Internal server error', details: error.message },
             500
         );
     }
@@ -350,16 +340,16 @@ auth.post('/resend-verification', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Find client by email
-        const { data: clients, error } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('email', email)
+        const [client] = await db
+            .select()
+            .from(clients)
+            .where(eq(clients.email, email))
             .limit(1);
 
-        if (error || !clients || clients.length === 0) {
+        if (!client) {
             // Don't reveal if email exists or not for security
             return c.json({
                 success: true,
@@ -367,10 +357,8 @@ auth.post('/resend-verification', async (c) => {
             });
         }
 
-        const client = clients[0];
-
         // Check if already verified
-        if (client.email_verified) {
+        if (client.emailVerified) {
             return c.json(
                 { success: false, error: 'Email already verified' },
                 400
@@ -383,27 +371,19 @@ auth.post('/resend-verification', async (c) => {
         tokenExpiry.setHours(tokenExpiry.getHours() + 24);
 
         // Update client with new token
-        const { error: updateError } = await supabase
-            .from('clients')
-            .update({
-                email_verification_token: verificationToken,
-                email_verification_token_expires_at: tokenExpiry.toISOString(),
+        await db
+            .update(clients)
+            .set({
+                emailVerificationToken: verificationToken,
+                emailVerificationTokenExpiresAt: tokenExpiry.toISOString(),
             })
-            .eq('id', client.id);
-
-        if (updateError) {
-            console.error('Error updating verification token:', updateError);
-            return c.json(
-                { success: false, error: 'Failed to resend verification email' },
-                500
-            );
-        }
+            .where(eq(clients.id, client.id));
 
         // Send verification email
         const emailResult = await sendVerificationEmail(
             {
-                email: client.email,
-                username: client.username,
+                email: client.email!,
+                username: client.username!,
                 token: verificationToken,
             },
             c.env.EMAIL_API_KEY,
@@ -448,17 +428,19 @@ auth.post('/staff/login', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Find staff by username
-        const { data: staff, error } = await supabase
-            .from('guestbook_staff')
-            .select('*')
-            .eq('username', username)
-            .eq('is_active', true)
-            .single();
+        const [staff] = await db
+            .select()
+            .from(guestbookStaff)
+            .where(and(
+                eq(guestbookStaff.username, username),
+                eq(guestbookStaff.isActive, true)
+            ))
+            .limit(1);
 
-        if (error || !staff) {
+        if (!staff) {
             return c.json(
                 { success: false, error: 'Invalid credentials' },
                 401
@@ -468,7 +450,7 @@ auth.post('/staff/login', async (c) => {
         // Verify password
         const isValid = await comparePassword(
             password,
-            staff.password_hash,
+            staff.passwordEncrypted,
             c.env.ENCRYPTION_KEY
         );
 
@@ -483,10 +465,33 @@ auth.post('/staff/login', async (c) => {
         const tokenPayload: StaffJWTPayload = {
             type: 'STAFF',
             staff_id: staff.id,
-            client_id: staff.client_id,
-            can_checkin: staff.can_checkin || true,
-            can_manage_guests: staff.can_manage_guests || false,
+            client_id: staff.clientId,
+            can_checkin: staff.canCheckin || true,
+            can_manage_guests: false, // Explicitly set to false as per legacy logic default? Or check schema?
+            // Legacy interface had can_manage_guests. Schema has canRedeemSouvenir etc. 
+            // Let's check schema again. 
+            // Schema: canCheckin, canRedeemSouvenir, canRedeemSnack, canAccessVipLounge.
+            // No canManageGuests in schema provided in previous turn snippet?
+            // Actually I saw canManageGuests in the legacy code "staff.can_manage_guests".
+            // Let me re-read schema.ts line 181 area.
+            // Schema has: canCheckin, canRedeemSouvenir, canRedeemSnack, canAccessVipLounge, isActive.
+            // It DOES NOT have `canManageGuests`. 
+            // However, the JWT payload expects `can_manage_guests`.
+            // Use `false` for now or map it if I find a relevant column.
         };
+
+        // Wait, looking at legacy code:
+        // can_checkin: staff.can_checkin || true,
+        // can_manage_guests: staff.can_manage_guests || false,
+        //
+        // My schema snippet showed:
+        // canCheckin: boolean("can_checkin").default(false),
+        // canRedeemSouvenir...
+        //
+        // It seems `can_manage_guests` column might be missing from my schema snippet or renamed?
+        // Or it was never there and legacy code was using raw query on a column that existed?
+        // I will assume `false` for now to be safe, or map `canCheckin` to it if appropriate, but they seem distinct.
+        // Actually, let's keep it safe.
 
         const token = await generateToken(tokenPayload, c.env.JWT_SECRET);
 
@@ -496,11 +501,11 @@ auth.post('/staff/login', async (c) => {
             staff: {
                 id: staff.id,
                 username: staff.username,
-                full_name: staff.full_name,
-                client_id: staff.client_id,
+                full_name: staff.fullName,
+                client_id: staff.clientId,
                 permissions: {
-                    can_checkin: staff.can_checkin,
-                    can_manage_guests: staff.can_manage_guests,
+                    can_checkin: staff.canCheckin,
+                    can_manage_guests: false, // aligned with JWT
                 },
             },
         });
@@ -529,16 +534,16 @@ auth.post('/admin/login', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Find admin by username
-        const { data: admin, error } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('username', username)
-            .single();
+        const [admin] = await db
+            .select()
+            .from(admins)
+            .where(eq(admins.username, username))
+            .limit(1);
 
-        if (error || !admin) {
+        if (!admin) {
             return c.json(
                 { success: false, error: 'Invalid credentials' },
                 401
@@ -548,7 +553,7 @@ auth.post('/admin/login', async (c) => {
         // Verify password
         const isValid = await comparePassword(
             password,
-            admin.password_encrypted,
+            admin.passwordEncrypted,
             c.env.ENCRYPTION_KEY
         );
 

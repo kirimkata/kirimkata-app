@@ -12,7 +12,8 @@
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push:pg",
         "db:introspect": "drizzle-kit introspect:pg",
-        "db:studio": "drizzle-kit studio"
+        "db:studio": "drizzle-kit studio",
+        "db:migrate-data": "tsx scripts/migrate-invitation-data.ts"
     },
     "keywords": [
         "hono",

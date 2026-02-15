@@ -32,7 +32,7 @@ export async function verifyToken(
         const secretKey = new TextEncoder().encode(secret);
         const { payload } = await jwtVerify(token, secretKey);
 
-        return payload as JWTPayload;
+        return payload as unknown as JWTPayload;
     } catch (error) {
         console.error('JWT verification error:', error);
         return null;

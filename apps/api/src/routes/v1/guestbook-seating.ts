@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { eventSeatingConfig, guests, guestbookEvents } from '@/db/schema';
+import { eq, and, isNull, count, sql, inArray } from 'drizzle-orm';
 
 const guestbookSeating = new Hono<{
     Bindings: Env;
@@ -30,17 +32,19 @@ guestbookSeating.get('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -48,19 +52,39 @@ guestbookSeating.get('/', async (c) => {
         }
 
         // Get seating configs
-        const { data: seating, error } = await supabase
-            .from('seating_configs')
-            .select('*')
-            .eq('event_id', eventId)
-            .order('table_number', { ascending: true });
+        const configs = await db
+            .select()
+            .from(eventSeatingConfig)
+            .where(eq(eventSeatingConfig.eventId, eventId))
+            .orderBy(eventSeatingConfig.sortOrder);
 
-        if (error) {
-            throw error;
-        }
+        // Get all guests for occupancy
+        const eventGuests = await db
+            .select({
+                seatingConfigId: guests.seatingConfigId,
+                actualCompanions: guests.actualCompanions,
+            })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
+
+        // Calculate occupancy
+        const configsWithOccupancy = configs.map(config => {
+            const configGuests = eventGuests.filter(g => g.seatingConfigId === config.id);
+            const currentOccupancy = configGuests.reduce((sum, g) => sum + (g.actualCompanions || 0) + 1, 0);
+
+            return {
+                ...config,
+                current_occupancy: currentOccupancy,
+                // Map fields to match API response expectations if needed
+                table_number: config.sortOrder,
+                max_capacity: config.capacity,
+                table_name: config.name,
+            };
+        });
 
         return c.json({
             success: true,
-            data: seating || [],
+            data: configsWithOccupancy,
         });
     } catch (error) {
         console.error('Get seating error:', error);
@@ -88,43 +112,35 @@ guestbookSeating.post('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        const { data: seating, error } = await supabase
-            .from('seating_configs')
-            .insert({
-                client_id: clientId,
-                event_id,
-                table_number,
-                table_name: table_name || `Table ${table_number}`,
-                max_capacity: max_capacity || 10,
-                current_occupancy: 0,
+        const [seating] = await db
+            .insert(eventSeatingConfig)
+            .values({
+                eventId: event_id,
+                seatingType: 'table',
+                name: table_name || `Table ${table_number}`,
+                capacity: max_capacity || 10,
+                sortOrder: table_number,
             })
-            .select()
-            .single();
-
-        if (error || !seating) {
-            console.error('Create seating error:', error);
-            return c.json(
-                { success: false, error: 'Failed to create seating' },
-                500
-            );
-        }
+            .returning();
 
         return c.json({
             success: true,
@@ -148,37 +164,39 @@ guestbookSeating.put('/:configId', async (c) => {
         const clientId = c.get('clientId') as string;
         const configId = c.req.param('configId');
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Verify access
-        const { data: existing, error: fetchError } = await supabase
-            .from('seating_configs')
-            .select('id')
-            .eq('id', configId)
-            .eq('client_id', clientId)
-            .single();
+        // Verify access - get seating config via event
+        const [existing] = await db
+            .select({ id: eventSeatingConfig.id, eventId: eventSeatingConfig.eventId })
+            .from(eventSeatingConfig)
+            .innerJoin(guestbookEvents, eq(eventSeatingConfig.eventId, guestbookEvents.id))
+            .where(and(
+                eq(eventSeatingConfig.id, configId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existing) {
+        if (!existing) {
             return c.json(
                 { success: false, error: 'Seating config not found or access denied' },
                 404
             );
         }
 
-        const { data: seating, error } = await supabase
-            .from('seating_configs')
-            .update(body)
-            .eq('id', configId)
-            .select()
-            .single();
+        // Prepare update data
+        const updateData: any = {};
+        if (body.table_name !== undefined) updateData.name = body.table_name;
+        if (body.max_capacity !== undefined) updateData.capacity = body.max_capacity;
+        if (body.table_number !== undefined) updateData.sortOrder = body.table_number;
+        if (body.seating_type !== undefined) updateData.seatingType = body.seating_type;
+        if (body.is_active !== undefined) updateData.isActive = body.is_active;
 
-        if (error) {
-            console.error('Update seating error:', error);
-            return c.json(
-                { success: false, error: 'Failed to update seating' },
-                500
-            );
-        }
+        const [seating] = await db
+            .update(eventSeatingConfig)
+            .set(updateData)
+            .where(eq(eventSeatingConfig.id, configId))
+            .returning();
 
         return c.json({
             success: true,
@@ -201,35 +219,29 @@ guestbookSeating.delete('/:configId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const configId = c.req.param('configId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Verify access
-        const { data: existing, error: fetchError } = await supabase
-            .from('seating_configs')
-            .select('id')
-            .eq('id', configId)
-            .eq('client_id', clientId)
-            .single();
+        // Verify access by joining with guestbookEvents
+        const [existing] = await db
+            .select({ id: eventSeatingConfig.id })
+            .from(eventSeatingConfig)
+            .innerJoin(guestbookEvents, eq(eventSeatingConfig.eventId, guestbookEvents.id))
+            .where(and(
+                eq(eventSeatingConfig.id, configId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existing) {
+        if (!existing) {
             return c.json(
                 { success: false, error: 'Seating config not found or access denied' },
                 404
             );
         }
 
-        const { error } = await supabase
-            .from('seating_configs')
-            .delete()
-            .eq('id', configId);
-
-        if (error) {
-            console.error('Delete seating error:', error);
-            return c.json(
-                { success: false, error: 'Failed to delete seating' },
-                500
-            );
-        }
+        await db
+            .delete(eventSeatingConfig)
+            .where(eq(eventSeatingConfig.id, configId));
 
         return c.json({
             success: true,
@@ -261,17 +273,19 @@ guestbookSeating.post('/auto-assign', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -279,61 +293,88 @@ guestbookSeating.post('/auto-assign', async (c) => {
         }
 
         // Get unassigned guests
-        const { data: guests, error: guestsError } = await supabase
-            .from('invitation_guests')
-            .select('id, max_companions')
-            .eq('event_id', event_id)
-            .is('seating_config_id', null)
-            .order('created_at', { ascending: true });
-
-        if (guestsError) {
-            throw guestsError;
-        }
+        const unassignedGuests = await db
+            .select({
+                id: guests.id,
+                maxCompanions: guests.maxCompanions, // Note: Schema uses camelCase, ensure this matches
+            })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, event_id),
+                isNull(guests.seatingConfigId)
+            ))
+            // .orderBy(guests.createdAt) // Assuming simplified ordering for now or add if critical
+            ;
 
         // Get available seating
-        const { data: seating, error: seatingError } = await supabase
-            .from('seating_configs')
-            .select('id, max_capacity, current_occupancy')
-            .eq('event_id', event_id)
-            .order('table_number', { ascending: true });
+        const seatingConfigs = await db
+            .select()
+            .from(eventSeatingConfig)
+            .where(eq(eventSeatingConfig.eventId, event_id))
+            .orderBy(eventSeatingConfig.sortOrder);
 
-        if (seatingError) {
-            throw seatingError;
-        }
+        // Get current occupancy per config
+        const occupancyMap = new Map<string, number>();
+        const assignedStats = await db
+            .select({
+                configId: guests.seatingConfigId,
+                count: count(guests.id), // This counts guests, but we need to account for companions?
+                // Drizzle aggregation complex for sum(companions), doing manual sum for safety
+            })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, event_id),
+                // isNotNull(guests.seatingConfigId) - implicit by grouping? no
+            ))
+            .groupBy(guests.seatingConfigId);
+
+        // Refetch all guests to calculate accurate occupancy including companions
+        const allGuests = await db
+            .select({
+                seatingConfigId: guests.seatingConfigId,
+                actualCompanions: guests.actualCompanions,
+            })
+            .from(guests)
+            .where(eq(guests.eventId, event_id));
+
+        // Populate occupancy map
+        seatingConfigs.forEach(config => {
+            const configGuests = allGuests.filter(g => g.seatingConfigId === config.id);
+            const totalOccupied = configGuests.reduce((sum, g) => sum + (g.actualCompanions || 0) + 1, 0);
+            occupancyMap.set(config.id, totalOccupied);
+        });
 
         // Simple auto-assign algorithm: fill tables sequentially
         let assignedCount = 0;
         let currentTableIndex = 0;
 
-        for (const guest of guests || []) {
-            const guestSize = 1 + (guest.max_companions || 0);
+        for (const guest of unassignedGuests) {
+            const guestSize = 1 + (guest.maxCompanions || 0);
 
             // Find a table with enough space
-            while (currentTableIndex < (seating?.length || 0)) {
-                const table = seating![currentTableIndex];
-                const availableSpace = table.max_capacity - (table.current_occupancy || 0);
+            while (currentTableIndex < seatingConfigs.length) {
+                const table = seatingConfigs[currentTableIndex];
+                const currentOccupancy = occupancyMap.get(table.id) || 0;
+                const availableSpace = (table.capacity || 0) - currentOccupancy;
 
                 if (availableSpace >= guestSize) {
                     // Assign guest to this table
-                    await supabase
-                        .from('invitation_guests')
-                        .update({ seating_config_id: table.id })
-                        .eq('id', guest.id);
+                    await db
+                        .update(guests)
+                        .set({ seatingConfigId: table.id })
+                        .where(eq(guests.id, guest.id));
 
-                    // Update table occupancy
-                    await supabase
-                        .from('seating_configs')
-                        .update({ current_occupancy: (table.current_occupancy || 0) + guestSize })
-                        .eq('id', table.id);
+                    // Update occupancy map
+                    occupancyMap.set(table.id, currentOccupancy + guestSize);
 
                     assignedCount++;
-                    break;
+                    break; // Move to next guest
                 }
 
-                currentTableIndex++;
+                currentTableIndex++; // Try next table
             }
 
-            if (currentTableIndex >= (seating?.length || 0)) {
+            if (currentTableIndex >= seatingConfigs.length) {
                 // No more tables available
                 break;
             }
@@ -343,7 +384,7 @@ guestbookSeating.post('/auto-assign', async (c) => {
             success: true,
             message: `Assigned ${assignedCount} guests to seats`,
             assigned_count: assignedCount,
-            total_guests: guests?.length || 0,
+            total_guests: unassignedGuests.length,
         });
     } catch (error) {
         console.error('Auto-assign error:', error);
@@ -371,17 +412,20 @@ guestbookSeating.post('/bulk', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Verify seating config belongs to client
-        const { data: seating, error: seatingError } = await supabase
-            .from('seating_configs')
-            .select('id')
-            .eq('id', seating_config_id)
-            .eq('client_id', clientId)
-            .single();
+        // Verify seating config belongs to client (via event)
+        const [seating] = await db
+            .select({ id: eventSeatingConfig.id })
+            .from(eventSeatingConfig)
+            .innerJoin(guestbookEvents, eq(eventSeatingConfig.eventId, guestbookEvents.id))
+            .where(and(
+                eq(eventSeatingConfig.id, seating_config_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (seatingError || !seating) {
+        if (!seating) {
             return c.json(
                 { success: false, error: 'Seating config not found or access denied' },
                 404
@@ -389,19 +433,13 @@ guestbookSeating.post('/bulk', async (c) => {
         }
 
         // Update guests
-        const { error } = await supabase
-            .from('invitation_guests')
-            .update({ seating_config_id })
-            .in('id', guest_ids)
-            .eq('client_id', clientId);
-
-        if (error) {
-            console.error('Bulk assign error:', error);
-            return c.json(
-                { success: false, error: 'Failed to assign guests' },
-                500
-            );
-        }
+        await db
+            .update(guests)
+            .set({ seatingConfigId: seating_config_id })
+            .where(and(
+                inArray(guests.id, guest_ids),
+                eq(guests.clientId, clientId)
+            ));
 
         return c.json({
             success: true,
@@ -432,55 +470,61 @@ guestbookSeating.get('/stats', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Get total seats
-        const { data: seating } = await supabase
-            .from('seating_configs')
-            .select('max_capacity, current_occupancy')
-            .eq('event_id', eventId);
+        // Get seating configs
+        const configs = await db
+            .select({
+                capacity: eventSeatingConfig.capacity,
+            })
+            .from(eventSeatingConfig)
+            .where(eq(eventSeatingConfig.eventId, eventId));
 
-        const totalCapacity = seating?.reduce((sum, s) => sum + (s.max_capacity || 0), 0) || 0;
-        const totalOccupied = seating?.reduce((sum, s) => sum + (s.current_occupancy || 0), 0) || 0;
+        // Get guests
+        const eventGuests = await db
+            .select({
+                seatingConfigId: guests.seatingConfigId,
+                actualCompanions: guests.actualCompanions,
+            })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
 
-        // Get assigned guests count
-        const { count: assignedGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .not('seating_config_id', 'is', null);
+        const totalCapacity = configs.reduce((sum, c) => sum + (c.capacity || 0), 0);
 
-        // Get unassigned guests count
-        const { count: unassignedGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .is('seating_config_id', null);
+        // Calculate occupancy from assigned guests
+        const assignedGuestsList = eventGuests.filter(g => g.seatingConfigId !== null);
+        const unassignedGuestsCount = eventGuests.length - assignedGuestsList.length;
+        const assignedGuestsCount = assignedGuestsList.length;
+
+        // Total occupied = sum of (guests + companions) for assigned guests
+        const totalOccupied = assignedGuestsList.reduce((sum, g) => sum + (g.actualCompanions || 0) + 1, 0);
 
         return c.json({
             success: true,
             data: {
                 total_capacity: totalCapacity,
                 total_occupied: totalOccupied,
-                available_seats: totalCapacity - totalOccupied,
-                assigned_guests: assignedGuests || 0,
-                unassigned_guests: unassignedGuests || 0,
-                total_tables: seating?.length || 0,
+                available_seats: Math.max(0, totalCapacity - totalOccupied),
+                assigned_guests: assignedGuestsCount,
+                unassigned_guests: unassignedGuestsCount,
+                total_tables: configs.length,
             },
         });
     } catch (error) {

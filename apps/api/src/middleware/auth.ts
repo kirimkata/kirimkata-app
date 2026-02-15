@@ -1,12 +1,12 @@
 import { Context, Next } from 'hono';
-import type { Env } from '@/lib/types';
+import type { Env, AppEnv } from '@/lib/types';
 import { verifyToken, extractTokenFromHeader } from '@/services/jwt';
 
 /**
  * Authentication middleware
  * Verifies JWT token and attaches payload to context
  */
-export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function authMiddleware(c: Context<AppEnv>, next: Next) {
     const authHeader = c.req.header('Authorization');
     const token = extractTokenFromHeader(authHeader || null);
 
@@ -36,7 +36,7 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
  * Client authentication middleware
  * Ensures user is authenticated as CLIENT
  */
-export async function clientAuthMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function clientAuthMiddleware(c: Context<AppEnv>, next: Next) {
     const authHeader = c.req.header('Authorization');
     const token = extractTokenFromHeader(authHeader || null);
 
@@ -66,7 +66,7 @@ export async function clientAuthMiddleware(c: Context<{ Bindings: Env }>, next: 
  * Staff authentication middleware
  * Ensures user is authenticated as STAFF
  */
-export async function staffAuthMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function staffAuthMiddleware(c: Context<AppEnv>, next: Next) {
     const authHeader = c.req.header('Authorization');
     const token = extractTokenFromHeader(authHeader || null);
 
@@ -97,7 +97,7 @@ export async function staffAuthMiddleware(c: Context<{ Bindings: Env }>, next: N
  * Admin authentication middleware
  * Ensures user is authenticated as ADMIN
  */
-export async function adminAuthMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function adminAuthMiddleware(c: Context<AppEnv>, next: Next) {
     const authHeader = c.req.header('Authorization');
     const token = extractTokenFromHeader(authHeader || null);
 
@@ -126,7 +126,7 @@ export async function adminAuthMiddleware(c: Context<{ Bindings: Env }>, next: N
  * Optional authentication middleware
  * Does not fail if no token provided, but attaches payload if valid
  */
-export async function optionalAuthMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function optionalAuthMiddleware(c: Context<AppEnv>, next: Next) {
     const authHeader = c.req.header('Authorization');
     const token = extractTokenFromHeader(authHeader || null);
 

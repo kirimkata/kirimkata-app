@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { clients, invitationPages, invitationWishes, guests } from '@/db/schema';
+import { eq, desc, count, isNotNull } from 'drizzle-orm';
 import { comparePassword, hashPassword } from '@/services/encryption';
 
 const client = new Hono<{
@@ -32,15 +34,23 @@ Terima kasih!`;
 client.get('/profile', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: clientData, error } = await supabase
-            .from('clients')
-            .select('id, username, email, slug, guestbook_access, message_template, created_at')
-            .eq('id', clientId)
-            .single();
+        const [clientData] = await db
+            .select({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
+                slug: clients.slug,
+                guestbook_access: clients.guestbookAccess,
+                message_template: clients.messageTemplate,
+                created_at: clients.createdAt,
+            })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (error || !clientData) {
+        if (!clientData) {
             return c.json(
                 { success: false, error: 'Client not found' },
                 404
@@ -70,16 +80,16 @@ client.put('/settings', async (c) => {
         const body = await c.req.json();
         const { email, currentPassword, newPassword } = body;
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Get current client data
-        const { data: currentClient, error: fetchError } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('id', clientId)
-            .single();
+        const [currentClient] = await db
+            .select()
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (fetchError || !currentClient) {
+        if (!currentClient) {
             return c.json(
                 { success: false, error: 'Client not found' },
                 404
@@ -105,7 +115,7 @@ client.put('/settings', async (c) => {
             // Verify current password
             const isValid = await comparePassword(
                 currentPassword,
-                currentClient.password_encrypted,
+                currentClient.passwordEncrypted,
                 c.env.ENCRYPTION_KEY
             );
 
@@ -118,19 +128,40 @@ client.put('/settings', async (c) => {
 
             // Hash new password
             const hashedPassword = await hashPassword(newPassword, c.env.ENCRYPTION_KEY);
-            updateData.password_encrypted = hashedPassword;
+            updateData.passwordEncrypted = hashedPassword;
+        }
+
+        // Add updated_at timestamp
+        if (Object.keys(updateData).length > 0) {
+            updateData.updatedAt = new Date().toISOString();
+        } else {
+            // No changes
+            return c.json({
+                success: true,
+                client: {
+                    id: currentClient.id,
+                    username: currentClient.username,
+                    email: currentClient.email,
+                    slug: currentClient.slug,
+                    guestbook_access: currentClient.guestbookAccess
+                }
+            });
         }
 
         // Update client
-        const { data: updatedClient, error: updateError } = await supabase
-            .from('clients')
-            .update(updateData)
-            .eq('id', clientId)
-            .select('id, username, email, slug, guestbook_access')
-            .single();
+        const [updatedClient] = await db
+            .update(clients)
+            .set(updateData)
+            .where(eq(clients.id, clientId))
+            .returning({
+                id: clients.id,
+                username: clients.username,
+                email: clients.email,
+                slug: clients.slug,
+                guestbook_access: clients.guestbookAccess
+            });
 
-        if (updateError) {
-            console.error('Error updating settings:', updateError);
+        if (!updatedClient) {
             return c.json(
                 { success: false, error: 'Failed to update settings' },
                 500
@@ -157,16 +188,17 @@ client.put('/settings', async (c) => {
 client.get('/template', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: clientData, error } = await supabase
-            .from('clients')
-            .select('message_template')
-            .eq('id', clientId)
-            .single();
+        const [clientData] = await db
+            .select({
+                messageTemplate: clients.messageTemplate
+            })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (error) {
-            console.error('Error fetching template:', error);
+        if (!clientData) {
             return c.json(
                 { success: false, error: 'Failed to fetch template' },
                 500
@@ -175,7 +207,7 @@ client.get('/template', async (c) => {
 
         return c.json({
             success: true,
-            template: clientData?.message_template || DEFAULT_TEMPLATE,
+            template: clientData.messageTemplate || DEFAULT_TEMPLATE,
         });
     } catch (error) {
         console.error('Error in GET /v1/client/template:', error);
@@ -203,15 +235,18 @@ client.post('/template', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { error } = await supabase
-            .from('clients')
-            .update({ message_template: template })
-            .eq('id', clientId);
+        const [updatedClient] = await db
+            .update(clients)
+            .set({
+                messageTemplate: template,
+                updatedAt: new Date().toISOString()
+            })
+            .where(eq(clients.id, clientId))
+            .returning({ id: clients.id });
 
-        if (error) {
-            console.error('Error saving template:', error);
+        if (!updatedClient) {
             return c.json(
                 { success: false, error: 'Failed to save template' },
                 500
@@ -238,30 +273,29 @@ client.post('/template', async (c) => {
 client.get('/invitation-content', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Get client's slug
-        const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .eq('id', clientId)
-            .single();
+        // Get client slug
+        const [clientData] = await db
+            .select({ slug: clients.slug })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (clientError || !clientData || !clientData.slug) {
+        if (!clientData || !clientData.slug) {
             return c.json(
-                { success: false, error: 'Client has no assigned invitation' },
+                { success: false, error: 'Invitation not found' },
                 404
             );
         }
 
-        // Get invitation content by slug
-        const { data: content, error: contentError } = await supabase
-            .from('invitation_contents')
-            .select('*')
-            .eq('slug', clientData.slug)
-            .single();
+        const [invitation] = await db
+            .select()
+            .from(invitationPages)
+            .where(eq(invitationPages.slug, clientData.slug))
+            .limit(1);
 
-        if (contentError || !content) {
+        if (!invitation) {
             return c.json(
                 { success: false, error: 'Invitation content not found' },
                 404
@@ -270,22 +304,10 @@ client.get('/invitation-content', async (c) => {
 
         return c.json({
             success: true,
-            content: {
-                slug: content.slug,
-                bride: content.bride,
-                groom: content.groom,
-                event: content.event,
-                eventDetails: content.event_details,
-                loveStory: content.love_story,
-                gallery: content.gallery,
-                weddingGift: content.wedding_gift,
-                closing: content.closing,
-                musicSettings: content.music_settings,
-                profile: content.profile,
-            },
+            content: invitation,
         });
     } catch (error) {
-        console.error('Error in GET invitation-content:', error);
+        console.error('Error fetching invitation content:', error);
         return c.json(
             { success: false, error: 'Internal server error' },
             500
@@ -300,85 +322,68 @@ client.get('/invitation-content', async (c) => {
 client.put('/invitation-content', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const body = await c.req.json();
 
-        // Get client's slug
-        const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .eq('id', clientId)
-            .single();
+        // Sanitize body to remove system fields if present
+        const { id, slug, created_at, updated_at, ...updateData } = body;
 
-        if (clientError || !clientData || !clientData.slug) {
+        const db = getDb(c.env);
+
+        // Get client slug
+        const [clientData] = await db
+            .select({ slug: clients.slug })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
+
+        if (!clientData || !clientData.slug) {
             return c.json(
-                { success: false, error: 'Client has no assigned invitation' },
+                { success: false, error: 'Invitation not found' },
                 404
             );
         }
 
-        // Parse request body
-        const body = await c.req.json();
-
-        // Build update object (only update provided fields)
-        const updateData: any = {
-            updated_at: new Date().toISOString(),
+        // Add updated_at
+        const dataToUpdate: any = {
+            updatedAt: new Date().toISOString()
         };
 
-        if (body.bride) {
-            updateData.bride = body.bride;
-        }
-        if (body.groom) {
-            updateData.groom = body.groom;
-        }
+        if (updateData.bride) dataToUpdate.bride = updateData.bride;
+        if (updateData.groom) dataToUpdate.groom = updateData.groom;
 
-        // Handle event data - map to both event and event_cloud for compatibility
-        if (body.event) {
-            updateData.event = {
-                fullDateLabel: body.event.fullDateLabel,
-                isoDate: body.event.isoDate,
-                countdownDateTime: body.event.countdownDateTime,
-                eventTitle: `The Wedding of ${body.bride?.name || ''} & ${body.groom?.name || ''}`.trim(),
+        // Handle event data
+        if (updateData.event) {
+            dataToUpdate.event = {
+                fullDateLabel: updateData.event.fullDateLabel,
+                isoDate: updateData.event.isoDate,
+                countdownDateTime: updateData.event.countdownDateTime,
+                eventTitle: `The Wedding of ${updateData.bride?.name || ''} & ${updateData.groom?.name || ''}`.trim(),
             };
 
-            // Also update event_details for backward compatibility
-            updateData.event_details = {
-                holyMatrimony: body.event.holyMatrimony || {},
-                reception: body.event.reception || {},
-            };
+            // Map legacy event_details if needed or just use what's passed
+            if (!updateData.eventDetails) {
+                dataToUpdate.eventDetails = {
+                    holyMatrimony: updateData.event.holyMatrimony || {},
+                    reception: updateData.event.reception || {},
+                };
+            }
         }
 
-        if (body.eventDetails) {
-            updateData.event_details = body.eventDetails;
-        }
-        if (body.loveStory) {
-            updateData.love_story = body.loveStory;
-        }
-        if (body.gallery) {
-            updateData.gallery = body.gallery;
-        }
-        if (body.weddingGift) {
-            updateData.wedding_gift = body.weddingGift;
-        }
-        if (body.musicSettings) {
-            updateData.music_settings = body.musicSettings;
-        }
-        if (body.closing) {
-            updateData.closing = body.closing;
-        }
-        if (body.profile) {
-            updateData.profile = body.profile;
-        }
+        if (updateData.eventDetails) dataToUpdate.eventDetails = updateData.eventDetails;
+        if (updateData.loveStory) dataToUpdate.loveStory = updateData.loveStory;
+        if (updateData.gallery) dataToUpdate.gallery = updateData.gallery;
+        if (updateData.weddingGift) dataToUpdate.weddingGift = updateData.weddingGift;
+        if (updateData.musicSettings) dataToUpdate.musicSettings = updateData.musicSettings;
+        if (updateData.closing) dataToUpdate.closing = updateData.closing;
+        if (updateData.profile) dataToUpdate.profile = updateData.profile;
 
-        // Update invitation content
-        const { data, error } = await supabase
-            .from('invitation_contents')
-            .update(updateData)
-            .eq('slug', clientData.slug)
-            .select()
-            .single();
+        const [updatedInvitation] = await db
+            .update(invitationPages)
+            .set(dataToUpdate)
+            .where(eq(invitationPages.slug, clientData.slug))
+            .returning();
 
-        if (error) {
-            console.error('Error updating invitation content:', error);
+        if (!updatedInvitation) {
             return c.json(
                 { success: false, error: 'Failed to update invitation content' },
                 500
@@ -388,10 +393,10 @@ client.put('/invitation-content', async (c) => {
         return c.json({
             success: true,
             message: 'Invitation content updated successfully',
-            content: data,
+            content: updatedInvitation,
         });
     } catch (error) {
-        console.error('Error in PUT invitation-content:', error);
+        console.error('Error updating invitation content:', error);
         return c.json(
             { success: false, error: 'Internal server error' },
             500
@@ -406,75 +411,57 @@ client.put('/invitation-content', async (c) => {
 client.get('/messages', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const page = Number(c.req.query('page')) || 1;
+        const limit = Number(c.req.query('limit')) || 10;
+        const offset = (page - 1) * limit;
 
-        // Get client's slug
-        const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .eq('id', clientId)
-            .single();
+        const db = getDb(c.env);
 
-        if (clientError || !clientData || !clientData.slug) {
+        // Get client slug
+        const [clientData] = await db
+            .select({ slug: clients.slug })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
+
+        if (!clientData || !clientData.slug) {
             return c.json(
-                { success: false, error: 'Client not found or no slug assigned' },
+                { success: false, error: 'Invitation not found' },
                 404
             );
         }
 
-        // Parse pagination params
-        const page = parseInt(c.req.query('page') || '1');
-        const limit = parseInt(c.req.query('limit') || '10');
-        const offset = (page - 1) * limit;
+        // Get total count
+        const [totalResult] = await db
+            .select({ count: count() })
+            .from(invitationWishes)
+            .where(eq(invitationWishes.invitationSlug, clientData.slug));
 
-        console.log(`Fetching wishes for slug: ${clientData.slug}, page: ${page}, limit: ${limit}`);
+        const total = totalResult ? Number(totalResult.count) : 0;
 
-        // Fetch wishes with pagination
-        const { data: wishes, error: wishesError, count } = await supabase
-            .from('wishes')
-            .select('*', { count: 'exact' })
-            .eq('invitation_slug', clientData.slug)
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
-
-        if (wishesError) {
-            console.error('Error fetching wishes:', wishesError);
-            return c.json(
-                {
-                    success: false,
-                    error: 'Failed to fetch messages',
-                    details: {
-                        message: wishesError.message,
-                        code: wishesError.code,
-                        details: wishesError.details,
-                        hint: wishesError.hint
-                    }
-                },
-                500
-            );
-        }
-
-        const total = count || 0;
-        const totalPages = Math.ceil(total / limit);
+        // Get messages
+        const messages = await db
+            .select()
+            .from(invitationWishes)
+            .where(eq(invitationWishes.invitationSlug, clientData.slug))
+            .orderBy(desc(invitationWishes.createdAt))
+            .limit(limit)
+            .offset(offset);
 
         return c.json({
             success: true,
-            wishes: wishes || [],
+            messages,
             pagination: {
                 page,
                 limit,
                 total,
-                totalPages
-            }
+                total_pages: Math.ceil(total / limit),
+            },
         });
     } catch (error) {
         console.error('Error fetching messages:', error);
         return c.json(
-            {
-                success: false,
-                error: 'Internal server error',
-                details: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, error: 'Internal server error' },
             500
         );
     }

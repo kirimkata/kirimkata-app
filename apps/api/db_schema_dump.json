@@ -1,0 +1,1872 @@
+{
+  "admins": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "username",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "password_encrypted",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "email",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp without time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp without time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "background_music_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "artist",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "loop",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "audio_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "register_as_background_audio",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "is_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    }
+  ],
+  "benefit_catalog": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "benefit_key",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "display_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "description",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "icon",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "sort_order",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "client_media": [
+    {
+      "column": "id",
+      "type": "integer",
+      "nullable": "NO",
+      "default": "nextval('client_media_id_seq'::regclass)"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "file_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "file_url",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "file_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "file_size",
+      "type": "integer",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "mime_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "uploaded_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "client_staff_quota": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "max_staff",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "10"
+    },
+    {
+      "column": "staff_used",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "clients": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "username",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "password_encrypted",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "email",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "slug",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp without time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp without time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "quota_photos",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "10"
+    },
+    {
+      "column": "quota_music",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "1"
+    },
+    {
+      "column": "quota_videos",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "1"
+    },
+    {
+      "column": "message_template",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "guestbook_access",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "is_published",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "payment_status",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'pending'::character varying"
+    },
+    {
+      "column": "payment_verified_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "payment_verified_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "closing_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "background_color",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'#F5F5F0'::character varying"
+    },
+    {
+      "column": "photo_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "names_display",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "message_line1",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Kami sangat menantikan kehadiran Anda untuk berbagi kebahagiaan di hari istimewa kami.'::text"
+    },
+    {
+      "column": "message_line2",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Kehadiran dan doa restu Anda merupakan kebahagiaan bagi kami.'::text"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "photo_alt",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Closing Photo'::text"
+    },
+    {
+      "column": "is_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "message_line3",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "event_seating_config": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "event_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "seating_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "capacity",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "1"
+    },
+    {
+      "column": "allowed_guest_type_ids",
+      "type": "ARRAY",
+      "nullable": "YES",
+      "default": "'{}'::uuid[]"
+    },
+    {
+      "column": "position_data",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "is_active",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "sort_order",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "events": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event_date",
+      "type": "date",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event_time",
+      "type": "time without time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "venue_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "venue_address",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "is_active",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "staff_quota",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "2"
+    },
+    {
+      "column": "staff_quota_used",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "has_invitation",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "has_guestbook",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "invitation_config",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "column": "guestbook_config",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "column": "seating_mode",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'no_seat'::character varying"
+    }
+  ],
+  "gallery_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "main_title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Our Moments'::character varying"
+    },
+    {
+      "column": "background_color",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'#F5F5F0'::character varying"
+    },
+    {
+      "column": "show_youtube",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "youtube_embed_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "images",
+      "type": "ARRAY",
+      "nullable": "YES",
+      "default": "ARRAY[]::text[]"
+    },
+    {
+      "column": "is_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    }
+  ],
+  "greeting_sections": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "section_key",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "display_order",
+      "type": "integer",
+      "nullable": "NO",
+      "default": "1"
+    },
+    {
+      "column": "title",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "subtitle",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "show_bride_name",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "show_groom_name",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "guest_type_benefits": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "guest_type_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "benefit_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "quantity",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "1"
+    },
+    {
+      "column": "description",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "is_active",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "guest_types": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "type_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "display_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "color_code",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "priority_order",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "event_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "guestbook_checkins": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "guest_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "staff_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "checked_in_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "checkin_method",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "device_info",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "guestbook_redemptions": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "guest_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "staff_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "entitlement_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "quantity",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "1"
+    },
+    {
+      "column": "redeemed_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "guestbook_staff": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "username",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "password_encrypted",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "full_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "phone",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "can_checkin",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "can_redeem_souvenir",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "can_redeem_snack",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "can_access_vip_lounge",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "is_active",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "invitation_contents": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "slug",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "profile",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "bride",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "groom",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "greetings",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event_details",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "love_story",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "gallery",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "wedding_gift",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "closing",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "music_settings",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "theme_key",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'parallax/parallax-custom1'::text"
+    },
+    {
+      "column": "custom_images",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "invitation_guests": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "phone",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "sent",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "event_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "guest_code",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "qr_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "guest_type_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "source",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'registered'::character varying"
+    },
+    {
+      "column": "max_companions",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "actual_companions",
+      "type": "integer",
+      "nullable": "YES",
+      "default": "0"
+    },
+    {
+      "column": "table_number",
+      "type": "integer",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "seat_number",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "seating_area",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "is_checked_in",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "checked_in_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "guest_group",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "seating_config_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "love_story_blocks": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "title",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "body_text",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "story_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "display_order",
+      "type": "integer",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "love_story_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "main_title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Our Love Story'::character varying"
+    },
+    {
+      "column": "background_image_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "overlay_opacity",
+      "type": "numeric",
+      "nullable": "YES",
+      "default": "0.60"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "is_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    }
+  ],
+  "staff_logs": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "uuid_generate_v4()"
+    },
+    {
+      "column": "staff_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "guest_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "action_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "action_details",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "theme_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "theme_key",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'premium/simple1'::character varying"
+    },
+    {
+      "column": "custom_images",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "enable_gallery",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "enable_love_story",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "enable_wedding_gift",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "enable_wishes",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "enable_closing",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "column": "custom_css",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "wedding_gift_bank_accounts": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "bank_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "account_number",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "account_holder_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "display_order",
+      "type": "integer",
+      "nullable": "NO",
+      "default": "1"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "wedding_gift_settings": [
+    {
+      "column": "registration_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Wedding Gift'::character varying"
+    },
+    {
+      "column": "subtitle",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Doa restu Anda adalah hadiah terindah bagi kami. Namun jika ingin memberi hadiah, dapat melalui:'::text"
+    },
+    {
+      "column": "button_label",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Kirim Hadiah'::character varying"
+    },
+    {
+      "column": "gift_image_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "background_overlay_opacity",
+      "type": "numeric",
+      "nullable": "YES",
+      "default": "0.55"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "recipient_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "recipient_phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "recipient_address_line1",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "recipient_address_line2",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "recipient_address_line3",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "is_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true"
+    }
+  ],
+  "wedding_registrations": [
+    {
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "column": "slug",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event_type",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": "'islam'::character varying"
+    },
+    {
+      "column": "wedding_date",
+      "type": "date",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "timezone",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'WIB'::character varying"
+    },
+    {
+      "column": "bride_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "bride_full_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "bride_father_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "bride_mother_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "bride_instagram",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "groom_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "groom_full_name",
+      "type": "character varying",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "groom_father_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "groom_mother_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "groom_instagram",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Akad Nikah'::character varying"
+    },
+    {
+      "column": "event1_date",
+      "type": "date",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event1_start_time",
+      "type": "time without time zone",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "event1_end_time",
+      "type": "time without time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_venue_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_venue_address",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_venue_city",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_venue_province",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event1_maps_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_title",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Resepsi'::character varying"
+    },
+    {
+      "column": "event2_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_start_time",
+      "type": "time without time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_end_time",
+      "type": "time without time zone",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_venue_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_venue_address",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_venue_city",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_venue_province",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "event2_maps_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "streaming_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "column": "streaming_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "streaming_description",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "streaming_button_label",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": "'Watch Live'::character varying"
+    },
+    {
+      "column": "gift_recipient_name",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_recipient_phone",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_address_line1",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_address_line2",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_address_city",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_address_province",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "gift_address_postal_code",
+      "type": "character varying",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    },
+    {
+      "column": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ],
+  "wishes": [
+    {
+      "column": "id",
+      "type": "bigint",
+      "nullable": "NO",
+      "default": "nextval('wishes_id_seq'::regclass)"
+    },
+    {
+      "column": "invitation_slug",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "message",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "attendance",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "column": "guest_count",
+      "type": "integer",
+      "nullable": "NO",
+      "default": "1"
+    },
+    {
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": "now()"
+    }
+  ]
+}
