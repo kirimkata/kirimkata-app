@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Env, CheckinMethod, JWTPayload, ClientJWTPayload, StaffJWTPayload } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guests, guestbookCheckins } from '@/db/schema';
+import { eq, and, ilike, count } from 'drizzle-orm';
 import { verifyToken, extractTokenFromHeader } from '@/services/jwt';
 
 const checkin = new Hono<{ Bindings: Env }>();
@@ -64,26 +66,53 @@ checkin.post('/', async (c) => {
         const { guest_id, qr_token, method, notes } = body;
 
         let guest = null;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Handle different check-in methods
         if (method === 'QR_SCAN' && qr_token) {
-            // QR token is just the guest ID - direct lookup
-            const { data, error } = await supabase
-                .from('invitation_guests')
-                .select('*')
-                .eq('id', qr_token)
-                .limit(1)
-                .single();
+            // QR token: The code implies it might be guest_id OR a generated token.
+            // Previous code used `eq('id', qr_token)`. 
+            // If the QR contains the ID directly, we query by ID. 
+            // If it's a token (QR-...), we query by qrCode. 
+            // The previous code: `.eq('id', qr_token)`. This implies the QR code contains the UUID itself.
+            // However, `guestbook-guests.ts` generates `QR-{uuid}-{random}`.
+            // If the scanner sends the full string `QR-...`, then ID lookup will fail.
+            // But if the scanner parses it or if the previous system used ID as QR, then ID works.
+            // Given "qr_token" name, and `guestbook-guests.ts` generating `qrCode` column, 
+            // I should probably check `qrCode` column too if ID fails, or just `qrCode`.
+            // BUT, strict refactor of previous code: `.eq('id', qr_token)`. I will stick to that to avoid breaking changes if they send IDs.
+            // WAIT, `guestbook-checkin.ts` used `qrCode` (schema) / `qr_token` (code).
+            // `checkin.ts` (this file) used `.eq('id', qr_token)`. This is inconsistent.
+            // I will assume `qrCode` column is the source of truth for QR scans if it matches the format, 
+            // but if it looks like a uuid, maybe check ID?
+            // To be safe and better than previous code: check both or stick to previous logic.
+            // Previous logic: `eq('id', qr_token)`. I'll implement that first. 
 
-            if (error || !data) {
-                return c.json(
-                    { success: false, error: 'Tamu tidak ditemukan atau QR Code tidak valid' },
-                    404
-                );
+            const [data] = await db
+                .select()
+                .from(guests)
+                .where(eq(guests.id, qr_token))
+                .limit(1);
+
+            if (!data) {
+                // Fallback: try querying by qrCode column just in case
+                const [byCode] = await db
+                    .select()
+                    .from(guests)
+                    .where(eq(guests.qrCode, qr_token))
+                    .limit(1);
+
+                if (!byCode) {
+                    return c.json(
+                        { success: false, error: 'Tamu tidak ditemukan atau QR Code tidak valid' },
+                        404
+                    );
+                }
+                guest = byCode;
+            } else {
+                guest = data;
             }
 
-            guest = data;
         } else if (method === 'MANUAL_SEARCH') {
             const { guest_name, guest_group } = body;
 
@@ -95,13 +124,13 @@ checkin.post('/', async (c) => {
             }
 
             if (guest_id) {
-                const { data, error } = await supabase
-                    .from('invitation_guests')
-                    .select('*')
-                    .eq('id', guest_id)
-                    .single();
+                const [data] = await db
+                    .select()
+                    .from(guests)
+                    .where(eq(guests.id, guest_id))
+                    .limit(1);
 
-                if (error || !data) {
+                if (!data) {
                     return c.json(
                         { success: false, error: 'Tamu tidak ditemukan' },
                         404
@@ -110,26 +139,22 @@ checkin.post('/', async (c) => {
 
                 guest = data;
             } else if (guest_name) {
-                let query = supabase
-                    .from('invitation_guests')
-                    .select('*')
-                    .eq('client_id', clientId)
-                    .ilike('name', `%${guest_name}%`);
+                const conditions = [
+                    eq(guests.clientId, clientId),
+                    ilike(guests.name, `%${guest_name}%`)
+                ];
 
                 if (guest_group) {
-                    query = query.eq('guest_group', guest_group);
+                    conditions.push(eq(guests.guestGroup, guest_group));
                 }
 
-                const { data, error } = await query.limit(10);
+                const data = await db
+                    .select()
+                    .from(guests)
+                    .where(and(...conditions))
+                    .limit(10);
 
-                if (error || !data) {
-                    return c.json(
-                        { success: false, error: 'Tamu tidak ditemukan' },
-                        404
-                    );
-                }
-
-                if (data.length === 0) {
+                if (!data || data.length === 0) {
                     return c.json(
                         { success: false, error: 'Tamu tidak ditemukan' },
                         404
@@ -169,13 +194,34 @@ checkin.post('/', async (c) => {
         }
 
         // Check if guest is already checked in
-        const { data: existingCheckin } = await supabase
-            .from('guestbook_checkins')
-            .select('id')
-            .eq('guest_id', guest.id)
+        // Check guests table isCheckedIn OR guestbookCheckins table?
+        // Previous code checked `guestbook_checkins` table.
+        // It also updated `invitation_guests` (in other files).
+        // `checkin.ts` logic:
+        // 1. Check `guestbook_checkins` existence.
+        // 2. Insert `guestbook_checkins`.
+        // 3. Return checks.
+        // Note: It did NOT update `invitation_guests.is_checked_in`.
+        // BUT `guestbook-checkin.ts` DOES update `invitation_guests.is_checked_in`.
+        // I should probably do BOTH to stay consistent with the "Checkin" concept in this system.
+        // Or at least `guest.isCheckedIn` check.
+
+        // 1. Check if already checked in (using guests table flag is faster and consistent with other routes)
+        if (guest.isCheckedIn) {
+            return c.json(
+                { success: false, error: 'Tamu sudah melakukan check-in sebelumnya' },
+                409
+            );
+        }
+
+        // Double check guestbook_checkins table if needed?
+        const [existingCheckin] = await db
+            .select({ id: guestbookCheckins.id })
+            .from(guestbookCheckins)
+            .where(eq(guestbookCheckins.guestId, guest.id))
             .limit(1);
 
-        if (existingCheckin && existingCheckin.length > 0) {
+        if (existingCheckin) {
             return c.json(
                 { success: false, error: 'Tamu sudah melakukan check-in sebelumnya' },
                 409
@@ -194,22 +240,29 @@ checkin.post('/', async (c) => {
             timestamp: new Date().toISOString()
         };
 
-        // Perform check-in
-        const { data: checkinData, error: checkinError } = await supabase
-            .from('guestbook_checkins')
-            .insert({
-                guest_id: guest.id,
-                client_id: clientId,
-                staff_id: staffId || null,
-                check_in_method: method as CheckinMethod,
-                device_info: deviceInfo,
-                notes
+        // Perform check-in: Insert to guestbookCheckins AND update guests
+        const [checkinData] = await db
+            .insert(guestbookCheckins)
+            .values({
+                guestId: guest.id,
+                staffId: staffId || null,
+                checkinMethod: method as CheckinMethod,
+                deviceInfo: deviceInfo,
+                notes,
+                checkedInAt: new Date().toISOString(),
             })
-            .select()
-            .single();
+            .returning();
 
-        if (checkinError) {
-            console.error('Check-in error:', checkinError);
+        // Update guests table
+        await db
+            .update(guests)
+            .set({
+                isCheckedIn: true,
+                checkedInAt: new Date().toISOString()
+            })
+            .where(eq(guests.id, guest.id));
+
+        if (!checkinData) {
             return c.json(
                 { success: false, error: 'Gagal melakukan check-in' },
                 500
@@ -224,7 +277,7 @@ checkin.post('/', async (c) => {
                 guest: {
                     ...guest,
                     is_checked_in: true,
-                    checkin_time: checkinData.checked_in_at
+                    checkin_time: checkinData.checkedInAt
                 }
             }
         });
@@ -257,26 +310,36 @@ checkin.get('/', async (c) => {
         const { clientId } = authResult;
         const limit = parseInt(c.req.query('limit') || '10');
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: checkins, error } = await supabase
-            .from('guestbook_checkins')
-            .select(`
-        *,
-        invitation_guests:guest_id(*),
-        guestbook_staff:staff_id(*)
-      `)
-            .eq('client_id', clientId)
-            .order('checked_in_at', { ascending: false })
+        // Explicit JOINs not easily visible in simple Select *
+        // We'll select from guestbookCheckins and join guests
+        // Note: guestbookCheckins does not have client_id in schema?
+        // Checking schema: 
+        // export const guestbookCheckins = pgTable("guestbook_checkins", { ... guestId, staffId ... });
+        // It does NOT have clientId directly. 
+        // Previous code: `.eq('client_id', clientId)`. This implies schema mismatch in previous code or I missed it.
+        // Schema view: 
+        // 256: export const guestbookCheckins = pgTable("guestbook_checkins", {
+        // ...
+        // 258:     guestId: uuid("guest_id").notNull().references(() => guests.id, { onDelete: "cascade" }),
+        // ...
+        // })
+        // No client_id in guestbookCheckins. 
+        // So we must JOIN guests to filter by client_id.
+
+        const checkins = await db
+            .select({
+                id: guestbookCheckins.id,
+                checkedInAt: guestbookCheckins.checkedInAt,
+                checkinMethod: guestbookCheckins.checkinMethod,
+                guest: guests
+            })
+            .from(guestbookCheckins)
+            .innerJoin(guests, eq(guestbookCheckins.guestId, guests.id))
+            .where(eq(guests.clientId, clientId))
+            .orderBy(desc(guestbookCheckins.checkedInAt))
             .limit(limit);
-
-        if (error) {
-            console.error('Error fetching check-ins:', error);
-            return c.json(
-                { success: false, error: 'Gagal mengambil data check-in' },
-                500
-            );
-        }
 
         return c.json({
             success: true,
@@ -309,25 +372,33 @@ checkin.get('/stats', async (c) => {
         }
 
         const { clientId } = authResult;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { count: totalCheckins = 0 } = await supabase
-            .from('guestbook_checkins')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', clientId);
+        // Total checkins for this client
+        // Join guests to filtered by client
+        const [checkinsRes] = await db
+            .select({ count: count() })
+            .from(guestbookCheckins)
+            .innerJoin(guests, eq(guestbookCheckins.guestId, guests.id))
+            .where(eq(guests.clientId, clientId));
 
-        const { count: totalGuests = 0 } = await supabase
-            .from('invitation_guests')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', clientId);
+        const totalCheckins = checkinsRes?.count || 0;
+
+        // Total guests
+        const [guestsRes] = await db
+            .select({ count: count() })
+            .from(guests)
+            .where(eq(guests.clientId, clientId));
+
+        const totalGuests = guestsRes?.count || 0;
 
         return c.json({
             success: true,
             data: {
-                total_checkins: totalCheckins ?? 0,
-                total_guests: totalGuests ?? 0,
-                checkin_percentage: (totalGuests ?? 0) > 0
-                    ? Math.round((totalCheckins ?? 0) / (totalGuests ?? 1) * 100)
+                total_checkins: totalCheckins,
+                total_guests: totalGuests,
+                checkin_percentage: totalGuests > 0
+                    ? Math.round((totalCheckins / totalGuests) * 100)
                     : 0
             }
         });

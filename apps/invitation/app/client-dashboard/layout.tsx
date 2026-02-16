@@ -19,11 +19,13 @@ function ClientLayoutContent({
 
     // Redirect if not authenticated (handled by context mostly, but double check)
     useEffect(() => {
-        if (!isLoading && !isAuthenticated && pathname !== '/client-dashboard/login') {
+        const isPublicRoute = ['/client-dashboard/login', '/client-dashboard/register', '/client-dashboard/verify-email'].some(path => pathname.startsWith(path));
+
+        if (!isLoading && !isAuthenticated && !isPublicRoute) {
             router.push('/client-dashboard/login');
         }
-        // Redirect authenticated users away from login page
-        if (!isLoading && isAuthenticated && pathname === '/client-dashboard/login') {
+        // Redirect authenticated users away from login/register pages
+        if (!isLoading && isAuthenticated && isPublicRoute) {
             router.push('/client-dashboard');
         }
     }, [isLoading, isAuthenticated, pathname, router]);
@@ -85,11 +87,13 @@ function ClientLayoutContent({
         );
     }
 
-    if (!isAuthenticated && pathname !== '/client-dashboard/login') {
+    const isPublicRoute = ['/client-dashboard/login', '/client-dashboard/register', '/client-dashboard/verify-email'].some(path => pathname.startsWith(path));
+
+    if (!isAuthenticated && !isPublicRoute) {
         return null;
     }
 
-    if (pathname === '/client-dashboard/login') {
+    if (isPublicRoute) {
         return <>{children}</>;
     }
 

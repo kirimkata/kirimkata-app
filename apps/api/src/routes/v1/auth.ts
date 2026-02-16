@@ -103,10 +103,10 @@ auth.post('/client/login', async (c) => {
                 is_published: client.isPublished ?? false,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Client login error:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: error.message || 'Internal server error', code: error.code },
             500
         );
     }
@@ -242,10 +242,10 @@ auth.post('/client/register', async (c) => {
             message: 'Account created successfully. Please check your email to verify your account.',
             client: newClient,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Client registration error:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: error.message || 'Internal server error', code: error.code },
             500
         );
     }

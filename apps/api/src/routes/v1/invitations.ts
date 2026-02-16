@@ -769,15 +769,9 @@ router.openapi(
 
         // Map to snake_case
         const mappedGreetings = greetings?.map(g => ({
-            section_key: g.sectionType, // Wait, greetingSectionRepo returns GreetingSection which has sectionType or sectionKey?
-            // Need to check GreetingSection interface. In step 2542 view_file:
-            // class GreetingSection { ... sectionKey: string; ... }
-            // Wait, schema has section_key as column?
-            // Let's check Drizzle schema or Repo interface.
-            // Repo interface (Step 2542): `sectionKey: string;`
-            // But API response GreetingSectionSchema has `section_key`.
-            // So I map `sectionKey` -> `section_key`.
-            section_key: g.sectionKey, // I recall existing code mapped logic for update...
+            // section_key: g.sectionType, // Removed duplicate
+            // We use sectionKey as it aligns with the repository interface
+            section_key: g.sectionKey,
             display_order: g.displayOrder,
             title: g.title,
             subtitle: g.subtitle,

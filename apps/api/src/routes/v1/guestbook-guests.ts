@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guests, guestbookEvents } from '@/db/schema';
+import { eq, desc, inArray, and } from 'drizzle-orm';
 import { generateRandomString } from '@/services/encryption';
 
 const guestbookGuests = new Hono<{
@@ -31,17 +33,19 @@ guestbookGuests.get('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -49,23 +53,15 @@ guestbookGuests.get('/', async (c) => {
         }
 
         // Get guests
-        const { data: guests, error } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('event_id', eventId)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Get guests error:', error);
-            return c.json(
-                { success: false, error: 'Failed to fetch guests' },
-                500
-            );
-        }
+        const guestsList = await db
+            .select()
+            .from(guests)
+            .where(eq(guests.eventId, eventId))
+            .orderBy(desc(guests.createdAt));
 
         return c.json({
             success: true,
-            data: guests || [],
+            data: guestsList || [],
         });
     } catch (error) {
         console.error('Get guests error:', error);
@@ -96,6 +92,9 @@ guestbookGuests.post('/', async (c) => {
             source
         } = body;
 
+        // Note: Frontend might still be sending snake_case properties like guest_name.
+        // We map them to new schema 'name', 'phone', etc.
+
         if (!event_id || !guest_name) {
             return c.json(
                 { success: false, error: 'Missing required fields' },
@@ -103,61 +102,52 @@ guestbookGuests.post('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        const insertData: any = {
-            client_id: clientId,
-            event_id,
-            guest_name,
-            guest_phone: guest_phone || null,
-            guest_email: guest_email || null,
-            guest_type_id: guest_type_id || null,
-            guest_group: guest_group || null,
-            max_companions: max_companions || 0,
-            actual_companions: 0,
-            seating_config_id: seating_config_id || null,
-            source: source || 'manual',
-            is_checked_in: false,
-            invitation_sent: false,
-        };
-
-        const { data: guest, error } = await supabase
-            .from('invitation_guests')
-            .insert(insertData)
-            .select()
-            .single();
-
-        if (error || !guest) {
-            console.error('Create guest error:', error);
-            return c.json(
-                { success: false, error: 'Failed to create guest' },
-                500
-            );
-        }
+        const [newGuest] = await db
+            .insert(guests)
+            .values({
+                clientId: clientId,
+                eventId: event_id,
+                name: guest_name,
+                phone: guest_phone || null,
+                email: guest_email || null,
+                guestTypeId: guest_type_id || null,
+                guestGroup: guest_group || null,
+                maxCompanions: max_companions || 0,
+                actualCompanions: 0,
+                seatingConfigId: seating_config_id || null,
+                source: source || 'manual',
+                isCheckedIn: false,
+                sent: false,
+            })
+            .returning();
 
         return c.json({
             success: true,
-            data: guest,
+            data: newGuest,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Create guest error:', error);
         return c.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Internal server error', message: error.message },
             500
         );
     }
@@ -172,42 +162,49 @@ guestbookGuests.put('/:guestId', async (c) => {
         const clientId = c.get('clientId') as string;
         const guestId = c.req.param('guestId');
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access
-        const { data: existingGuest, error: fetchError } = await supabase
-            .from('invitation_guests')
-            .select('id')
-            .eq('id', guestId)
-            .eq('client_id', clientId)
-            .single();
+        const [existingGuest] = await db
+            .select({ id: guests.id })
+            .from(guests)
+            .where(and(
+                eq(guests.id, guestId),
+                eq(guests.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existingGuest) {
+        if (!existingGuest) {
             return c.json(
                 { success: false, error: 'Guest not found or access denied' },
                 404
             );
         }
 
-        // Update guest
-        const { data: guest, error } = await supabase
-            .from('invitation_guests')
-            .update(body)
-            .eq('id', guestId)
-            .select()
-            .single();
+        // Map incoming body to schema columns
+        const updateData: any = {};
+        if (body.guest_name !== undefined) updateData.name = body.guest_name;
+        if (body.guest_phone !== undefined) updateData.phone = body.guest_phone;
+        if (body.guest_email !== undefined) updateData.email = body.guest_email;
+        if (body.guest_type_id !== undefined) updateData.guestTypeId = body.guest_type_id;
+        if (body.guest_group !== undefined) updateData.guestGroup = body.guest_group;
+        if (body.max_companions !== undefined) updateData.maxCompanions = body.max_companions;
+        if (body.seating_config_id !== undefined) updateData.seatingConfigId = body.seating_config_id;
+        if (body.invitation_sent !== undefined) updateData.sent = body.invitation_sent;
+        if (body.is_checked_in !== undefined) updateData.isCheckedIn = body.is_checked_in;
+        if (body.source !== undefined) updateData.source = body.source;
 
-        if (error) {
-            console.error('Error updating guest:', error);
-            return c.json(
-                { success: false, error: 'Failed to update guest' },
-                500
-            );
-        }
+        updateData.updatedAt = new Date().toISOString();
+
+        const [updatedGuest] = await db
+            .update(guests)
+            .set(updateData)
+            .where(eq(guests.id, guestId))
+            .returning();
 
         return c.json({
             success: true,
-            data: guest,
+            data: updatedGuest,
         });
     } catch (error) {
         console.error('Update guest error:', error);
@@ -226,17 +223,19 @@ guestbookGuests.delete('/:guestId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const guestId = c.req.param('guestId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access
-        const { data: existingGuest, error: fetchError } = await supabase
-            .from('invitation_guests')
-            .select('id')
-            .eq('id', guestId)
-            .eq('client_id', clientId)
-            .single();
+        const [existingGuest] = await db
+            .select({ id: guests.id })
+            .from(guests)
+            .where(and(
+                eq(guests.id, guestId),
+                eq(guests.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existingGuest) {
+        if (!existingGuest) {
             return c.json(
                 { success: false, error: 'Guest not found or access denied' },
                 404
@@ -244,18 +243,9 @@ guestbookGuests.delete('/:guestId', async (c) => {
         }
 
         // Delete guest
-        const { error } = await supabase
-            .from('invitation_guests')
-            .delete()
-            .eq('id', guestId);
-
-        if (error) {
-            console.error('Error deleting guest:', error);
-            return c.json(
-                { success: false, error: 'Failed to delete guest' },
-                500
-            );
-        }
+        await db
+            .delete(guests)
+            .where(eq(guests.id, guestId));
 
         return c.json({
             success: true,
@@ -278,14 +268,18 @@ guestbookGuests.post('/:guestId/generate-qr', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const guestId = c.req.param('guestId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify guest exists and belongs to client
-        const { data: existingGuest } = await supabase
-            .from('invitation_guests')
-            .select('client_id, event_id, guest_name')
-            .eq('id', guestId)
-            .single();
+        const [existingGuest] = await db
+            .select({
+                client_id: guests.clientId,
+                event_id: guests.eventId,
+                guest_name: guests.name
+            })
+            .from(guests)
+            .where(eq(guests.id, guestId))
+            .limit(1);
 
         if (!existingGuest || existingGuest.client_id !== clientId) {
             return c.json(
@@ -294,29 +288,19 @@ guestbookGuests.post('/:guestId/generate-qr', async (c) => {
             );
         }
 
-        // Generate QR token (simple random string for now)
-        // In production, you might want to use JWT with guest info
+        // Generate QR token
         const qrToken = `QR-${guestId}-${generateRandomString(16)}`;
 
         // Update guest with QR token
-        const { data: guest, error } = await supabase
-            .from('invitation_guests')
-            .update({ qr_token: qrToken })
-            .eq('id', guestId)
-            .select()
-            .single();
-
-        if (error || !guest) {
-            console.error('Generate QR error:', error);
-            return c.json(
-                { success: false, error: 'Failed to generate QR code' },
-                500
-            );
-        }
+        const [updatedGuest] = await db
+            .update(guests)
+            .set({ qrCode: qrToken }) // Schema has qrCode, code had qr_token. Using schema qrCode per instructions.
+            .where(eq(guests.id, guestId))
+            .returning();
 
         return c.json({
             success: true,
-            data: guest,
+            data: updatedGuest,
             qr_token: qrToken,
         });
     } catch (error) {
@@ -345,22 +329,17 @@ guestbookGuests.post('/bulk-delete', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Delete guests (only those belonging to client)
-        const { error } = await supabase
-            .from('invitation_guests')
-            .delete()
-            .in('id', guest_ids)
-            .eq('client_id', clientId);
-
-        if (error) {
-            console.error('Bulk delete error:', error);
-            return c.json(
-                { success: false, error: 'Failed to delete guests' },
-                500
+        await db
+            .delete(guests)
+            .where(
+                and(
+                    inArray(guests.id, guest_ids),
+                    eq(guests.clientId, clientId)
+                )
             );
-        }
 
         return c.json({
             success: true,
@@ -378,7 +357,6 @@ guestbookGuests.post('/bulk-delete', async (c) => {
 /**
  * GET /v1/guestbook/guests/export?event_id=xxx
  * Export guests to CSV format
- * Note: Excel export would require additional library
  */
 guestbookGuests.get('/export', async (c) => {
     try {
@@ -392,17 +370,19 @@ guestbookGuests.get('/export', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id, name')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id, name: guestbookEvents.eventName })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -410,28 +390,24 @@ guestbookGuests.get('/export', async (c) => {
         }
 
         // Get all guests
-        const { data: guests, error } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('event_id', eventId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            throw error;
-        }
+        const guestsList = await db
+            .select()
+            .from(guests)
+            .where(eq(guests.eventId, eventId))
+            .orderBy(desc(guests.createdAt));
 
         // Create CSV
         const headers = ['Name', 'Phone', 'Email', 'Type', 'Group', 'Max Companions', 'Checked In', 'Invitation Sent'];
-        const rows = guests?.map(g => [
-            g.guest_name,
-            g.guest_phone || '',
-            g.guest_email || '',
-            g.guest_type_id || '',
-            g.guest_group || '',
-            g.max_companions || 0,
-            g.is_checked_in ? 'Yes' : 'No',
-            g.invitation_sent ? 'Yes' : 'No'
-        ]) || [];
+        const rows = guestsList.map(g => [
+            g.name,
+            g.phone || '',
+            g.email || '',
+            g.guestTypeId || '',
+            g.guestGroup || '',
+            g.maxCompanions || 0,
+            g.isCheckedIn ? 'Yes' : 'No',
+            g.sent ? 'Yes' : 'No'
+        ]);
 
         const csv = [headers, ...rows]
             .map(row => row.map(cell => `"${cell}"`).join(','))

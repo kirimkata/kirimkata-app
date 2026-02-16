@@ -15,7 +15,10 @@ export const API_ENDPOINTS = {
     // Auth
     auth: {
         clientLogin: `${API_BASE_URL}/v1/auth/client/login`,
-        clientVerify: `${API_BASE_URL}/v1/auth/client/verify`,
+        clientRegister: `${API_BASE_URL}/v1/auth/client/register`, // Added
+        clientVerify: `${API_BASE_URL}/v1/auth/client/verify`, // This is for JWT verification
+        verifyEmail: `${API_BASE_URL}/v1/auth/verify-email`, // Added
+        resendVerification: `${API_BASE_URL}/v1/auth/resend-verification`, // Added
         staffLogin: `${API_BASE_URL}/v1/auth/staff/login`,
         adminLogin: `${API_BASE_URL}/v1/auth/admin/login`,
     },

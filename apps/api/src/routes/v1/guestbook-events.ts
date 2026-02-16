@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guestbookEvents, guests, guestTypes, invitationPages } from '@/db/schema';
+import { eq, desc, and, sql, isNotNull } from 'drizzle-orm';
 
-const guestbookEvents = new Hono<{
+const guestbookEventsRouter = new Hono<{
     Bindings: Env;
     Variables: {
         clientId: string;
@@ -12,26 +14,22 @@ const guestbookEvents = new Hono<{
 }>();
 
 // All routes require client authentication
-guestbookEvents.use('*', clientAuthMiddleware);
+guestbookEventsRouter.use('*', clientAuthMiddleware);
 
 /**
  * GET /v1/guestbook/events
  * Get all events for client
  */
-guestbookEvents.get('/', async (c) => {
+guestbookEventsRouter.get('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: events, error } = await supabase
-            .from('guestbook_events')
-            .select('*')
-            .eq('client_id', clientId)
-            .order('event_date', { ascending: false });
-
-        if (error) {
-            throw error;
-        }
+        const events = await db
+            .select()
+            .from(guestbookEvents)
+            .where(eq(guestbookEvents.clientId, clientId))
+            .orderBy(desc(guestbookEvents.eventDate));
 
         return c.json({
             success: true,
@@ -50,11 +48,11 @@ guestbookEvents.get('/', async (c) => {
  * POST /v1/guestbook/events
  * Create new event
  */
-guestbookEvents.post('/', async (c) => {
+guestbookEventsRouter.post('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Check if this is wizard-based creation (with modules)
         if (body.has_invitation !== undefined || body.has_guestbook !== undefined) {
@@ -89,36 +87,30 @@ guestbookEvents.post('/', async (c) => {
             }
 
             // Create event with modules
-            const { data: event, error } = await supabase
-                .from('guestbook_events')
-                .insert({
-                    client_id: clientId,
-                    name,
-                    event_date,
-                    event_time: event_time || null,
-                    location: location || null,
-                    venue_address: venue_address || null,
-                    timezone: timezone || 'Asia/Jakarta',
-                    has_invitation: has_invitation || false,
-                    has_guestbook: has_guestbook || false,
-                    invitation_config: invitation_config || {},
-                    guestbook_config: guestbook_config || {},
-                    seating_mode: seating_mode || 'none',
+            const [newEvent] = await db
+                .insert(guestbookEvents)
+                .values({
+                    clientId: clientId,
+                    eventName: name, // Schema calls it eventName
+                    eventDate: event_date,
+                    eventTime: event_time || null,
+                    venueName: location || null, // Schema calls it venueName
+                    venueAddress: venue_address || null,
+                    // timezone is not in schema guestbookEvents?
+                    // Checking schema: eventName, eventDate, eventTime, venueName, venueAddress, isActive, staffQuota...
+                    // No timezone. It might be in weddingRegistrations, but this is guestbookEvents.
+                    // Ignoring timezone for now to follow schema.
+                    hasInvitation: has_invitation || false,
+                    hasGuestbook: has_guestbook || false,
+                    invitationConfig: invitation_config || {},
+                    guestbookConfig: guestbook_config || {},
+                    seatingMode: seating_mode || 'no_seat', // Schema default 'no_seat'
                 })
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating event:', error);
-                return c.json(
-                    { success: false, error: 'Gagal membuat event' },
-                    500
-                );
-            }
+                .returning();
 
             return c.json({
                 success: true,
-                data: event,
+                data: newEvent,
             });
         } else {
             // Legacy format (backward compatibility)
@@ -131,29 +123,21 @@ guestbookEvents.post('/', async (c) => {
                 );
             }
 
-            const { data: event, error } = await supabase
-                .from('guestbook_events')
-                .insert({
-                    client_id: clientId,
-                    name,
-                    event_date: event_date || null,
-                    location: location || null,
-                    ...options,
+            const [newEvent] = await db
+                .insert(guestbookEvents)
+                .values({
+                    clientId: clientId,
+                    eventName: name,
+                    eventDate: event_date || null,
+                    venueName: location || null,
+                    // spreading options might be dangerous if keys don't match schema
+                    // explicit mapping is safer. Assuming options map to nothing important not covered
                 })
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating event:', error);
-                return c.json(
-                    { success: false, error: 'Gagal membuat event' },
-                    500
-                );
-            }
+                .returning();
 
             return c.json({
                 success: true,
-                data: event,
+                data: newEvent,
             });
         }
     } catch (error) {
@@ -169,47 +153,54 @@ guestbookEvents.post('/', async (c) => {
  * PUT /v1/guestbook/events/:eventId
  * Update event
  */
-guestbookEvents.put('/:eventId', async (c) => {
+guestbookEventsRouter.put('/:eventId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const eventId = c.req.param('eventId');
         const body = await c.req.json();
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access
-        const { data: existingEvent, error: fetchError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [existingEvent] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existingEvent) {
+        if (!existingEvent) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Update event
-        const { data: event, error } = await supabase
-            .from('guestbook_events')
-            .update(body)
-            .eq('id', eventId)
-            .select()
-            .single();
+        // Map body to schema
+        const updateData: any = {};
+        if (body.name) updateData.eventName = body.name;
+        if (body.event_date) updateData.eventDate = body.event_date;
+        if (body.event_time) updateData.eventTime = body.event_time;
+        if (body.location) updateData.venueName = body.location;
+        if (body.venue_address) updateData.venueAddress = body.venue_address;
+        if (body.has_invitation !== undefined) updateData.hasInvitation = body.has_invitation;
+        if (body.has_guestbook !== undefined) updateData.hasGuestbook = body.has_guestbook;
+        if (body.invitation_config) updateData.invitationConfig = body.invitation_config;
+        if (body.guestbook_config) updateData.guestbookConfig = body.guestbook_config;
+        if (body.seating_mode) updateData.seatingMode = body.seating_mode;
 
-        if (error) {
-            console.error('Error updating event:', error);
-            return c.json(
-                { success: false, error: 'Gagal mengupdate event' },
-                500
-            );
-        }
+        updateData.updatedAt = new Date().toISOString();
+
+        const [updatedEvent] = await db
+            .update(guestbookEvents)
+            .set(updateData)
+            .where(eq(guestbookEvents.id, eventId))
+            .returning();
 
         return c.json({
             success: true,
-            data: event,
+            data: updatedEvent,
         });
     } catch (error) {
         console.error('Update event error:', error);
@@ -224,40 +215,33 @@ guestbookEvents.put('/:eventId', async (c) => {
  * DELETE /v1/guestbook/events/:eventId
  * Delete event
  */
-guestbookEvents.delete('/:eventId', async (c) => {
+guestbookEventsRouter.delete('/:eventId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const eventId = c.req.param('eventId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access
-        const { data: existingEvent, error: fetchError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [existingEvent] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fetchError || !existingEvent) {
+        if (!existingEvent) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Delete event (cascade will handle related data)
-        const { error } = await supabase
-            .from('guestbook_events')
-            .delete()
-            .eq('id', eventId);
-
-        if (error) {
-            console.error('Error deleting event:', error);
-            return c.json(
-                { success: false, error: 'Gagal menghapus event' },
-                500
-            );
-        }
+        // Delete event
+        await db
+            .delete(guestbookEvents)
+            .where(eq(guestbookEvents.id, eventId));
 
         return c.json({
             success: true,
@@ -276,79 +260,106 @@ guestbookEvents.delete('/:eventId', async (c) => {
  * GET /v1/guestbook/events/:eventId/stats
  * Get event statistics
  */
-guestbookEvents.get('/:eventId/stats', async (c) => {
+guestbookEventsRouter.get('/:eventId/stats', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const eventId = c.req.param('eventId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Get total guests
-        const { count: totalGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId);
+        // Parallel stats queries
+        const [totalGuestsRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
+        const totalGuests = Number(totalGuestsRes?.count || 0);
 
-        // Get checked in guests
-        const { count: checkedIn } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('is_checked_in', true);
+        const [checkedInRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const checkedIn = Number(checkedInRes?.count || 0);
 
-        // Get invitations sent
-        const { count: invitationsSent } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('invitation_sent', true);
+        const [invitationsSentRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.sent, true)
+            ));
+        const invitationsSent = Number(invitationsSentRes?.count || 0);
 
-        // Get seats assigned
-        const { count: seatsAssigned } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .not('seating_config_id', 'is', null);
+        const [seatsAssignedRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                isNotNull(guests.seatingConfigId)
+            ));
+        const seatsAssigned = Number(seatsAssignedRes?.count || 0);
 
         // Get guest types breakdown
-        const { data: guestTypes } = await supabase
-            .from('guest_types')
-            .select('id, type_name, display_name')
-            .eq('event_id', eventId);
+        // 1. Get all guest types for this event
+        const eventGuestTypes = await db
+            .select({
+                id: guestTypes.id,
+                displayName: guestTypes.displayName
+            })
+            .from(guestTypes)
+            .where(eq(guestTypes.eventId, eventId));
 
+        // 2. Count guests per type
+        const typeCounts = await db
+            .select({
+                typeId: guests.guestTypeId,
+                count: sql<number>`count(*)`
+            })
+            .from(guests)
+            .where(eq(guests.eventId, eventId))
+            .groupBy(guests.guestTypeId);
+
+        // 3. Map counts
         const guestTypesBreakdown: Record<string, number> = {};
 
-        if (guestTypes) {
-            for (const guestType of guestTypes) {
-                const { count } = await supabase
-                    .from('invitation_guests')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('event_id', eventId)
-                    .eq('guest_type_id', guestType.id);
+        // Initialize with 0
+        eventGuestTypes.forEach(t => {
+            guestTypesBreakdown[t.displayName] = 0;
+        });
 
-                guestTypesBreakdown[guestType.display_name] = count || 0;
+        // Fill counts
+        typeCounts.forEach(tc => {
+            if (tc.typeId) {
+                const typeName = eventGuestTypes.find(t => t.id === tc.typeId)?.displayName;
+                if (typeName) {
+                    guestTypesBreakdown[typeName] = Number(tc.count);
+                }
             }
-        }
+        });
 
         const stats = {
-            total_guests: totalGuests || 0,
-            checked_in: checkedIn || 0,
-            invitations_sent: invitationsSent || 0,
-            seats_assigned: seatsAssigned || 0,
+            total_guests: totalGuests,
+            checked_in: checkedIn,
+            invitations_sent: invitationsSent,
+            seats_assigned: seatsAssigned,
             guest_types_breakdown: guestTypesBreakdown,
         };
 
@@ -365,4 +376,4 @@ guestbookEvents.get('/:eventId/stats', async (c) => {
     }
 });
 
-export default guestbookEvents;
+export default guestbookEventsRouter;

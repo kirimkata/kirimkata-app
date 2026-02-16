@@ -1,35 +1,34 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guests, guestbookCheckins } from '@/db/schema';
+import { eq, asc, sql } from 'drizzle-orm';
 
-const guests = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
+const guestsRouter = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
 
 // All guests routes require client authentication
-guests.use('*', clientAuthMiddleware);
+guestsRouter.use('*', clientAuthMiddleware);
 
 /**
  * GET /v1/guests
  * Get all guests for authenticated client
  */
-guests.get('/', async (c) => {
+guestsRouter.get('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { data: guestsList, error } = await supabase
-            .from('invitation_guests')
-            .select('id, name, phone, sent')
-            .eq('client_id', clientId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching guests:', error);
-            return c.json(
-                { success: false, error: 'Failed to fetch guests' },
-                500
-            );
-        }
+        const guestsList = await db
+            .select({
+                id: guests.id,
+                name: guests.name,
+                phone: guests.phone,
+                sent: guests.sent
+            })
+            .from(guests)
+            .where(eq(guests.clientId, clientId))
+            .orderBy(asc(guests.createdAt));
 
         return c.json({
             success: true,
@@ -48,7 +47,7 @@ guests.get('/', async (c) => {
  * POST /v1/guests
  * Create or replace all guests for client
  */
-guests.post('/', async (c) => {
+guestsRouter.post('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const body = await c.req.json();
@@ -61,44 +60,46 @@ guests.post('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Delete all existing guests for this client
-        const { error: deleteError } = await supabase
-            .from('invitation_guests')
-            .delete()
-            .eq('client_id', clientId);
+        // Transaction: Delete all existing guests for this client, then insert new ones
+        await db.transaction(async (tx) => {
+            // Delete existing
+            await tx
+                .delete(guests)
+                .where(eq(guests.clientId, clientId));
 
-        if (deleteError) {
-            console.error('Error deleting guests:', deleteError);
-            return c.json(
-                { success: false, error: 'Failed to delete existing guests' },
-                500
-            );
-        }
+            // Insert new guests if any
+            if (guestsData.length > 0) {
+                const guestsToInsert = guestsData.map((guest: any) => ({
+                    clientId: clientId,
+                    name: guest.name,
+                    phone: guest.phone,
+                    sent: guest.sent || false,
+                }));
 
-        // Insert new guests if any
-        if (guestsData.length > 0) {
-            const guestsToInsert = guestsData.map((guest: any) => ({
-                client_id: clientId,
-                name: guest.name,
-                phone: guest.phone,
-                sent: guest.sent || false,
-            }));
-
-            const { data: insertedGuests, error: insertError } = await supabase
-                .from('invitation_guests')
-                .insert(guestsToInsert)
-                .select('id, name, phone, sent');
-
-            if (insertError) {
-                console.error('Error inserting guests:', insertError);
-                return c.json(
-                    { success: false, error: 'Failed to save guests' },
-                    500
-                );
+                // Chunk inserts if too many? Drizzle usually handles reasonable batch sizes.
+                // Assuming normal usage (< 1000 guests).
+                await tx
+                    .insert(guests)
+                    .values(guestsToInsert);
             }
+        });
 
+        // Fetch inserted guests to return
+        // (Transaction successful implies insert successful)
+        const insertedGuests = await db
+            .select({
+                id: guests.id,
+                name: guests.name,
+                phone: guests.phone,
+                sent: guests.sent
+            })
+            .from(guests)
+            .where(eq(guests.clientId, clientId))
+            .orderBy(asc(guests.createdAt));
+
+        if (guestsData.length > 0) {
             return c.json({
                 success: true,
                 message: 'Guests saved successfully',
@@ -111,6 +112,7 @@ guests.post('/', async (c) => {
             message: 'All guests deleted successfully',
             guests: [],
         });
+
     } catch (error) {
         console.error('Error in POST /v1/guests:', error);
         return c.json(
@@ -124,26 +126,61 @@ guests.post('/', async (c) => {
  * GET /v1/guests/stats
  * Get guest statistics for client
  */
-guests.get('/stats', async (c) => {
+guestsRouter.get('/stats', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        const { count: totalGuests = 0 } = await supabase
-            .from('invitation_guests')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', clientId);
+        // Total Guests
+        const [totalGuestsRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(eq(guests.clientId, clientId));
+        const totalGuests = Number(totalGuestsRes?.count || 0);
 
-        const { count: checkedInGuests = 0 } = await supabase
-            .from('guestbook_checkins')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', clientId);
+        // Checked In Guests (Need to join or count distinct guestIds in checkins?)
+        // guestbook-checkin.ts logic: check guests.isCheckedIn
+        // guests.ts logic: check count in guestbookCheckins table by clientId?
+        // But `guestbookCheckins` does not have `clientId` directly (as per my previous discovery), 
+        // it links to `guests`.
+        // So checking `guestbookCheckins` requires join with `guests` where `guests.clientId = ...`.
+
+        // Alternatively, use `guests.isCheckedIn` if that is reliable.
+        // Given that `guestbook-checkin.ts` updates `guests.isCheckedIn`, it should be reliable.
+        // However, the original `guests.ts` code queried `guestbook_checkins` table (which it assumed had `client_id`).
+        // Wait, did `guestbook_checkins` have `client_id` in schema?
+        // Let's re-verify schema.ts line 256.
+        // `export const guestbookCheckins = pgTable("guestbook_checkins", { ... guestId, staffId ... })`
+        // NO client_id.
+        // So original code `eq('client_id', clientId)` was probably wrong or relied on triggers/views I don't see, 
+        // OR I missed a column.
+        // Checking `schema.ts`:
+        // 256: export const guestbookCheckins = pgTable("guestbook_checkins", {
+        // 257:     id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+        // 258:     guestId: uuid("guest_id").notNull().references(() => guests.id, { onDelete: "cascade" }),
+        // 259:     staffId: uuid("staff_id").references(() => guestbookStaff.id, { onDelete: "set null" }),
+        // ...
+        // No client_id.
+
+        // So querying `guestbookCheckins` for stats by client requires join.
+        // Or simply `guests.isCheckedIn`. strict `checkin` usually implies present time check-in, 
+        // maybe `guests.isCheckedIn` is the flag for "has checked in".
+        // I'll use `guests.isCheckedIn` for consistency with `guestbook-checkin.ts`.
+
+        const [checkedInRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.clientId, clientId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const checkedInGuests = Number(checkedInRes?.count || 0);
 
         return c.json({
             success: true,
             data: {
-                total_guests: totalGuests ?? 0,
-                checked_in_guests: checkedInGuests ?? 0,
+                total_guests: totalGuests,
+                checked_in_guests: checkedInGuests,
             },
         });
     } catch (error) {
@@ -155,4 +192,4 @@ guests.get('/stats', async (c) => {
     }
 });
 
-export default guests;
+export default guestsRouter;

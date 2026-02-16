@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware, staffAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guests, guestbookEvents, staffLogs, guestbookStaff } from '@/db/schema';
+import { eq, and, desc, sql, or, ilike, isNotNull } from 'drizzle-orm';
 
 const guestbookCheckin = new Hono<{
     Bindings: Env;
@@ -28,22 +30,20 @@ guestbookCheckin.post('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Update guest check-in status
-        const { data: guest, error } = await supabase
-            .from('invitation_guests')
-            .update({
-                is_checked_in: true,
-                checkin_time: new Date().toISOString(),
-                actual_companions: actual_companions || 0,
+        const [guest] = await db
+            .update(guests)
+            .set({
+                isCheckedIn: true,
+                checkedInAt: new Date().toISOString(),
+                actualCompanions: actual_companions || 0,
             })
-            .eq('id', guest_id)
-            .select()
-            .single();
+            .where(eq(guests.id, guest_id))
+            .returning();
 
-        if (error || !guest) {
-            console.error('Checkin error:', error);
+        if (!guest) {
             return c.json(
                 { success: false, error: 'Failed to check in guest' },
                 500
@@ -82,17 +82,19 @@ guestbookCheckin.get('/logs', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -100,42 +102,32 @@ guestbookCheckin.get('/logs', async (c) => {
         }
 
         // Get logs
-        // Note: performing join manually or utilizing Supabase's relational query
-        const { data: logs, error } = await supabase
-            .from('staff_logs')
-            .select(`
-                *,
-                invitation_guests!inner(
-                    id,
-                    event_id,
-                    guest_name,
-                    guest_phone,
-                    guest_type_id
-                ),
-                guestbook_staff(
-                    id,
-                    username,
-                    full_name
-                )
-            `)
-            .eq('invitation_guests.event_id', eventId)
-            .eq('action', 'checkin')
-            .order('created_at', { ascending: false })
+        // Join staffLogs with guests and guestbookStaff
+        // Condition: guests.eventId = eventId AND actionType = 'checkin'
+
+        const logs = await db
+            .select({
+                id: staffLogs.id,
+                created_at: staffLogs.createdAt,
+                notes: staffLogs.notes,
+                guest_name: guests.name,
+                staff_full_name: guestbookStaff.fullName,
+            })
+            .from(staffLogs)
+            .innerJoin(guests, eq(staffLogs.guestId, guests.id))
+            .leftJoin(guestbookStaff, eq(staffLogs.staffId, guestbookStaff.id))
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(staffLogs.actionType, 'checkin')
+            ))
+            .orderBy(desc(staffLogs.createdAt))
             .limit(limit);
 
-        if (error) {
-            console.error('Error fetching checkin logs:', error);
-            return c.json(
-                { success: false, error: 'Failed to fetch checkin logs' },
-                500
-            );
-        }
-
-        // Transform data to match expected format if needed
-        const formattedLogs = logs?.map(log => ({
+        // Transform data to match expected format
+        const formattedLogs = logs.map(log => ({
             id: log.id,
-            guest_name: log.invitation_guests?.guest_name,
-            staff_name: log.guestbook_staff?.full_name || 'System',
+            guest_name: log.guest_name,
+            staff_name: log.staff_full_name || 'System',
             checkin_method: log.notes?.includes('QR') ? 'QR_SCAN' : 'MANUAL_SEARCH',
             checked_in_at: log.created_at
         }));
@@ -169,16 +161,16 @@ guestbookCheckin.post('/qr', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Find guest by QR token
-        const { data: guest, error: findError } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('qr_token', qr_token)
-            .single();
+        // Find guest by QR token (schema uses qrCode)
+        const [guest] = await db
+            .select()
+            .from(guests)
+            .where(eq(guests.qrCode, qr_token))
+            .limit(1);
 
-        if (findError || !guest) {
+        if (!guest) {
             return c.json(
                 { success: false, error: 'Invalid QR code' },
                 404
@@ -186,7 +178,7 @@ guestbookCheckin.post('/qr', async (c) => {
         }
 
         // Check if already checked in
-        if (guest.is_checked_in) {
+        if (guest.isCheckedIn) {
             return c.json(
                 { success: false, error: 'Guest already checked in' },
                 400
@@ -194,19 +186,18 @@ guestbookCheckin.post('/qr', async (c) => {
         }
 
         // Update check-in status
-        const { data: updatedGuest, error } = await supabase
-            .from('invitation_guests')
-            .update({
-                is_checked_in: true,
-                checkin_time: new Date().toISOString(),
-                actual_companions: actual_companions || 0,
+        const [updatedGuest] = await db
+            .update(guests)
+            .set({
+                isCheckedIn: true,
+                checkedInAt: new Date().toISOString(),
+                actualCompanions: actual_companions || 0,
             })
-            .eq('id', guest.id)
-            .select()
-            .single();
+            .where(eq(guests.id, guest.id))
+            .returning();
 
-        if (error || !updatedGuest) {
-            console.error('QR checkin error:', error);
+        if (!updatedGuest) {
+            console.error('QR checkin error: Failed update');
             return c.json(
                 { success: false, error: 'Failed to check in guest' },
                 500
@@ -243,23 +234,27 @@ guestbookCheckin.get('/search', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Search guests by name or phone
-        const { data: guests, error } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('event_id', eventId)
-            .or(`guest_name.ilike.%${query}%,guest_phone.ilike.%${query}%`)
-            .limit(20);
+        // ILIKE requires string interpolation %query%
+        const searchPattern = `%${query}%`;
 
-        if (error) {
-            throw error;
-        }
+        const guestsList = await db
+            .select()
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                or(
+                    ilike(guests.name, searchPattern),
+                    ilike(guests.phone, searchPattern)
+                )
+            ))
+            .limit(20);
 
         return c.json({
             success: true,
-            data: guests || [],
+            data: guestsList || [],
         });
     } catch (error) {
         console.error('Search guests error:', error);
@@ -286,54 +281,63 @@ guestbookCheckin.get('/stats', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Get total guests
-        const { count: totalGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId);
+        // Get stats in parallel or single query? Parallel is fine.
 
-        // Get checked in guests
-        const { count: checkedIn } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('is_checked_in', true);
+        // Total Guests
+        const [totalGuestsRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
+        const totalGuests = Number(totalGuestsRes?.count || 0);
 
-        // Get total companions
-        const { data: companions } = await supabase
-            .from('invitation_guests')
-            .select('actual_companions')
-            .eq('event_id', eventId)
-            .eq('is_checked_in', true);
+        // Checked In
+        const [checkedInRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const checkedIn = Number(checkedInRes?.count || 0);
 
-        const totalCompanions = companions?.reduce((sum, g) => sum + (g.actual_companions || 0), 0) || 0;
+        // Total Companions
+        const [companionsRes] = await db
+            .select({ sum: sql<number>`sum(${guests.actualCompanions})` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const totalCompanions = Number(companionsRes?.sum || 0);
 
         return c.json({
             success: true,
             data: {
-                total_guests: totalGuests || 0,
-                checked_in: checkedIn || 0,
-                not_checked_in: (totalGuests || 0) - (checkedIn || 0),
+                total_guests: totalGuests,
+                checked_in: checkedIn,
+                not_checked_in: totalGuests - checkedIn,
                 total_companions: totalCompanions,
-                total_attendees: (checkedIn || 0) + totalCompanions,
-                checkin_rate: totalGuests ? ((checkedIn || 0) / totalGuests * 100).toFixed(2) : 0,
+                total_attendees: checkedIn + totalCompanions,
+                checkin_rate: totalGuests ? (checkedIn / totalGuests * 100).toFixed(2) : 0,
             },
         });
     } catch (error) {
@@ -361,57 +365,73 @@ guestbookCheckin.get('/reports/stats', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('*')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({
+                id: guestbookEvents.id,
+                name: guestbookEvents.eventName,
+                event_date: guestbookEvents.eventDate
+            })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
             );
         }
 
-        // Get comprehensive stats
-        const { count: totalGuests } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId);
+        // Stats
+        const [totalGuestsRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(eq(guests.eventId, eventId));
+        const totalGuests = Number(totalGuestsRes?.count || 0);
 
-        const { count: checkedIn } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('is_checked_in', true);
+        const [checkedInRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.isCheckedIn, true)
+            ));
+        const checkedIn = Number(checkedInRes?.count || 0);
 
-        const { count: invitationsSent } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .eq('invitation_sent', true);
+        const [invitationsSentRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                eq(guests.sent, true)
+            ));
+        const invitationsSent = Number(invitationsSentRes?.count || 0);
 
-        const { count: seatsAssigned } = await supabase
-            .from('invitation_guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId)
-            .not('seating_config_id', 'is', null);
+        const [seatsAssignedRes] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(guests)
+            .where(and(
+                eq(guests.eventId, eventId),
+                isNotNull(guests.seatingConfigId)
+            ));
+        const seatsAssigned = Number(seatsAssignedRes?.count || 0);
 
         return c.json({
             success: true,
             data: {
                 event_name: event.name,
                 event_date: event.event_date,
-                total_guests: totalGuests || 0,
-                checked_in: checkedIn || 0,
-                invitations_sent: invitationsSent || 0,
-                seats_assigned: seatsAssigned || 0,
-                checkin_rate: totalGuests ? ((checkedIn || 0) / totalGuests * 100).toFixed(2) : 0,
+                total_guests: totalGuests,
+                checked_in: checkedIn,
+                invitations_sent: invitationsSent,
+                seats_assigned: seatsAssigned,
+                checkin_rate: totalGuests ? (checkedIn / totalGuests * 100).toFixed(2) : 0,
             },
         });
     } catch (error) {
@@ -439,17 +459,19 @@ guestbookCheckin.get('/reports/export', clientAuthMiddleware, async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id, name')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id, name: guestbookEvents.eventName })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -457,34 +479,30 @@ guestbookCheckin.get('/reports/export', clientAuthMiddleware, async (c) => {
         }
 
         // Get all guests with related data
-        const { data: guests, error } = await supabase
-            .from('invitation_guests')
-            .select('*')
-            .eq('event_id', eventId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            throw error;
-        }
+        const guestsList = await db
+            .select()
+            .from(guests)
+            .where(eq(guests.eventId, eventId))
+            .orderBy(desc(guests.createdAt));
 
         // Create CSV
         const headers = [
             'Name', 'Phone', 'Email', 'Group', 'Max Companions', 'Actual Companions',
             'Checked In', 'Checkin Time', 'Invitation Sent', 'Has Seat', 'Source'
         ];
-        const rows = guests?.map(g => [
-            g.guest_name,
-            g.guest_phone || '',
-            g.guest_email || '',
-            g.guest_group || '',
-            g.max_companions || 0,
-            g.actual_companions || 0,
-            g.is_checked_in ? 'Yes' : 'No',
-            g.checkin_time || '',
-            g.invitation_sent ? 'Yes' : 'No',
-            g.seating_config_id ? 'Yes' : 'No',
+        const rows = guestsList.map(g => [
+            g.name,
+            g.phone || '',
+            g.email || '',
+            g.guestGroup || '',
+            g.maxCompanions || 0,
+            g.actualCompanions || 0,
+            g.isCheckedIn ? 'Yes' : 'No',
+            g.checkedInAt || '',
+            g.sent ? 'Yes' : 'No',
+            g.seatingConfigId ? 'Yes' : 'No',
             g.source || 'manual'
-        ]) || [];
+        ]);
 
         const csv = [headers, ...rows]
             .map(row => row.map(cell => `"${cell}"`).join(','))

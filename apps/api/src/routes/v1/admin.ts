@@ -2,9 +2,11 @@ import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { adminAuthMiddleware } from '@/middleware/auth';
 import { getDb } from '@/db';
-import { clients, admins, invitationPages } from '@/db/schema'; // Updated import
+import { clients, admins, invitationPages } from '@/db/schema';
 import { eq, desc, and, isNull } from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@/services/encryption';
+import { weddingRegistrationRepo } from '@/repositories/weddingRegistrationRepository';
+import { invitationCompiler } from '@/services-invitation/invitationCompilerService';
 
 const admin = new Hono<{
     Bindings: Env;
@@ -30,7 +32,6 @@ admin.get('/clients', async (c) => {
                 id: clients.id,
                 username: clients.username,
                 email: clients.email,
-
                 guestbook_access: clients.guestbookAccess,
                 quota_photos: clients.quotaPhotos,
                 quota_music: clients.quotaMusic,
@@ -82,7 +83,6 @@ admin.post('/clients', async (c) => {
                 username,
                 passwordEncrypted: passwordEncrypted,
                 email: email || null,
-
                 quotaPhotos: 10,
                 quotaMusic: 5,
                 quotaVideos: 3,
@@ -92,7 +92,6 @@ admin.post('/clients', async (c) => {
                 id: clients.id,
                 username: clients.username,
                 email: clients.email,
-
                 created_at: clients.createdAt,
             });
 
@@ -117,7 +116,7 @@ admin.put('/clients/:id', async (c) => {
     try {
         const clientId = c.req.param('id');
         const body = await c.req.json();
-        const { username, password, email, slug } = body;
+        const { username, password, email, quota_photos, quota_music, quota_videos, guestbook_access } = body;
 
         const db = getDb(c.env);
 
@@ -125,7 +124,10 @@ admin.put('/clients/:id', async (c) => {
         const updateData: any = {};
         if (username !== undefined) updateData.username = username;
         if (email !== undefined) updateData.email = email;
-
+        if (quota_photos !== undefined) updateData.quotaPhotos = quota_photos;
+        if (quota_music !== undefined) updateData.quotaMusic = quota_music;
+        if (quota_videos !== undefined) updateData.quotaVideos = quota_videos;
+        if (guestbook_access !== undefined) updateData.guestbookAccess = guestbook_access;
 
         // Hash password if provided
         if (password) {
@@ -143,7 +145,6 @@ admin.put('/clients/:id', async (c) => {
                 id: clients.id,
                 username: clients.username,
                 email: clients.email,
-
                 updated_at: clients.updatedAt,
             });
 
@@ -234,10 +235,6 @@ admin.get('/clients/:id/quota', async (c) => {
  * PATCH /v1/admin/clients/:id/quota
  * Update client quota
  */
-/**
- * PATCH /v1/admin/clients/:id/quota
- * Update client quota
- */
 admin.patch('/clients/:id/quota', async (c) => {
     try {
         const clientId = c.req.param('id');
@@ -296,16 +293,16 @@ admin.patch('/clients/:id/quota', async (c) => {
 
 /**
  * POST /v1/admin/invitations
- * Create new invitation
+ * Create new invitation (Creates Wedding Registration + Compiles)
  */
 admin.post('/invitations', async (c) => {
     try {
         const payload = await c.req.json();
 
         // Validate required fields
-        if (!payload.slug || !payload.themeKey) {
+        if (!payload.slug || !payload.clientId) {
             return c.json(
-                { success: false, error: 'Slug and theme are required' },
+                { success: false, error: 'Slug and Client ID are required' },
                 400
             );
         }
@@ -313,121 +310,87 @@ admin.post('/invitations', async (c) => {
         const db = getDb(c.env);
 
         // Check if slug already exists
-        const [existing] = await db
-            .select({ slug: invitationPages.slug })
-            .from(invitationPages)
-            .where(eq(invitationPages.slug, payload.slug))
-            .limit(1);
-
-        if (existing) {
-            return c.json(
-                { success: false, error: `Slug "${payload.slug}" sudah digunakan` },
-                400
-            );
+        const slugAvailable = await weddingRegistrationRepo.isSlugAvailable(c.env, payload.slug);
+        if (!slugAvailable) {
+            return c.json({ success: false, error: 'Slug already exists' }, 409);
         }
 
-        // Prepare eventCloud from event data
-        const eventCloud = {
-            holyMatrimony: payload.event?.holyMatrimony || {},
-            reception: payload.event?.reception || {},
-            streaming: {
-                description: '',
-                url: '',
-                buttonLabel: 'Watch Live',
-            },
+        // Map payload to simplified WeddingRegistration input
+        // payload from legacy: { bride: { name: ... }, groom: { name: ... }, event: { ... } }
+        // needs to be flattened for weddingRegistrationRepo.create
+        const registrationData = {
+            client_id: payload.clientId,
+            slug: payload.slug,
+            // Default event type if not provided
+            event_type: payload.eventType || 'islam',
+
+            // Map Bride
+            bride_name: payload.bride?.name || 'Bride Name',
+            bride_full_name: payload.bride?.fullName || 'Full Bride Name',
+            bride_father_name: payload.bride?.fatherName,
+            bride_mother_name: payload.bride?.motherName,
+            bride_instagram: payload.bride?.instagram,
+
+            // Map Groom
+            groom_name: payload.groom?.name || 'Groom Name',
+            groom_full_name: payload.groom?.fullName || 'Full Groom Name',
+            groom_father_name: payload.groom?.fatherName,
+            groom_mother_name: payload.groom?.motherName,
+            groom_instagram: payload.groom?.instagram,
+
+            // Map Event 1
+            event1_date: payload.event?.isoDate ? new Date(payload.event.isoDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            event1_time: payload.event?.startTime || '08:00',
+            event1_end_time: payload.event?.endTime,
+            event1_venue_name: payload.event?.venueName || payload.event?.holyMatrimony?.venueName,
+            event1_venue_address: payload.event?.venueAddress || payload.event?.holyMatrimony?.venueAddress,
+            event1_maps_url: payload.event?.mapsUrl || payload.event?.holyMatrimony?.mapsUrl,
+
+            // Default Event 2 settings (can be updated later)
+            event2_same_date: true,
+            event2_same_venue: true,
+
+            timezone: 'WIB'
         };
 
-        // Insert new invitation
-        const [newInvitation] = await db
-            .insert(invitationPages)
-            .values({
+        // Create normalized registration
+        // Type assertion as CreateWeddingRegistrationInput
+        const registration = await weddingRegistrationRepo.create(c.env, registrationData as any);
+
+        // If theme key is provided, set it in theme settings
+        if (payload.themeKey) {
+            await getDb(c.env).insert(invitationPages).values({
                 slug: payload.slug,
+                clientId: payload.clientId, // Ensure we link it
                 themeKey: payload.themeKey,
-                profile: payload.clientProfile || {}, // Mapped to profile
-                bride: payload.bride || {},
-                groom: payload.groom || {},
-                event: { // Mapped to jsonb event field
-                    fullDateLabel: payload.event?.fullDateLabel || '',
-                    isoDate: payload.event?.isoDate || '',
-                    countdownDateTime: payload.event?.countdownDateTime || '',
-                    ...eventCloud, // Includes holyMatrimony etc if strictly following schema structure
-                },
-                // Note: Schema has explicit columns for some, but payload structure from legacy code 
-                // seemed to group some things. 
-                // Let's look at schema: 
-                // profile, bride, groom, event, greetings, eventDetails, loveStory, gallery, weddingGift, closing, musicSettings
-                // Legacy insert: 
-                // client_profile -> profile
-                // event (with internal structure) -> event
-                // event_cloud -> ? Schema doesn't have event_cloud. 
-                // It seems legacy `event_cloud` was merged into `event` or `eventDetails` in new schema?
-                // Start with direct mapping based on schema names
-
-                greetings: {}, // detailed greetings structure not in payload? payload has 'clouds'?
-                eventDetails: {}, // explicit event details if different from 'event'
-
-                // ADJUSTMENT based on payload keys:
-                // payload.loveStory -> loveStory
-                loveStory: payload.loveStory || [],
-
-                // payload.gallery -> gallery
-                gallery: payload.gallery || [],
-
-                // payload.weddingGift -> weddingGift
-                weddingGift: payload.weddingGift || {},
-
-                // payload.backgroundMusic -> musicSettings
-                musicSettings: payload.backgroundMusic || {},
-
-                // payload.closing -> closing
-                closing: payload.closing || {},
-
-                // event_cloud in legacy was likely specific structure. 
-                // In new schema 'event' is a jsonb column. We can put it there.
-            })
-            .returning();
-
-        // Wait, I need to be careful with JSONB columns. Drizzle/Postgres expects correct JSON structure.
-        // And I need to verify if I missed any required columns.
-        // Schema:
-        // slug, profile, bride, groom, event, greetings, eventDetails, loveStory, gallery, weddingGift, closing
-        // All NOT NULL.
-        // I must provide default empty objects/arrays if payload is missing them.
-
-        const [data] = await db
-            .insert(invitationPages)
-            .values({
-                slug: payload.slug,
-                themeKey: payload.themeKey,
-                profile: payload.clientProfile || {},
-                bride: payload.bride || {},
-                groom: payload.groom || {},
-                event: {
-                    fullDateLabel: payload.event?.fullDateLabel || '',
-                    isoDate: payload.event?.isoDate || '',
-                    countdownDateTime: payload.event?.countdownDateTime || '',
-                    ...eventCloud
-                },
+                // Initialize empty JSONBs to satisfy NOT NULL constraints if any
+                profile: {},
+                bride: {},
+                groom: {},
+                event: {},
                 greetings: {},
-                eventDetails: {}, // New schema field, providing empty object
-                loveStory: payload.loveStory || [],
-                gallery: payload.gallery || [],
-                weddingGift: payload.weddingGift || {},
-                closing: payload.closing || {},
-                musicSettings: payload.backgroundMusic || {},
-            })
-            .returning({
-                slug: invitationPages.slug,
-                themeKey: invitationPages.themeKey,
+                eventDetails: {},
+                loveStory: [],
+                gallery: [],
+                weddingGift: {},
+                closing: {},
+                musicSettings: {},
+                updatedAt: new Date().toISOString(),
+            }).onConflictDoUpdate({
+                target: invitationPages.slug,
+                set: { themeKey: payload.themeKey }
             });
+        }
+
+        // Compile to populate the invitation_pages cache with full data
+        await invitationCompiler.compileAndCache(c.env, payload.slug);
 
         return c.json({
             success: true,
-            data: {
-                slug: data.slug,
-                themeKey: data.themeKey, // mapped from theme_key
-            },
+            data: registration,
+            message: 'Invitation created successfully'
         });
+
     } catch (error: any) {
         console.error('Error in POST invitations:', error);
         return c.json(
@@ -439,27 +402,26 @@ admin.post('/invitations', async (c) => {
 
 /**
  * GET /v1/admin/slugs
- * Get available slugs (slugs that exist in invitation_contents but not assigned to clients)
- */
-/**
- * GET /v1/admin/slugs
- * Get available slugs (slugs that exist in invitation_contents but not assigned to clients)
+ * Get available slugs (from normalized table mostly?)
+ * Legacy: "slugs that exist in invitation_contents but not assigned to clients"
+ * Now: invitations should always be assigned to clients.
+ * So this endpoint might be redundant or needs to show "All Slugs".
+ * Let's list all slugs for now.
  */
 admin.get('/slugs', async (c) => {
     try {
         const db = getDb(c.env);
 
-        // Get slugs from invitationPages where clientId is NULL (unassigned)
-        const availableInvitations = await db
+        // Get all slugs from wedding_registrations
+        // Get all slugs from invitationPages
+        // We use invitationPages as the cache/source for available slugs to be consistent with legacy logic
+        const allSlugs = await db
             .select({ slug: invitationPages.slug })
-            .from(invitationPages)
-            .where(isNull(invitationPages.clientId));
-
-        const availableSlugs = availableInvitations.map(inv => inv.slug);
+            .from(invitationPages);
 
         return c.json({
             success: true,
-            slugs: availableSlugs,
+            slugs: allSlugs.map(s => s.slug),
         });
     } catch (error) {
         console.error('Error fetching slugs:', error);

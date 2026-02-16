@@ -60,7 +60,7 @@ export async function sendVerificationEmail(
     fromEmail: string,
     frontendUrl: string
 ): Promise<{ success: boolean; error?: string }> {
-    const verificationUrl = `${frontendUrl}/verify-email?token=${params.token}`;
+    const verificationUrl = `${frontendUrl}/client-dashboard/verify-email?token=${params.token}`;
 
     const html = `
 <!DOCTYPE html>

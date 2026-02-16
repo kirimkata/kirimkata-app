@@ -2,49 +2,97 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useClient } from '@/lib/contexts/ClientContext';
 
-export default function ClientLoginPage() {
+export default function ClientRegisterPage() {
     const router = useRouter();
     const { login } = useClient();
     const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccessMessage('');
         setLoading(true);
 
         try {
             const { API_ENDPOINTS } = await import('@/lib/api-config');
 
-            const response = await fetch(API_ENDPOINTS.auth.clientLogin, {
+            const response = await fetch(API_ENDPOINTS.auth.clientRegister, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, email, password }),
             });
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                setError(data.error || 'Login failed');
+                setError(data.error || 'Registration failed');
                 setLoading(false);
                 return;
             }
 
-            // Use context login to update state and redirect
-            login(data.token, data.client);
+            setSuccessMessage(data.message || 'Registration successful. Please check your email.');
+            setLoading(false);
+
+            // Optional: Redirect to login after delay or show link
         } catch (err) {
-            console.error('Login error:', err);
+            console.error('Registration error:', err);
             setError('An error occurred. Please try again.');
             setLoading(false);
         }
     };
+
+    if (successMessage) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)',
+                fontFamily: 'Segoe UI, sans-serif',
+            }}>
+                <div style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    padding: '2rem',
+                    backgroundColor: 'white',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+                        Check Your Email
+                    </h2>
+                    <p style={{ color: '#4b5563', marginBottom: '1.5rem' }}>
+                        {successMessage}
+                    </p>
+                    <Link href="/client-dashboard/login" style={{
+                        display: 'inline-block',
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: '#2563eb',
+                        color: 'white',
+                        fontWeight: 600,
+                        borderRadius: '0.375rem',
+                        textDecoration: 'none',
+                    }}>
+                        Back to Login
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{
@@ -70,10 +118,10 @@ export default function ClientLoginPage() {
                         color: '#111827',
                         marginBottom: '0.5rem',
                     }}>
-                        Client Login
+                        Create Account
                     </h1>
                     <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                        KirimKata Client Dashboard
+                        Join KirimKata today
                     </p>
                 </div>
 
@@ -92,6 +140,34 @@ export default function ClientLoginPage() {
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            required
+                            pattern="^[a-zA-Z0-9_]{3,20}$"
+                            title="3-20 characters, letters, numbers, underscore only"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '0.375rem',
+                                fontSize: '0.875rem',
+                                fontFamily: 'Segoe UI, sans-serif',
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{
+                            display: 'block',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#374151',
+                            marginBottom: '0.5rem',
+                        }}>
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             required
                             style={{
                                 width: '100%',
@@ -120,6 +196,7 @@ export default function ClientLoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                minLength={8}
                                 style={{
                                     width: '100%',
                                     padding: '0.75rem',
@@ -147,7 +224,6 @@ export default function ClientLoginPage() {
                                     justifyContent: 'center',
                                     color: '#6b7280',
                                 }}
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
                             >
                                 {showPassword ? (
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -162,6 +238,9 @@ export default function ClientLoginPage() {
                                 )}
                             </button>
                         </div>
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                            Minimum 8 characters
+                        </p>
                     </div>
 
                     {error && (
@@ -191,30 +270,22 @@ export default function ClientLoginPage() {
                             cursor: loading ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontFamily: 'Segoe UI, sans-serif',
+                            marginBottom: '1rem',
                         }}
                     >
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? 'Creating Account...' : 'Register'}
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => router.push('/client-dashboard/register')}
-                        style={{
-                            width: '100%',
-                            marginTop: '1rem',
-                            padding: '0.75rem',
-                            backgroundColor: 'white',
-                            color: '#4b5563',
-                            fontWeight: 600,
-                            borderRadius: '0.375rem',
-                            border: '1px solid #d1d5db',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            fontFamily: 'Segoe UI, sans-serif',
-                        }}
-                    >
-                        Daftar Sekarang
-                    </button>
+                    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>
+                        <span style={{ color: '#6b7280' }}>Already have an account? </span>
+                        <Link href="/client-dashboard/login" style={{
+                            color: '#2563eb',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                        }}>
+                            Login here
+                        </Link>
+                    </div>
                 </form>
             </div>
         </div>
