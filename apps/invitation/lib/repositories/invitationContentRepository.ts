@@ -186,7 +186,7 @@ function mapRowToFullContent(row: InvitationContentRow): FullInvitationContent {
 function buildFullContentFromGeneralMock(slug: string): FullInvitationContent {
   return {
     slug,
-    profile: masterMockGeneral.profile,
+    profile: masterMockGeneral.clientProfile,
     bride: masterMockGeneral.bride as BrideContent,
     groom: masterMockGeneral.groom as GroomContent,
     event: masterMockGeneral.event as EventContent,
@@ -205,7 +205,7 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'poppy-fadli':
       return {
         slug,
-        profile: masterMockPoppyFadli.profile,
+        profile: masterMockPoppyFadli.clientProfile,
         bride: masterMockPoppyFadli.bride as BrideContent,
         groom: masterMockPoppyFadli.groom as GroomContent,
         event: masterMockPoppyFadli.event as EventContent,
@@ -220,7 +220,7 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'budi-ani':
       return {
         slug,
-        profile: masterMockBudiAni.profile,
+        profile: masterMockBudiAni.clientProfile,
         bride: masterMockBudiAni.bride as BrideContent,
         groom: masterMockBudiAni.groom as GroomContent,
         event: masterMockBudiAni.event as EventContent,
@@ -235,7 +235,7 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'test-2':
       return {
         slug,
-        profile: masterMockTest2.profile,
+        profile: masterMockTest2.clientProfile,
         bride: masterMockTest2.bride as BrideContent,
         groom: masterMockTest2.groom as GroomContent,
         event: masterMockTest2.event as EventContent,
@@ -250,7 +250,7 @@ export function buildFullContentFromSlugMock(slug: string): FullInvitationConten
     case 'test-simple':
       return {
         slug,
-        profile: masterMockTestSimple.profile,
+        profile: masterMockTestSimple.clientProfile,
         bride: masterMockTestSimple.bride as BrideContent,
         groom: masterMockTestSimple.groom as GroomContent,
         event: masterMockTestSimple.event as EventContent,

@@ -2,15 +2,15 @@ import type { ClientProfile } from '@/clients/types';
 import { masterMockTest2 } from '@/clients/mocks/masterMockTest2';
 
 const test2Profile: ClientProfile = {
-    slug: masterMockTest2.profile.slug,
-    coupleNames: masterMockTest2.profile.coupleNames,
-    weddingDateLabel: masterMockTest2.profile.weddingDateLabel,
-    locationLabel: masterMockTest2.profile.locationLabel,
-    shortDescription: masterMockTest2.profile.shortDescription,
-    coverImage: masterMockTest2.profile.coverImage,
-    shareImage: masterMockTest2.profile.shareImage,
-    metaTitle: masterMockTest2.profile.metaTitle,
-    metaDescription: masterMockTest2.profile.metaDescription,
+    slug: masterMockTest2.clientProfile.slug,
+    coupleNames: masterMockTest2.clientProfile.coupleNames,
+    weddingDateLabel: masterMockTest2.clientProfile.weddingDateLabel,
+    locationLabel: masterMockTest2.clientProfile.locationLabel,
+    shortDescription: masterMockTest2.clientProfile.shortDescription,
+    coverImage: masterMockTest2.clientProfile.coverImage,
+    shareImage: masterMockTest2.clientProfile.shareImage,
+    metaTitle: masterMockTest2.clientProfile.metaTitle,
+    metaDescription: masterMockTest2.clientProfile.metaDescription,
 };
 
 export default test2Profile;

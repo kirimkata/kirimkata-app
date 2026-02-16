@@ -86,7 +86,8 @@ export async function POST(request: NextRequest) {
             .insert({
                 slug: payload.slug,
                 theme_key: payload.themeKey,
-                client_profile: payload.profile,
+                // client_profile: payload.profile, // ERROR: profile does not exist on InvitationPayload
+                client_profile: payload.clientProfile, // Correct property name from interface
                 bride: payload.bride,
                 groom: payload.groom,
                 event: {

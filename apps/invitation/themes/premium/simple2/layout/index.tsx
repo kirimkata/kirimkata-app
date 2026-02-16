@@ -257,8 +257,8 @@ export default function LayoutSimple2({
                         <Section8
                             backgroundImageUrl={section8Config.backgroundImageUrl}
                             overlayOpacity={section8Config.overlayOpacity}
-                            title={invitationContent?.clouds?.attireGuide?.title || section8Config.title}
-                            description={invitationContent?.clouds?.attireGuide?.subtitle || section8Config.description}
+                            title={invitationContent?.greetings?.attireGuide?.title || section8Config.title}
+                            description={invitationContent?.greetings?.attireGuide?.subtitle || section8Config.description}
                             colors={section8Config.colors}
                         />
                     </div>
@@ -285,9 +285,9 @@ export default function LayoutSimple2({
                         <Section10
                             backgroundImageUrl={section10Config.backgroundImageUrl}
                             overlayOpacity={section10Config.overlayOpacity}
-                            eyebrow={invitationContent?.clouds?.weddingFrame?.title || section10Config.eyebrow}
+                            eyebrow={invitationContent?.greetings?.weddingFrame?.title || section10Config.eyebrow}
                             title={section10Config.title}
-                            description={invitationContent?.clouds?.weddingFrame?.subtitle || section10Config.description}
+                            description={invitationContent?.greetings?.weddingFrame?.subtitle || section10Config.description}
                             weddingFrameLink={section10Config.weddingFrameLink}
                             uploadPhotosLink={section10Config.uploadPhotosLink}
                             disclaimer={section10Config.disclaimer}
