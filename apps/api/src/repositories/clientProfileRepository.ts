@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { invitationContents } from '../db/schema';
+import { invitationPages } from '../db/schema';
 import type { Env } from '../lib/types';
 
 // Define ClientProfile interface locally  
@@ -28,12 +28,12 @@ export class ClientProfileRepository {
 
         try {
             const result = await db.select({
-                slug: invitationContents.slug,
-                profile: invitationContents.profile,
-                themeKey: invitationContents.themeKey,
+                slug: invitationPages.slug,
+                profile: invitationPages.profile,
+                themeKey: invitationPages.themeKey,
             })
-                .from(invitationContents)
-                .where(eq(invitationContents.slug, slug))
+                .from(invitationPages)
+                .where(eq(invitationPages.slug, slug))
                 .limit(1);
 
             if (result.length === 0) {

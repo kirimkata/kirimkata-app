@@ -2,7 +2,7 @@
 import { eq, desc, not, isNull, and, isNotNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { clients, invitationContents, invitationPages } from '../db/schema';
+import { clients, invitationPages } from '../db/schema';
 import { encrypt, comparePassword } from '../services-invitation/encryption';
 import type { Env } from '../lib/types';
 
@@ -207,7 +207,7 @@ export class ClientRepository {
 
         try {
             // Get all slugs from invitation_contents
-            const allSlugsResult = await db.select({ slug: invitationContents.slug }).from(invitationContents);
+            const allSlugsResult = await db.select({ slug: invitationPages.slug }).from(invitationPages);
 
             // Get all assigned slugs from invitation_pages
             const assignedSlugsResult = await db.select({ slug: invitationPages.slug })

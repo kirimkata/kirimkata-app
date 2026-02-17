@@ -1,4 +1,4 @@
-import { pgTable, index, unique, pgEnum, uuid, text, jsonb, timestamp, foreignKey, serial, varchar, integer, bigserial, boolean, date, time, numeric } from "drizzle-orm/pg-core"
+import { pgTable, index, foreignKey, pgEnum, serial, uuid, varchar, text, integer, timestamp, bigserial, unique, date, time, boolean, jsonb, numeric } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const buckettype = pgEnum("buckettype", ['VECTOR', 'ANALYTICS', 'STANDARD'])
@@ -14,80 +14,6 @@ export const oauthAuthorizationStatus = pgEnum("oauth_authorization_status", ['e
 export const oauthResponseType = pgEnum("oauth_response_type", ['code'])
 export const oauthClientType = pgEnum("oauth_client_type", ['confidential', 'public'])
 
-
-export const admins = pgTable("admins", {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    username: varchar("username", { length: 255 }).notNull(),
-    passwordEncrypted: text("password_encrypted").notNull(),
-    email: varchar("email", { length: 255 }),
-    createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
-},
-    (table) => {
-        return {
-            idxAdminsUsername: index("idx_admins_username").on(table.username),
-            adminsUsernameKey: unique("admins_username_key").on(table.username),
-        }
-    });
-
-export const clients = pgTable("clients", {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    username: varchar("username", { length: 255 }).notNull(),
-    passwordEncrypted: text("password_encrypted").notNull(),
-    email: varchar("email", { length: 255 }),
-    createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
-    quotaPhotos: integer("quota_photos").default(10),
-    quotaMusic: integer("quota_music").default(1),
-    quotaVideos: integer("quota_videos").default(1),
-    messageTemplate: text("message_template"),
-    guestbookAccess: boolean("guestbook_access").default(false),
-    isPublished: boolean("is_published").default(false),
-    paymentStatus: varchar("payment_status", { length: 50 }).default('pending'),
-    paymentVerifiedAt: timestamp("payment_verified_at", { withTimezone: true, mode: 'string' }),
-    paymentVerifiedBy: uuid("payment_verified_by").references(() => admins.id),
-    emailVerified: boolean("email_verified").default(false),
-    emailVerificationToken: text("email_verification_token"),
-    emailVerificationTokenExpiresAt: timestamp("email_verification_token_expires_at", { withTimezone: true, mode: 'string' }),
-    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true, mode: 'string' }),
-},
-    (table) => {
-        return {
-            idxClientsUsername: index("idx_clients_username").on(table.username),
-            idxClientsIsPublished: index("idx_clients_is_published").on(table.isPublished),
-            idxClientsPaymentStatus: index("idx_clients_payment_status").on(table.paymentStatus),
-            clientsUsernameKey: unique("clients_username_key").on(table.username),
-        }
-    });
-
-
-export const invitationPages = pgTable("invitation_pages", {
-    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-    clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
-    slug: text("slug").notNull(),
-    profile: jsonb("profile").notNull(),
-    bride: jsonb("bride").notNull(),
-    groom: jsonb("groom").notNull(),
-    event: jsonb("event").notNull(),
-    greetings: jsonb("greetings").notNull(),
-    eventDetails: jsonb("event_details").notNull(),
-    loveStory: jsonb("love_story").notNull(),
-    gallery: jsonb("gallery").notNull(),
-    weddingGift: jsonb("wedding_gift").notNull(),
-    closing: jsonb("closing").notNull(),
-    musicSettings: jsonb("music_settings"),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    themeKey: text("theme_key").default('parallax/parallax-custom1'),
-    customImages: jsonb("custom_images"),
-},
-    (table) => {
-        return {
-            idxInvitationContentsSlug: index("idx_invitation_contents_slug").on(table.slug),
-            idxInvitationPagesClientId: index("idx_invitation_pages_client_id").on(table.clientId),
-            invitationContentsSlugKey: unique("invitation_contents_slug_key").on(table.slug),
-        }
-    });
 
 export const clientMedia = pgTable("client_media", {
     id: serial("id").primaryKey().notNull(),
@@ -122,76 +48,6 @@ export const invitationWishes = pgTable("invitation_wishes", {
         }
     });
 
-export const guests = pgTable("guests", {
-    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }).notNull(),
-    phone: varchar("phone", { length: 50 }).notNull(),
-    email: varchar("email", { length: 255 }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    sent: boolean("sent").default(false),
-    eventId: uuid("event_id").references(() => guestbookEvents.id, { onDelete: "cascade" }),
-    guestCode: varchar("guest_code", { length: 50 }),
-    qrCode: text("qr_code"),
-    guestTypeId: uuid("guest_type_id").references(() => guestTypes.id, { onDelete: "set null" }),
-    source: varchar("source", { length: 20 }).default('registered'),
-    maxCompanions: integer("max_companions").default(0),
-    actualCompanions: integer("actual_companions").default(0),
-    tableNumber: integer("table_number"),
-    seatNumber: varchar("seat_number", { length: 20 }),
-    seatingArea: varchar("seating_area", { length: 100 }),
-    isCheckedIn: boolean("is_checked_in").default(false),
-    checkedInAt: timestamp("checked_in_at", { withTimezone: true, mode: 'string' }),
-    notes: text("notes"),
-    guestGroup: varchar("guest_group", { length: 100 }),
-    seatingConfigId: uuid("seating_config_id").references(() => eventSeatingConfig.id, { onDelete: "set null" }),
-},
-    (table) => {
-        return {
-            idxInvitationGuestsClientId: index("idx_invitation_guests_client_id").on(table.clientId),
-            idxInvitationGuestsEventId: index("idx_invitation_guests_event_id").on(table.eventId),
-            idxInvitationGuestsGuestCode: index("idx_invitation_guests_guest_code").on(table.guestCode),
-            idxInvitationGuestsIsCheckedIn: index("idx_invitation_guests_is_checked_in").on(table.isCheckedIn),
-            idxInvitationGuestsGuestType: index("idx_invitation_guests_guest_type").on(table.guestTypeId),
-            idxInvitationGuestsSeatingConfig: index("idx_invitation_guests_seating_config").on(table.seatingConfigId),
-            idxInvitationGuestsGuestGroup: index("idx_invitation_guests_guest_group").on(table.guestGroup),
-            idxInvitationGuestsEventGroup: index("idx_invitation_guests_event_group").on(table.eventId, table.guestGroup),
-            invitationGuestsGuestCodeKey: unique("invitation_guests_guest_code_key").on(table.guestCode),
-        }
-    });
-
-export const guestbookEvents = pgTable("guestbook_events", {
-    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-    invitationId: uuid("invitation_id").references(() => invitationPages.id, { onDelete: "cascade" }),
-    eventName: varchar("event_name", { length: 255 }).notNull(),
-    eventDate: date("event_date").notNull(),
-    eventTime: time("event_time"),
-    venueName: varchar("venue_name", { length: 255 }),
-    venueAddress: text("venue_address"),
-    isActive: boolean("is_active").default(true),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    staffQuota: integer("staff_quota").default(2),
-    staffQuotaUsed: integer("staff_quota_used").default(0),
-    hasInvitation: boolean("has_invitation").default(true),
-    hasGuestbook: boolean("has_guestbook").default(false),
-    invitationConfig: jsonb("invitation_config").default({}),
-    guestbookConfig: jsonb("guestbook_config").default({}),
-    seatingMode: varchar("seating_mode", { length: 20 }).default('no_seat'),
-},
-    (table) => {
-        return {
-            idxEventsClientId: index("idx_events_client_id").on(table.clientId),
-            idxEventsDate: index("idx_events_date").on(table.eventDate),
-            idxEventsHasInvitation: index("idx_events_has_invitation").on(table.hasInvitation),
-            idxEventsHasGuestbook: index("idx_events_has_guestbook").on(table.hasGuestbook),
-            idxEventsSeatingMode: index("idx_events_seating_mode").on(table.seatingMode),
-            uniqueEventInvitation: unique("unique_event_invitation").on(table.invitationId),
-        }
-    });
-
 export const guestTypes = pgTable("guest_types", {
     id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
     clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
@@ -211,6 +67,37 @@ export const guestTypes = pgTable("guest_types", {
         }
     });
 
+export const guestbookEvents = pgTable("guestbook_events", {
+    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+    eventName: varchar("event_name", { length: 255 }).notNull(),
+    eventDate: date("event_date").notNull(),
+    eventTime: time("event_time"),
+    venueName: varchar("venue_name", { length: 255 }),
+    venueAddress: text("venue_address"),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    staffQuota: integer("staff_quota").default(2),
+    staffQuotaUsed: integer("staff_quota_used").default(0),
+    hasInvitation: boolean("has_invitation").default(true),
+    hasGuestbook: boolean("has_guestbook").default(false),
+    invitationConfig: jsonb("invitation_config").default({}),
+    guestbookConfig: jsonb("guestbook_config").default({}),
+    seatingMode: varchar("seating_mode", { length: 20 }).default('no_seat'),
+    invitationId: uuid("invitation_id").references(() => invitationPages.id, { onDelete: "cascade" }),
+},
+    (table) => {
+        return {
+            idxEventsClientId: index("idx_events_client_id").on(table.clientId),
+            idxEventsDate: index("idx_events_date").on(table.eventDate),
+            idxEventsHasInvitation: index("idx_events_has_invitation").on(table.hasInvitation),
+            idxEventsHasGuestbook: index("idx_events_has_guestbook").on(table.hasGuestbook),
+            idxEventsSeatingMode: index("idx_events_seating_mode").on(table.seatingMode),
+            uniqueEventInvitation: unique("unique_event_invitation").on(table.invitationId),
+        }
+    });
+
 export const guestTypeBenefits = pgTable("guest_type_benefits", {
     id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
     guestTypeId: uuid("guest_type_id").notNull().references(() => guestTypes.id, { onDelete: "cascade" }),
@@ -225,6 +112,48 @@ export const guestTypeBenefits = pgTable("guest_type_benefits", {
         return {
             idxGuestTypeBenefitsActive: index("idx_guest_type_benefits_active").on(table.isActive),
             idxGuestTypeBenefitsGuestType: index("idx_guest_type_benefits_guest_type").on(table.guestTypeId, table.isActive),
+        }
+    });
+
+export const guests = pgTable("guests", {
+    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 50 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    sent: boolean("sent").default(false),
+    eventId: uuid("event_id").references(() => guestbookEvents.id, { onDelete: "cascade" }),
+    guestCode: varchar("guest_code", { length: 50 }),
+    qrCode: text("qr_code"),
+    guestTypeId: uuid("guest_type_id").references(() => guestTypes.id, { onDelete: "set null" }),
+    source: varchar("source", { length: 20 }).default('registered'),
+    maxCompanions: integer("max_companions").default(0),
+    actualCompanions: integer("actual_companions").default(0),
+    tableNumber: integer("table_number"),
+    seatNumber: varchar("seat_number", { length: 20 }),
+    seatingArea: varchar("seating_area", { length: 100 }),
+    isCheckedIn: boolean("is_checked_in").default(false),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true, mode: 'string' }),
+    notes: text("notes"),
+    guestGroup: varchar("guest_group", { length: 100 }),
+    seatingConfigId: uuid("seating_config_id").references(() => eventSeatingConfig.id, { onDelete: "set null" }),
+    email: varchar("email", { length: 255 }),
+    invitationId: uuid("invitation_id").references(() => invitationPages.id, { onDelete: "cascade" }),
+},
+    (table) => {
+        return {
+            idxInvitationGuestsClientId: index("idx_invitation_guests_client_id").on(table.clientId),
+            idxInvitationGuestsEventId: index("idx_invitation_guests_event_id").on(table.eventId),
+            idxInvitationGuestsGuestCode: index("idx_invitation_guests_guest_code").on(table.guestCode),
+            idxInvitationGuestsIsCheckedIn: index("idx_invitation_guests_is_checked_in").on(table.isCheckedIn),
+            idxInvitationGuestsGuestType: index("idx_invitation_guests_guest_type").on(table.guestTypeId),
+            idxInvitationGuestsSeatingConfig: index("idx_invitation_guests_seating_config").on(table.seatingConfigId),
+            idxInvitationGuestsGuestGroup: index("idx_invitation_guests_guest_group").on(table.guestGroup),
+            idxInvitationGuestsEventGroup: index("idx_invitation_guests_event_group").on(table.eventId, table.guestGroup),
+            idxGuestsInvitation: index("idx_guests_invitation").on(table.invitationId),
+            idxGuestsCheckin: index("idx_guests_checkin").on(table.invitationId, table.isCheckedIn),
+            invitationGuestsGuestCodeKey: unique("invitation_guests_guest_code_key").on(table.guestCode),
         }
     });
 
@@ -323,7 +252,50 @@ export const clientStaffQuota = pgTable("client_staff_quota", {
         }
     });
 
+export const admins = pgTable("admins", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    username: varchar("username", { length: 255 }).notNull(),
+    passwordEncrypted: text("password_encrypted").notNull(),
+    email: varchar("email", { length: 255 }),
+    createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxAdminsUsername: index("idx_admins_username").on(table.username),
+            adminsUsernameKey: unique("admins_username_key").on(table.username),
+        }
+    });
 
+export const clients = pgTable("clients", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    username: varchar("username", { length: 255 }).notNull(),
+    passwordEncrypted: text("password_encrypted").notNull(),
+    email: varchar("email", { length: 255 }),
+    createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+    quotaPhotos: integer("quota_photos").default(10),
+    quotaMusic: integer("quota_music").default(1),
+    quotaVideos: integer("quota_videos").default(1),
+    messageTemplate: text("message_template"),
+    guestbookAccess: boolean("guestbook_access").default(false),
+    isPublished: boolean("is_published").default(false),
+    paymentStatus: varchar("payment_status", { length: 50 }).default('pending'),
+    paymentVerifiedAt: timestamp("payment_verified_at", { withTimezone: true, mode: 'string' }),
+    paymentVerifiedBy: uuid("payment_verified_by").references(() => admins.id),
+    emailVerified: boolean("email_verified").default(false),
+    emailVerificationToken: text("email_verification_token"),
+    emailVerificationTokenExpiresAt: timestamp("email_verification_token_expires_at", { withTimezone: true, mode: 'string' }),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true, mode: 'string' }),
+},
+    (table) => {
+        return {
+            idxClientsUsername: index("idx_clients_username").on(table.username),
+            idxClientsIsPublished: index("idx_clients_is_published").on(table.isPublished),
+            idxClientsPaymentStatus: index("idx_clients_payment_status").on(table.paymentStatus),
+            clientsUsernameKey: unique("clients_username_key").on(table.username),
+        }
+    });
 
 export const eventSeatingConfig = pgTable("event_seating_config", {
     id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
@@ -331,7 +303,7 @@ export const eventSeatingConfig = pgTable("event_seating_config", {
     seatingType: varchar("seating_type", { length: 20 }).notNull(),
     name: varchar("name", { length: 100 }).notNull(),
     capacity: integer("capacity").default(1),
-    allowedGuestTypeIds: uuid("allowed_guest_type_ids").default(sql`'{}'`).array(),
+    allowedGuestTypeIds: uuid("allowed_guest_type_ids").array(),
     positionData: jsonb("position_data"),
     isActive: boolean("is_active").default(true),
     sortOrder: integer("sort_order").default(0),
@@ -360,6 +332,87 @@ export const benefitCatalog = pgTable("benefit_catalog", {
         return {
             idxBenefitCatalogSortOrder: index("idx_benefit_catalog_sort_order").on(table.sortOrder),
             benefitCatalogBenefitKeyKey: unique("benefit_catalog_benefit_key_key").on(table.benefitKey),
+        }
+    });
+
+export const addonCatalog = pgTable("addon_catalog", {
+    id: serial("id").primaryKey().notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    price: integer("price").notNull(),
+    unit: varchar("unit", { length: 50 }).notNull(),
+    category: varchar("category", { length: 50 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true),
+    sortOrder: integer("sort_order").default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxAddonsCategory: index("idx_addons_category").on(table.category, table.isActive),
+            addonCatalogSlugKey: unique("addon_catalog_slug_key").on(table.slug),
+        }
+    });
+
+export const invitationGreetingSettings = pgTable("invitation_greeting_settings", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    registrationId: uuid("registration_id").notNull().references(() => weddingRegistrations.id, { onDelete: "cascade" }),
+    sectionKey: varchar("section_key", { length: 50 }).notNull(),
+    displayOrder: integer("display_order").default(1).notNull(),
+    title: text("title"),
+    subtitle: text("subtitle"),
+    showBrideName: boolean("show_bride_name").default(false),
+    showGroomName: boolean("show_groom_name").default(false),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxGreetingSectionsRegistration: index("idx_greeting_sections_registration").on(table.displayOrder, table.registrationId),
+            uqGreetingSectionKey: unique("uq_greeting_section_key").on(table.registrationId, table.sectionKey),
+        }
+    });
+
+export const orders = pgTable("orders", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    orderNumber: varchar("order_number", { length: 50 }).notNull(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 50 }).default('wedding'),
+    title: varchar("title", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull(),
+    mainDate: date("main_date").notNull(),
+    inviterType: varchar("inviter_type", { length: 50 }).default('couple'),
+    inviterData: jsonb("inviter_data").notNull(),
+    templateId: integer("template_id").notNull().references(() => templates.id),
+    templatePrice: integer("template_price").notNull(),
+    addons: jsonb("addons").default([]),
+    subtotal: integer("subtotal").notNull(),
+    discount: integer("discount").default(0),
+    voucherCode: varchar("voucher_code", { length: 50 }),
+    total: integer("total").notNull(),
+    paymentStatus: varchar("payment_status", { length: 20 }).default('pending'),
+    paymentProofUrl: text("payment_proof_url"),
+    paymentMethod: varchar("payment_method", { length: 50 }),
+    paymentBank: varchar("payment_bank", { length: 100 }),
+    paymentAccountName: varchar("payment_account_name", { length: 255 }),
+    paymentVerifiedAt: timestamp("payment_verified_at", { withTimezone: true, mode: 'string' }),
+    paymentVerifiedBy: uuid("payment_verified_by").references(() => admins.id),
+    paymentRejectionReason: text("payment_rejection_reason"),
+    status: varchar("status", { length: 20 }).default('draft'),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxOrdersNumber: index("idx_orders_number").on(table.orderNumber),
+            idxOrdersClient: index("idx_orders_client").on(table.clientId),
+            idxOrdersSlug: index("idx_orders_slug").on(table.slug),
+            idxOrdersStatus: index("idx_orders_status").on(table.paymentStatus, table.status),
+            idxOrdersExpires: index("idx_orders_expires").on(table.expiresAt),
+            idxOrdersPending: index("idx_orders_pending").on(table.createdAt, table.paymentStatus),
+            ordersOrderNumberKey: unique("orders_order_number_key").on(table.orderNumber),
+            ordersSlugKey: unique("orders_slug_key").on(table.slug),
         }
     });
 
@@ -421,25 +474,6 @@ export const weddingRegistrations = pgTable("wedding_registrations", {
         }
     });
 
-export const invitationGreetingSettings = pgTable("invitation_greeting_settings", {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    registrationId: uuid("registration_id").notNull().references(() => weddingRegistrations.id, { onDelete: "cascade" }),
-    sectionKey: varchar("section_key", { length: 50 }).notNull(),
-    displayOrder: integer("display_order").default(1).notNull(),
-    title: text("title"),
-    subtitle: text("subtitle"),
-    showBrideName: boolean("show_bride_name").default(false),
-    showGroomName: boolean("show_groom_name").default(false),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-},
-    (table) => {
-        return {
-            idxGreetingSectionsRegistration: index("idx_greeting_sections_registration").on(table.displayOrder, table.registrationId),
-            uqGreetingSectionKey: unique("uq_greeting_section_key").on(table.registrationId, table.sectionKey),
-        }
-    });
-
 export const invitationLoveStoryContent = pgTable("invitation_love_story_content", {
     id: uuid("id").defaultRandom().primaryKey().notNull(),
     registrationId: uuid("registration_id").notNull().references(() => weddingRegistrations.id, { onDelete: "cascade" }),
@@ -464,9 +498,33 @@ export const gallerySettings = pgTable("gallery_settings", {
     youtubeEmbedUrl: text("youtube_embed_url"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    images: text("images").default('RRAY[').array(),
+    images: text("images").array(),
     isEnabled: boolean("is_enabled").default(true),
 });
+
+export const templates = pgTable("templates", {
+    id: serial("id").primaryKey().notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    category: varchar("category", { length: 50 }).notNull(),
+    basePrice: integer("base_price").notNull(),
+    description: text("description"),
+    features: jsonb("features").default({}),
+    thumbnailUrl: text("thumbnail_url"),
+    previewUrl: text("preview_url"),
+    demoSlug: varchar("demo_slug", { length: 255 }),
+    isActive: boolean("is_active").default(true),
+    sortOrder: integer("sort_order").default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxTemplatesCategory: index("idx_templates_category").on(table.category, table.isActive),
+            idxTemplatesActive: index("idx_templates_active").on(table.isActive, table.sortOrder),
+            templatesSlugKey: unique("templates_slug_key").on(table.slug),
+        }
+    });
 
 export const weddingGiftBankAccounts = pgTable("wedding_gift_bank_accounts", {
     id: uuid("id").defaultRandom().primaryKey().notNull(),
@@ -483,6 +541,35 @@ export const weddingGiftBankAccounts = pgTable("wedding_gift_bank_accounts", {
         }
     });
 
+export const invoices = pgTable("invoices", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    invoiceNumber: varchar("invoice_number", { length: 50 }).notNull(),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+    invoiceDate: date("invoice_date").default(sql`CURRENT_DATE`).notNull(),
+    dueDate: date("due_date"),
+    subtotal: integer("subtotal").notNull(),
+    discount: integer("discount").default(0),
+    total: integer("total").notNull(),
+    paymentStatus: varchar("payment_status", { length: 20 }).default('unpaid'),
+    paidAt: timestamp("paid_at", { withTimezone: true, mode: 'string' }),
+    pdfUrl: text("pdf_url"),
+    pdfGeneratedAt: timestamp("pdf_generated_at", { withTimezone: true, mode: 'string' }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxInvoicesOrder: index("idx_invoices_order").on(table.orderId),
+            idxInvoicesClient: index("idx_invoices_client").on(table.clientId),
+            idxInvoicesNumber: index("idx_invoices_number").on(table.invoiceNumber),
+            idxInvoicesStatus: index("idx_invoices_status").on(table.paymentStatus),
+            idxInvoicesDate: index("idx_invoices_date").on(table.invoiceDate),
+            invoicesInvoiceNumberKey: unique("invoices_invoice_number_key").on(table.invoiceNumber),
+        }
+    });
+
 export const themeSettings = pgTable("theme_settings", {
     registrationId: uuid("registration_id").primaryKey().notNull().references(() => weddingRegistrations.id, { onDelete: "cascade" }),
     themeKey: varchar("theme_key", { length: 100 }).default('premium/simple1'),
@@ -496,6 +583,73 @@ export const themeSettings = pgTable("theme_settings", {
     enableClosing: boolean("enable_closing").default(true),
     customCss: text("custom_css"),
 });
+
+export const guestbookAddons = pgTable("guestbook_addons", {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    invitationId: uuid("invitation_id").notNull().references(() => invitationPages.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id").references(() => orders.id),
+    isEnabled: boolean("is_enabled").default(false),
+    enabledAt: timestamp("enabled_at", { withTimezone: true, mode: 'string' }),
+    disabledAt: timestamp("disabled_at", { withTimezone: true, mode: 'string' }),
+    paymentVerified: boolean("payment_verified").default(false),
+    paymentVerifiedAt: timestamp("payment_verified_at", { withTimezone: true, mode: 'string' }),
+    paymentVerifiedBy: uuid("payment_verified_by").references(() => admins.id),
+    paymentAmount: integer("payment_amount"),
+    paymentProofUrl: text("payment_proof_url"),
+    seatingMode: varchar("seating_mode", { length: 20 }).default('no_seat'),
+    staffQuota: integer("staff_quota").default(2),
+    staffQuotaUsed: integer("staff_quota_used").default(0),
+    config: jsonb("config").default({}),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxGuestbookAddonsInvitation: index("idx_guestbook_addons_invitation").on(table.invitationId),
+            idxGuestbookAddonsEnabled: index("idx_guestbook_addons_enabled").on(table.isEnabled),
+            idxGuestbookAddonsOrder: index("idx_guestbook_addons_order").on(table.orderId),
+            guestbookAddonsInvitationIdKey: unique("guestbook_addons_invitation_id_key").on(table.invitationId),
+        }
+    });
+
+export const invitationPages = pgTable("invitation_pages", {
+    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    slug: text("slug").notNull(),
+    profile: jsonb("profile").notNull(),
+    bride: jsonb("bride").notNull(),
+    groom: jsonb("groom").notNull(),
+    event: jsonb("event").notNull(),
+    greetings: jsonb("greetings").notNull(),
+    eventDetails: jsonb("event_details").notNull(),
+    loveStory: jsonb("love_story").notNull(),
+    gallery: jsonb("gallery").notNull(),
+    weddingGift: jsonb("wedding_gift").notNull(),
+    closing: jsonb("closing").notNull(),
+    musicSettings: jsonb("music_settings"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    themeKey: text("theme_key").default('parallax/parallax-custom1'),
+    customImages: jsonb("custom_images"),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    verificationStatus: varchar("verification_status", { length: 20 }).default('pending'),
+    verifiedAt: timestamp("verified_at", { withTimezone: true, mode: 'string' }),
+    verifiedBy: uuid("verified_by").references(() => admins.id),
+    activeUntil: date("active_until"),
+    isActive: boolean("is_active").default(true),
+    archivedAt: timestamp("archived_at", { withTimezone: true, mode: 'string' }),
+    orderId: uuid("order_id").references(() => orders.id),
+},
+    (table) => {
+        return {
+            idxInvitationPagesClientId: index("idx_invitation_pages_client_id").on(table.clientId),
+            idxInvitationContentsSlug: index("idx_invitation_contents_slug").on(table.slug),
+            idxInvitationPagesActive: index("idx_invitation_pages_active").on(table.activeUntil, table.isActive),
+            idxInvitationPagesVerification: index("idx_invitation_pages_verification").on(table.verificationStatus),
+            idxInvitationPagesOrder: index("idx_invitation_pages_order").on(table.orderId),
+            idxInvitationPagesExpiring: index("idx_invitation_pages_expiring").on(table.activeUntil),
+            invitationContentsSlugKey: unique("invitation_contents_slug_key").on(table.slug),
+        }
+    });
 
 export const loveStorySettings = pgTable("love_story_settings", {
     registrationId: uuid("registration_id").primaryKey().notNull().references(() => weddingRegistrations.id, { onDelete: "cascade" }),
@@ -549,28 +703,3 @@ export const closingSettings = pgTable("closing_settings", {
     isEnabled: boolean("is_enabled").default(true),
     messageLine3: text("message_line3"),
 });
-
-export const invitationContents = pgTable("invitation_contents", {
-    id: uuid("id").primaryKey().notNull(),
-    slug: varchar("slug", { length: 255 }).notNull(),
-    themeKey: varchar("theme_key", { length: 100 }),
-    customImages: jsonb("custom_images"),
-    profile: jsonb("profile"),
-    bride: jsonb("bride"),
-    groom: jsonb("groom"),
-    event: jsonb("event"),
-    greetings: jsonb("greetings"),
-    eventDetails: jsonb("event_details"),
-    loveStory: jsonb("love_story"),
-    gallery: jsonb("gallery"),
-    weddingGift: jsonb("wedding_gift"),
-    closing: jsonb("closing"),
-    musicSettings: jsonb("music_settings"),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-},
-    (table) => {
-        return {
-            invitationContentsSlugKey: unique("invitation_contents_slug_key").on(table.slug),
-        }
-    });

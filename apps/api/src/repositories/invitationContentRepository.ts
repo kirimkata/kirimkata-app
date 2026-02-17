@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '../db';
-import { invitationContents } from '../db/schema';
+import { invitationPages } from '../db/schema';
 import type { Env } from '../lib/types';
 
 // Define ClientProfile interface locally  
@@ -148,7 +148,7 @@ export interface FullInvitationContent {
   musicSettings?: BackgroundMusicContent;
 }
 
-function mapRowToFullContent(row: typeof invitationContents.$inferSelect): FullInvitationContent {
+function mapRowToFullContent(row: typeof invitationPages.$inferSelect): FullInvitationContent {
   // Drizzle JSON columns are typed as unknown or any by default unless custom types used.
   // We cast them.
   return {
@@ -177,8 +177,8 @@ export async function fetchFullInvitationContent(env: Env, slug: string): Promis
     // Try to read from cache
     const [data] = await db
       .select()
-      .from(invitationContents)
-      .where(eq(invitationContents.slug, slug))
+      .from(invitationPages)
+      .where(eq(invitationPages.slug, slug))
       .limit(1);
 
     if (data) {
