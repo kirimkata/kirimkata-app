@@ -191,14 +191,15 @@ export default function MediaPicker({
                 }
 
                 .modal-container {
-                    background: white;
+                    background: #1a1a1a;
                     border-radius: 0.75rem;
                     max-width: 900px;
                     width: 100%;
                     max-height: 85vh;
                     display: flex;
                     flex-direction: column;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                 }
 
                 .modal-header {
@@ -206,14 +207,14 @@ export default function MediaPicker({
                     justify-content: space-between;
                     align-items: center;
                     padding: 1.5rem;
-                    border-bottom: 1px solid #e5e7eb;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 }
 
                 .modal-header h3 {
                     margin: 0;
                     font-size: 1.25rem;
                     font-weight: 600;
-                    color: #111827;
+                    color: #F5F5F0;
                 }
 
                 .close-btn {
@@ -221,14 +222,14 @@ export default function MediaPicker({
                     border: none;
                     font-size: 1.5rem;
                     cursor: pointer;
-                    color: #6b7280;
+                    color: rgba(245, 245, 240, 0.6);
                     padding: 0;
                     line-height: 1;
                     transition: color 0.2s;
                 }
 
                 .close-btn:hover {
-                    color: #111827;
+                    color: #F5F5F0;
                 }
 
                 .modal-body {
@@ -240,7 +241,7 @@ export default function MediaPicker({
                 .loading, .empty-state {
                     text-align: center;
                     padding: 3rem 1rem;
-                    color: #6b7280;
+                    color: rgba(245, 245, 240, 0.6);
                 }
 
                 .empty-icon {
@@ -250,7 +251,7 @@ export default function MediaPicker({
 
                 .empty-hint {
                     font-size: 0.875rem;
-                    color: #9ca3af;
+                    color: rgba(245, 245, 240, 0.4);
                     margin-top: 0.5rem;
                 }
 
@@ -261,8 +262,8 @@ export default function MediaPicker({
                 }
 
                 .file-card {
-                    background: white;
-                    border: 2px solid #e5e7eb;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 2px solid rgba(255, 255, 255, 0.1);
                     border-radius: 0.5rem;
                     overflow: hidden;
                     cursor: pointer;
@@ -277,12 +278,12 @@ export default function MediaPicker({
 
                 .file-card.selected {
                     border-color: #3b82f6;
-                    background: #eff6ff;
+                    background: rgba(37, 99, 235, 0.1);
                 }
 
                 .file-preview {
                     aspect-ratio: 1;
-                    background: #f3f4f6;
+                    background: rgba(0, 0, 0, 0.2);
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -323,7 +324,7 @@ export default function MediaPicker({
                 .file-name {
                     font-size: 0.875rem;
                     font-weight: 500;
-                    color: #111827;
+                    color: #F5F5F0;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -332,7 +333,7 @@ export default function MediaPicker({
 
                 .file-size {
                     font-size: 0.75rem;
-                    color: #6b7280;
+                    color: rgba(245, 245, 240, 0.6);
                 }
 
                 .modal-footer {
@@ -340,7 +341,7 @@ export default function MediaPicker({
                     justify-content: flex-end;
                     gap: 0.75rem;
                     padding: 1.5rem;
-                    border-top: 1px solid #e5e7eb;
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
                 }
 
                 .btn-cancel, .btn-confirm {
@@ -354,12 +355,12 @@ export default function MediaPicker({
                 }
 
                 .btn-cancel {
-                    background: #f3f4f6;
-                    color: #374151;
+                    background: rgba(255, 255, 255, 0.1);
+                    color: #F5F5F0;
                 }
 
                 .btn-cancel:hover {
-                    background: #e5e7eb;
+                    background: rgba(255, 255, 255, 0.2);
                 }
 
                 .btn-confirm {
@@ -373,7 +374,8 @@ export default function MediaPicker({
                 }
 
                 .btn-confirm:disabled {
-                    background: #9ca3af;
+                    background: rgba(255, 255, 255, 0.1);
+                    color: rgba(245, 245, 240, 0.3);
                     cursor: not-allowed;
                 }
 

@@ -21,14 +21,16 @@ export const editorStyles = `
     gap: 0.375rem;
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #374151;
+    color: #F5F5F0;
     margin-bottom: 0.375rem;
   }
 
   .form-group textarea {
     width: 100%;
     padding: 0.625rem 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #F5F5F0;
     border-radius: 0.375rem;
     font-family: 'Segoe UI', sans-serif;
     font-size: 0.875rem;
@@ -42,7 +44,9 @@ export const editorStyles = `
   .form-group textarea {
     width: 100%;
     padding: 0.625rem 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #F5F5F0;
     border-radius: 0.375rem;
     font-family: 'Segoe UI', sans-serif;
     font-size: 0.875rem;
@@ -53,19 +57,21 @@ export const editorStyles = `
   .form-group input:focus,
   .form-group textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
   }
 
   .form-group input:disabled,
   .form-group textarea:disabled {
-    background-color: #f9fafb;
+    background-color: rgba(255, 255, 255, 0.02);
     cursor: not-allowed;
+    color: rgba(245, 245, 240, 0.3);
   }
 
   .form-group input::placeholder,
   .form-group textarea::placeholder {
-    color: #9ca3af;
+    color: rgba(245, 245, 240, 0.3);
     font-size: 0.8125rem;
   }
 
@@ -78,7 +84,7 @@ export const editorStyles = `
   .input-with-prefix .prefix {
     position: absolute;
     left: 0.75rem;
-    color: #6b7280;
+    color: rgba(245, 245, 240, 0.6);
     font-size: 0.875rem;
     pointer-events: none;
   }
@@ -93,7 +99,7 @@ export const editorStyles = `
 
   .collapsible-section {
     margin-bottom: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.5rem;
     overflow: visible;
   }
@@ -104,7 +110,7 @@ export const editorStyles = `
     justify-content: space-between;
     align-items: center;
     padding: 0.875rem 1rem;
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    background: rgba(255, 255, 255, 0.03);
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -112,18 +118,18 @@ export const editorStyles = `
   }
 
   .section-header:hover {
-    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .section-title {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #374151;
+    color: #F5F5F0;
   }
 
   .chevron {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: rgba(245, 245, 240, 0.6);
     transition: transform 0.2s ease;
   }
 
@@ -133,7 +139,7 @@ export const editorStyles = `
 
   .section-content {
     padding: 1rem;
-    background: white;
+    background: transparent;
     animation: slideDown 0.2s ease;
   }
 

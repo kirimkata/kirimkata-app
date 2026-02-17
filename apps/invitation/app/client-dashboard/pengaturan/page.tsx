@@ -109,23 +109,30 @@ export default function PengaturanPage() {
                 </div>
             )}
 
-            <h1 className="text-2xl font-bold mb-6">Pengaturan Akun</h1>
+            <h1 className="text-2xl font-bold mb-6 text-[#F5F5F0]">Pengaturan Akun</h1>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+            <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '0.75rem',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '1.5rem',
+                maxWidth: '42rem',
+                backdropFilter: 'blur(10px)',
+            }}>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Email Section */}
                     <div>
-                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Email</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-[#F5F5F0]">Email</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
                                     Alamat Email
                                 </label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                     placeholder="nama@email.com"
                                     required
                                 />
@@ -133,51 +140,51 @@ export default function PengaturanPage() {
                         </div>
                     </div>
 
-                    <hr className="border-gray-100" />
+                    <hr className="border-white/10" />
 
                     {/* Password Section */}
                     <div>
-                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Ganti Password</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-[#F5F5F0]">Ganti Password</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
                                     Password Saat Ini
                                 </label>
                                 <input
                                     type="password"
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                     placeholder="Masukkan password saat ini"
                                 />
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-slate-400 mt-1">
                                     Diperlukan jika ingin mengubah password
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
                                         Password Baru
                                     </label>
                                     <input
                                         type="password"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                         placeholder="Password baru"
                                         minLength={6}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
                                         Konfirmasi Password
                                     </label>
                                     <input
                                         type="password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                         placeholder="Ulangi password baru"
                                         minLength={6}
                                     />
@@ -190,7 +197,7 @@ export default function PengaturanPage() {
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className={`w-full text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium ${isSaving ? 'bg-gray-400' : 'bg-blue-600'}`}
+                            className={`w-full text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium ${isSaving ? 'bg-gray-600' : 'bg-blue-600'}`}
                         >
                             {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
                         </button>

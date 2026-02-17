@@ -52,27 +52,33 @@ export default function ClientLoginPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)',
+            padding: '1rem',
+            background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)', // Dark gradient background
             fontFamily: 'Segoe UI, sans-serif',
+            color: '#F5F5F0',
         }}>
             <div style={{
                 width: '100%',
                 maxWidth: '400px',
                 padding: '2rem',
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)', // Glassmorphism
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1rem',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
             }}>
                 <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
                     <h1 style={{
-                        fontSize: '1.875rem',
-                        fontWeight: 'bold',
-                        color: '#111827',
+                        fontSize: '2rem',
+                        fontWeight: '300',
+                        color: '#F5F5F0',
                         marginBottom: '0.5rem',
+                        fontFamily: 'Georgia, serif',
+                        letterSpacing: '0.05em',
                     }}>
                         Client Login
                     </h1>
-                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                    <p style={{ color: 'rgba(245, 245, 240, 0.7)', fontSize: '0.875rem' }}>
                         KirimKata Client Dashboard
                     </p>
                 </div>
@@ -83,7 +89,7 @@ export default function ClientLoginPage() {
                             display: 'block',
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: '#374151',
+                            color: 'rgba(245, 245, 240, 0.9)',
                             marginBottom: '0.5rem',
                         }}>
                             Username
@@ -96,11 +102,16 @@ export default function ClientLoginPage() {
                             style={{
                                 width: '100%',
                                 padding: '0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
+                                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.875rem',
                                 fontFamily: 'Segoe UI, sans-serif',
+                                color: '#F5F5F0',
+                                outline: 'none',
                             }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                         />
                     </div>
 
@@ -109,7 +120,7 @@ export default function ClientLoginPage() {
                             display: 'block',
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: '#374151',
+                            color: 'rgba(245, 245, 240, 0.9)',
                             marginBottom: '0.5rem',
                         }}>
                             Password
@@ -124,11 +135,16 @@ export default function ClientLoginPage() {
                                     width: '100%',
                                     padding: '0.75rem',
                                     paddingRight: '3rem',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '0.375rem',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem',
                                     fontFamily: 'Segoe UI, sans-serif',
+                                    color: '#F5F5F0',
+                                    outline: 'none',
                                 }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                             />
                             <button
                                 type="button"
@@ -145,7 +161,7 @@ export default function ClientLoginPage() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: '#6b7280',
+                                    color: 'rgba(245, 245, 240, 0.6)',
                                 }}
                                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                             >
@@ -167,9 +183,10 @@ export default function ClientLoginPage() {
                     {error && (
                         <div style={{
                             padding: '0.75rem',
-                            backgroundColor: '#fee2e2',
-                            color: '#991b1b',
-                            borderRadius: '0.375rem',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            border: '1px solid rgba(239, 68, 68, 0.5)',
+                            color: '#fca5a5',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             marginBottom: '1rem',
                         }}>
@@ -183,14 +200,28 @@ export default function ClientLoginPage() {
                         style={{
                             width: '100%',
                             padding: '0.75rem',
-                            background: loading ? '#9ca3af' : 'linear-gradient(to right, #2563eb, #06b6d4)',
-                            color: 'white',
+                            background: loading ? 'rgba(245, 245, 240, 0.5)' : '#F5F5F0',
+                            color: '#1a1a1a',
                             fontWeight: 600,
-                            borderRadius: '0.375rem',
+                            borderRadius: '50px',
                             border: 'none',
                             cursor: loading ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontFamily: 'Segoe UI, sans-serif',
+                            letterSpacing: '0.05em',
+                            transition: 'all 0.3s',
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!loading) {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!loading) {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }
                         }}
                     >
                         {loading ? 'Logging in...' : 'Login'}
@@ -203,14 +234,22 @@ export default function ClientLoginPage() {
                             width: '100%',
                             marginTop: '1rem',
                             padding: '0.75rem',
-                            backgroundColor: 'white',
-                            color: '#4b5563',
-                            fontWeight: 600,
-                            borderRadius: '0.375rem',
-                            border: '1px solid #d1d5db',
+                            backgroundColor: 'transparent',
+                            color: '#F5F5F0',
+                            fontWeight: 500,
+                            borderRadius: '50px',
+                            border: '1px solid rgba(245, 245, 240, 0.3)',
                             cursor: 'pointer',
                             fontSize: '0.875rem',
                             fontFamily: 'Segoe UI, sans-serif',
+                            letterSpacing: '0.05em',
+                            transition: 'all 0.3s',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                     >
                         Daftar Sekarang

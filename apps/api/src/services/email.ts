@@ -70,57 +70,69 @@ export async function sendVerificationEmail(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verifikasi Email - KirimKata</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1a1a1a; color: #F5F5F0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1a1a1a; padding: 20px;">
         <tr>
             <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #2d2d2d; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);">
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">KirimKata</h1>
-                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">Undangan Digital Anda</p>
+                        <td style="background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); padding: 40px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <h1 style="margin: 0; color: #F5F5F0; font-size: 28px; font-weight: 300; letter-spacing: 0.1em; font-family: Georgia, serif;">kirimkata</h1>
                         </td>
                     </tr>
                     
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px 30px;">
-                            <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px;">Halo, ${params.username}!</h2>
-                            <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.6;">
-                                Terima kasih telah mendaftar di KirimKata. Untuk melanjutkan, silakan verifikasi alamat email Anda dengan mengklik tombol di bawah ini:
+                            <p style="margin: 0 0 20px 0; color: #F5F5F0; font-size: 16px; line-height: 1.6;">Halo, ${params.username}!</p>
+                            
+                            <p style="margin: 0 0 20px 0; color: rgba(245, 245, 240, 0.8); font-size: 16px; line-height: 1.6;">
+                                Selamat datang di <strong>KirimKata - The Signature of Your Special Moment</strong>.
+                            </p>
+
+                            <p style="margin: 0 0 20px 0; color: rgba(245, 245, 240, 0.8); font-size: 16px; line-height: 1.6;">
+                                Untuk mengaktifkan akun Anda dan mulai membuat undangan digital, silakan verifikasi alamat email Anda dengan menekan tombol di bawah ini:
                             </p>
                             
                             <!-- CTA Button -->
                             <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="${verificationUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold;">
+                                        <a href="${verificationUrl}" style="display: inline-block; padding: 16px 40px; background-color: #F5F5F0; color: #1a1a1a; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: 600; letter-spacing: 0.05em; transition: all 0.3s;">
                                             Verifikasi Email
                                         </a>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <p style="margin: 20px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
-                                Atau salin dan tempel link berikut ke browser Anda:
+                            <p style="margin: 20px 0 0 0; color: rgba(245, 245, 240, 0.8); font-size: 14px; line-height: 1.6;">
+                                Jika tombol tidak dapat diklik, Anda dapat menyalin dan membuka tautan berikut di browser Anda:
                             </p>
-                            <p style="margin: 10px 0 0 0; color: #667eea; font-size: 14px; word-break: break-all;">
-                                ${verificationUrl}
+                            <p style="margin: 10px 0 0 0; color: #F5F5F0; font-size: 14px; word-break: break-all; opacity: 0.8;">
+                                <a href="${verificationUrl}" style="color: #F5F5F0; text-decoration: underline;">${verificationUrl}</a>
                             </p>
                             
-                            <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #eeeeee;">
-                                <p style="margin: 0; color: #999999; font-size: 13px; line-height: 1.6;">
-                                    <strong>Catatan:</strong> Link verifikasi ini berlaku selama 24 jam. Jika Anda tidak mendaftar di KirimKata, abaikan email ini.
+                            <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <p style="margin: 0 0 10px 0; color: rgba(245, 245, 240, 0.8); font-size: 14px; line-height: 1.6;">
+                                    <strong>Penting:</strong>
+                                </p>
+                                <p style="margin: 0; color: rgba(245, 245, 240, 0.6); font-size: 14px; line-height: 1.6;">
+                                    Tautan verifikasi ini berlaku selama <strong>24 jam</strong>. Jika Anda tidak merasa mendaftar di KirimKata, silakan abaikan email ini.
                                 </p>
                             </div>
+
+                            <p style="margin: 30px 0 0 0; color: rgba(245, 245, 240, 0.8); font-size: 16px; line-height: 1.6;">
+                                Terima kasih telah bergabung,<br>
+                                <strong>Tim KirimKata</strong>
+                            </p>
                         </td>
                     </tr>
                     
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8f8f8; padding: 20px 30px; text-align: center;">
-                            <p style="margin: 0; color: #999999; font-size: 12px;">
+                        <td style="background-color: #1a1a1a; padding: 20px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <p style="margin: 0; color: rgba(245, 245, 240, 0.4); font-size: 12px;">
                                 © 2026 KirimKata. All rights reserved.
                             </p>
                         </td>
@@ -164,17 +176,17 @@ export async function sendPasswordResetEmail(
     <meta charset="utf-8">
     <title>Reset Password - KirimKata</title>
 </head>
-<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px;">
-        <h1 style="color: #333333;">Reset Password</h1>
-        <p>Halo ${username},</p>
-        <p>Anda menerima email ini karena ada permintaan untuk reset password akun Anda.</p>
-        <p>Klik tombol di bawah untuk reset password:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #1a1a1a; padding: 20px; color: #F5F5F0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #2d2d2d; padding: 40px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        <h1 style="color: #F5F5F0; font-size: 24px; font-weight: 300; letter-spacing: 0.05em; margin-bottom: 24px;">Reset Password</h1>
+        <p style="color: rgba(245, 245, 240, 0.8); line-height: 1.6;">Halo ${username},</p>
+        <p style="color: rgba(245, 245, 240, 0.8); line-height: 1.6;">Anda menerima email ini karena ada permintaan untuk reset password akun Anda.</p>
+        <p style="color: rgba(245, 245, 240, 0.8); line-height: 1.6;">Klik tombol di bawah untuk reset password:</p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 14px 32px; background-color: #F5F5F0; color: #1a1a1a; text-decoration: none; border-radius: 50px; margin: 24px 0; font-weight: 600; letter-spacing: 0.05em;">
             Reset Password
         </a>
-        <p>Atau salin link berikut: ${resetUrl}</p>
-        <p style="color: #999999; font-size: 12px; margin-top: 30px;">
+        <p style="color: rgba(245, 245, 240, 0.8); line-height: 1.6;">Atau salin link berikut: <span style="color: #F5F5F0; opacity: 0.8; word-break: break-all;">${resetUrl}</span></p>
+        <p style="color: rgba(245, 245, 240, 0.5); font-size: 13px; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
             Link ini berlaku selama 1 jam. Jika Anda tidak meminta reset password, abaikan email ini.
         </p>
     </div>

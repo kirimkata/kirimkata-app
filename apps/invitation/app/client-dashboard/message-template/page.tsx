@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Copy, Check, FileText } from 'lucide-react';
 
 interface MessageTemplate {
     title: string;
@@ -152,8 +153,8 @@ Terima kasih banyak atas perhatiannya.`
                         Berikut adalah contoh format kata-kata untuk mengirim undangan.
                         Silakan bisa kamu pilih format yang cocok untuk undangan kamu, kemudian bisa kamu copy dan paste pada halaman <strong>Kirim Undangan</strong>.
                     </p>
-                    <div className="info-box">
-                        <strong>📝 Catatan:</strong> <code>{'{nama}'}</code> dan <code>{'{link}'}</code> tidak perlu diedit, karena akan terisi otomatis.
+                    <div className="info-box" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FileText size={16} /> <strong>Catatan:</strong> <code>{'{nama}'}</code> dan <code>{'{link}'}</code> tidak perlu diedit, karena akan terisi otomatis.
                     </div>
                 </div>
 
@@ -169,17 +170,12 @@ Terima kasih banyak atas perhatiannya.`
                                 >
                                     {copiedIndex === index ? (
                                         <>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
+                                            <Check size={16} />
                                             Copied!
                                         </>
                                     ) : (
                                         <>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                            </svg>
+                                            <Copy size={16} />
                                             Copy
                                         </>
                                     )}

@@ -1,8 +1,9 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface CollapsibleSectionProps {
     title: string;
-    emoji: string;
+    icon: React.ReactNode;
     isExpanded: boolean;
     onToggle: () => void;
     children: React.ReactNode;
@@ -14,7 +15,7 @@ interface CollapsibleSectionProps {
 
 export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     title,
-    emoji,
+    icon,
     isExpanded,
     onToggle,
     children,
@@ -29,7 +30,8 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                 <div className="collapsible-header" onClick={onToggle}>
                     <div className="header-left">
                         <h2>
-                            {emoji} {title}
+                            <span className="section-icon">{icon}</span>
+                            {title}
                             {hasUnsavedChanges && <span className="unsaved-dot" title="Ada perubahan belum disimpan"></span>}
                         </h2>
                     </div>
@@ -49,7 +51,15 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                                 {saving ? 'Menyimpan...' : 'Simpan'}
                             </button>
                         )}
-                        <span className={`chevron ${isExpanded ? 'open' : ''}`}>▼</span>
+                        <ChevronDown
+                            size={20}
+                            style={{
+                                strokeWidth: 2.5,
+                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s ease',
+                                color: 'rgba(245, 245, 240, 0.6)'
+                            }}
+                        />
                     </div>
                 </div>
                 {isExpanded && <div className="collapsible-content">{children}</div>}
@@ -87,11 +97,18 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                 .collapsible-header h2 {
                     font-size: 1.125rem;
                     font-weight: 600;
-                    color: #111827;
+                    color: #F5F5F0;
                     margin: 0;
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
+                    gap: 0.75rem;
+                }
+
+                .section-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #F5F5F0;
                 }
 
                 .unsaved-dot {
@@ -133,20 +150,10 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
                 }
 
                 .btn-save.disabled {
-                    background: #9ca3af;
+                    background: rgba(255, 255, 255, 0.1);
+                    color: rgba(245, 245, 240, 0.3);
                     cursor: not-allowed;
                     opacity: 0.6;
-                }
-
-                .chevron {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    transition: transform 0.2s ease;
-                    display: inline-block;
-                }
-
-                .chevron.open {
-                    transform: rotate(180deg);
                 }
 
                 .collapsible-content {

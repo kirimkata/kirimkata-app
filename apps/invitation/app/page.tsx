@@ -85,33 +85,68 @@ export default function LandingPageV2() {
                             kirimkata
                         </div>
 
-                        {/* Order Button */}
-                        <button
-                            onClick={() => trackButtonClick('order_header', 'landing_page_v2', 'ORDER')}
-                            style={{
-                                padding: '0.5rem 1.5rem',
-                                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                color: '#F5F5F0',
-                                fontWeight: '500',
-                                borderRadius: '2rem',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '0.875rem',
-                                letterSpacing: '0.05em',
-                                transition: 'all 0.3s',
-                                fontFamily: 'Segoe UI, sans-serif',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 1)';
-                                e.currentTarget.style.transform = 'scale(1)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                                e.currentTarget.style.transform = 'scale(1)';
-                            }}
-                        >
-                            ORDER
-                        </button>
+                        {/* Buttons */}
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            {/* Order Button - Points to Register */}
+                            <Link
+                                href="/client-dashboard/register"
+                                onClick={() => trackButtonClick('order_header', 'landing_page_v2', 'ORDER')}
+                                style={{
+                                    padding: '0.5rem 1.5rem',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                    color: '#F5F5F0',
+                                    fontWeight: '500',
+                                    borderRadius: '2rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    letterSpacing: '0.05em',
+                                    transition: 'all 0.3s',
+                                    fontFamily: 'Segoe UI, sans-serif',
+                                    textDecoration: 'none',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 1)';
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                }}
+                            >
+                                ORDER
+                            </Link>
+
+                            {/* Masuk Button - Points to Login */}
+                            <Link
+                                href="/client-dashboard/login"
+                                onClick={() => trackButtonClick('login_header', 'landing_page_v2', 'LOGIN')}
+                                style={{
+                                    padding: '0.5rem 1.5rem',
+                                    backgroundColor: 'transparent',
+                                    color: '#F5F5F0',
+                                    fontWeight: '500',
+                                    borderRadius: '2rem',
+                                    border: '1px solid rgba(245, 245, 240, 0.5)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    letterSpacing: '0.05em',
+                                    transition: 'all 0.3s',
+                                    fontFamily: 'Segoe UI, sans-serif',
+                                    textDecoration: 'none',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(245, 245, 240, 0.1)';
+                                    e.currentTarget.style.borderColor = '#F5F5F0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.borderColor = 'rgba(245, 245, 240, 0.5)';
+                                }}
+                            >
+                                Masuk
+                            </Link>
+                        </div>
                     </div>
                 </header>
 

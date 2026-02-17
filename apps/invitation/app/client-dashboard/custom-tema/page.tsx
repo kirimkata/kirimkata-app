@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_ENDPOINTS } from '@/lib/api-config';
 import { InvitationAPI } from '@/lib/api/client';
+import { Info, Camera, Loader2, Upload, Image as ImageIcon, Check } from 'lucide-react';
 
 interface MediaFile {
     id: number;
@@ -236,7 +237,7 @@ export default function CustomTemaPage() {
         return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏳</div>
+                    <div style={{ marginBottom: '0.5rem' }}><Loader2 className="animate-spin" size={32} /></div>
                     <p>Loading...</p>
                 </div>
             </div>
@@ -284,7 +285,7 @@ export default function CustomTemaPage() {
             {!hasAnyCustomImage && (
                 <div style={{ marginBottom: '1.5rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                        <div style={{ fontSize: '1.5rem' }}>ℹ️</div>
+                        <div style={{ fontSize: '1.5rem' }}><Info size={24} /></div>
                         <div>
                             <h3 style={{ fontWeight: 600, color: '#1e3a8a', marginBottom: '0.25rem' }}>Belum ada foto custom</h3>
                             <p style={{ fontSize: '0.875rem', color: '#1e40af', marginBottom: '0.5rem' }}>
@@ -346,7 +347,7 @@ export default function CustomTemaPage() {
                                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#eff6ff'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 >
-                                    <div style={{ fontSize: '2.25rem', marginBottom: '0.5rem' }}>📷</div>
+                                    <div style={{ marginBottom: '0.5rem' }}><Camera size={36} /></div>
                                     <p style={{ color: '#4b5563', fontWeight: 500 }}>Pilih Foto</p>
                                     <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>Menggunakan foto default</p>
                                 </button>

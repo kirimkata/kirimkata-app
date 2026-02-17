@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { InvitationAPI } from '@/lib/api/client';
+import { Image, Music, Video, Upload, Folder, Eye, Copy, Trash2, X, Loader2 } from 'lucide-react';
 
 interface MediaFile {
     id: number;
@@ -230,19 +231,19 @@ export default function MediaLibraryPage() {
     const quotaItems = quota ? [
         {
             key: 'photos',
-            emoji: '📸',
+            icon: <Image size={24} />,
             title: 'Foto',
             data: quota.photos,
         },
         {
             key: 'music',
-            emoji: '🎵',
+            icon: <Music size={24} />,
             title: 'Musik',
             data: quota.music,
         },
         {
             key: 'videos',
-            emoji: '🎬',
+            icon: <Video size={24} />,
             title: 'Video',
             data: quota.videos,
         },
@@ -255,10 +256,11 @@ export default function MediaLibraryPage() {
                 {/* Quota Display */}
                 {quota && (
                     <div className="quota-section">
+                        {/* Modified mapping to use icon property instead of emoji */}
                         {quotaItems.map((item) => (
                             <div className="quota-item" key={item.key}>
                                 <div className="quota-label">
-                                    <span className="quota-emoji" aria-hidden="true">{item.emoji}</span>
+                                    <span className="quota-icon" aria-hidden="true">{item.icon}</span>
                                     <span className="quota-title">{item.title}</span>
                                 </div>
                                 <div className="quota-bar">
@@ -279,8 +281,10 @@ export default function MediaLibraryPage() {
                 {/* Error Alert */}
                 {error && (
                     <div className="error-alert">
-                        <strong>⚠️ {error}</strong>
-                        <button onClick={() => setError(null)} className="close-btn">✕</button>
+                        <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <X size={16} /> {error}
+                        </strong>
+                        <button onClick={() => setError(null)} className="close-btn"><X size={16} /></button>
                     </div>
                 )}
 
@@ -290,19 +294,19 @@ export default function MediaLibraryPage() {
                         className={`tab ${activeTab === 'photo' ? 'active' : ''}`}
                         onClick={() => setActiveTab('photo')}
                     >
-                        📸 Foto
+                        <Image size={16} style={{ marginRight: '6px' }} /> Foto
                     </button>
                     <button
                         className={`tab ${activeTab === 'music' ? 'active' : ''}`}
                         onClick={() => setActiveTab('music')}
                     >
-                        🎵 Musik
+                        <Music size={16} style={{ marginRight: '6px' }} /> Musik
                     </button>
                     <button
                         className={`tab ${activeTab === 'video' ? 'active' : ''}`}
                         onClick={() => setActiveTab('video')}
                     >
-                        🎬 Video
+                        <Video size={16} style={{ marginRight: '6px' }} /> Video
                     </button>
                 </div>
 
@@ -313,8 +317,10 @@ export default function MediaLibraryPage() {
                         disabled={isUploadDisabled()}
                         className="upload-btn"
                         title={isUploadDisabled() && !uploading ? 'Quota penuh' : ''}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                        {uploading ? '⏳ Uploading...' : '⬆️ Upload File'}
+                        {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                        {uploading ? 'Uploading...' : 'Upload File'}
                     </button>
                     <input
                         ref={fileInputRef}
@@ -327,10 +333,13 @@ export default function MediaLibraryPage() {
 
                 {/* Files Grid */}
                 {loading ? (
-                    <div className="loading">Loading...</div>
+                    <div className="loading">
+                        <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto' }} />
+                        <p style={{ marginTop: '1rem' }}>Loading...</p>
+                    </div>
                 ) : files.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-icon">📁</div>
+                        <div className="empty-icon"><Folder size={64} /></div>
                         <p>Belum ada file. Upload file pertama Anda!</p>
                     </div>
                 ) : (
@@ -341,9 +350,9 @@ export default function MediaLibraryPage() {
                                     {file.file_type === 'photo' ? (
                                         <img src={file.file_url} alt={file.file_name} />
                                     ) : file.file_type === 'music' ? (
-                                        <div className="file-icon">🎵</div>
+                                        <div className="file-icon"><Music size={48} /></div>
                                     ) : (
-                                        <div className="file-icon">🎬</div>
+                                        <div className="file-icon"><Video size={48} /></div>
                                     )}
                                 </div>
                                 <div className="file-info">
@@ -354,13 +363,13 @@ export default function MediaLibraryPage() {
                                 </div>
                                 <div className="file-actions">
                                     <button onClick={() => setPreviewFile(file)} className="btn-preview" title="Preview">
-                                        👁️
+                                        <Eye size={16} />
                                     </button>
                                     <button onClick={() => copyUrl(file.file_url)} className="btn-copy" title="Copy URL">
-                                        📋
+                                        <Copy size={16} />
                                     </button>
                                     <button onClick={() => handleDelete(file.id)} className="btn-delete" title="Hapus">
-                                        🗑️
+                                        <Trash2 size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -374,7 +383,7 @@ export default function MediaLibraryPage() {
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h3>{previewFile.file_name}</h3>
-                                <button onClick={() => setPreviewFile(null)} className="modal-close">✕</button>
+                                <button onClick={() => setPreviewFile(null)} className="modal-close"><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 {previewFile.file_type === 'photo' && (
@@ -388,8 +397,8 @@ export default function MediaLibraryPage() {
                                 )}
                             </div>
                             <div className="modal-footer">
-                                <button onClick={() => copyUrl(previewFile.file_url)} className="btn-copy-url">
-                                    📋 Copy URL
+                                <button onClick={() => copyUrl(previewFile.file_url)} className="btn-copy-url" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Copy size={16} /> Copy URL
                                 </button>
                             </div>
                         </div>
@@ -431,8 +440,11 @@ export default function MediaLibraryPage() {
                     white-space: nowrap;
                 }
 
-                .quota-emoji {
-                    font-size: 1rem;
+                .quota-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #6b7280;
                 }
 
                 .quota-title {
@@ -545,8 +557,11 @@ export default function MediaLibraryPage() {
                 }
 
                 .empty-icon {
-                    font-size: 4rem;
+                    /* font-size removed, handled by Lucide size */
                     margin-bottom: 1rem;
+                    color: #d1d5db;
+                    display: flex;
+                    justify-content: center;
                 }
 
                 .files-grid {
@@ -585,6 +600,10 @@ export default function MediaLibraryPage() {
 
                 .file-icon {
                     font-size: 2.75rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #6b7280;
                 }
 
                 .file-info {
@@ -622,14 +641,20 @@ export default function MediaLibraryPage() {
                     cursor: pointer;
                     font-size: 0.875rem;
                     transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #4b5563;
                 }
 
                 .file-actions button:hover {
                     background: #e5e7eb;
+                    color: #111827;
                 }
 
                 .btn-delete:hover {
-                    background: #fee2e2;
+                    background: #fee2e2 !important;
+                    color: #991b1b !important;
                 }
 
                 .modal-overlay {
@@ -677,6 +702,8 @@ export default function MediaLibraryPage() {
                     color: #6b7280;
                     padding: 0;
                     line-height: 1;
+                    display: flex;
+                    align-items: center;
                 }
 
                 .modal-body {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClient } from '@/lib/contexts/ClientContext';
 import { InvitationAPI } from '@/lib/api/client';
+import { Users, CheckSquare, MapPin, Shield, Search } from 'lucide-react';
 
 // ============================================================================
 // INTERFACES
@@ -442,29 +443,32 @@ export default function GuestbookPage() {
       <div style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.8)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
-        padding: '20px'
+        padding: '20px',
+        backdropFilter: 'blur(5px)'
       }} onClick={() => !isSubmittingStaff && setShowStaffModal(false)}>
         <div style={{
-          backgroundColor: '#fff',
+          backgroundColor: '#1a1a1a',
           borderRadius: '16px',
           padding: '32px',
           maxWidth: '600px',
           width: '100%',
           maxHeight: '90vh',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          color: '#F5F5F0'
         }} onClick={(e) => e.stopPropagation()}>
-          <h2 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 700 }}>
+          <h2 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 700, color: '#F5F5F0' }}>
             {editingStaff ? 'Edit Staff' : 'Tambah Staff Baru'}
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Username *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#F5F5F0' }}>Username *</label>
               <input
                 type="text"
                 value={staffForm.username}
@@ -473,7 +477,9 @@ export default function GuestbookPage() {
                   width: '100%',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#F5F5F0',
                   fontSize: '15px'
                 }}
                 placeholder="username_staff"
@@ -482,7 +488,7 @@ export default function GuestbookPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Nama Lengkap *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#F5F5F0' }}>Nama Lengkap *</label>
               <input
                 type="text"
                 value={staffForm.full_name}
@@ -491,7 +497,9 @@ export default function GuestbookPage() {
                   width: '100%',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#F5F5F0',
                   fontSize: '15px'
                 }}
                 placeholder="Nama Staff"
@@ -500,7 +508,7 @@ export default function GuestbookPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Password *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#F5F5F0' }}>Password *</label>
               <input
                 type="password"
                 value={staffForm.password}
@@ -509,7 +517,9 @@ export default function GuestbookPage() {
                   width: '100%',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#F5F5F0',
                   fontSize: '15px'
                 }}
                 placeholder="Minimal 6 karakter"
@@ -518,7 +528,7 @@ export default function GuestbookPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>No. HP</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#F5F5F0' }}>No. HP</label>
               <input
                 type="tel"
                 value={staffForm.phone}
@@ -527,7 +537,9 @@ export default function GuestbookPage() {
                   width: '100%',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#F5F5F0',
                   fontSize: '15px'
                 }}
                 placeholder="08xxxxxxxxxx"
@@ -536,7 +548,7 @@ export default function GuestbookPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600 }}>Permissions</label>
+              <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600, color: '#F5F5F0' }}>Permissions</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {[
                   { key: 'can_checkin', label: 'Check-in Tamu' },
@@ -544,12 +556,12 @@ export default function GuestbookPage() {
                   { key: 'can_redeem_snack', label: 'Redeem Snack' },
                   { key: 'can_access_vip_lounge', label: 'Akses VIP Lounge' }
                 ].map(({ key, label }) => (
-                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#F5F5F0' }}>
                     <input
                       type="checkbox"
                       checked={staffForm[key as keyof typeof staffForm] as boolean}
                       onChange={(e) => setStaffForm(prev => ({ ...prev, [key]: e.target.checked }))}
-                      style={{ width: '18px', height: '18px' }}
+                      style={{ width: '18px', height: '18px', accentColor: '#2563eb' }}
                       disabled={isSubmittingStaff}
                     />
                     <span>{label}</span>
@@ -567,8 +579,8 @@ export default function GuestbookPage() {
                   padding: '14px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: '#2563eb',
-                  color: '#fff',
+                  backgroundColor: '#F5F5F0',
+                  color: '#1a1a1a',
                   fontWeight: 600,
                   cursor: isSubmittingStaff ? 'not-allowed' : 'pointer',
                   opacity: isSubmittingStaff ? 0.6 : 1
@@ -586,9 +598,9 @@ export default function GuestbookPage() {
                   flex: 1,
                   padding: '14px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: '#fff',
-                  color: '#374151',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'transparent',
+                  color: '#F5F5F0',
                   fontWeight: 600,
                   cursor: isSubmittingStaff ? 'not-allowed' : 'pointer'
                 }}
@@ -607,20 +619,21 @@ export default function GuestbookPage() {
       {/* Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
         {[
-          { label: 'Total Guests', value: guestStats?.total || 0, icon: '👥', color: '#2563eb' },
-          { label: 'Checked In', value: guestStats?.checked_in || 0, icon: '✅', color: '#16a34a' },
-          { label: 'Seated', value: seatingStats?.total_assigned || 0, icon: '📍', color: '#7c3aed' },
-          { label: 'Active Staff', value: staff.filter(s => s.is_active).length, icon: '🛡️', color: '#ea580c' },
+          { label: 'Total Guests', value: guestStats?.total || 0, icon: <Users size={32} />, color: '#60a5fa' },
+          { label: 'Checked In', value: guestStats?.checked_in || 0, icon: <CheckSquare size={32} />, color: '#4ade80' },
+          { label: 'Seated', value: seatingStats?.total_assigned || 0, icon: <MapPin size={32} />, color: '#a78bfa' },
+          { label: 'Active Staff', value: staff.filter(s => s.is_active).length, icon: <Shield size={32} />, color: '#fb923c' },
         ].map(({ label, value, icon, color }) => (
           <div key={label} style={{
             padding: '24px',
-            background: '#fff',
+            background: 'rgba(255, 255, 255, 0.05)',
             borderRadius: '18px',
-            border: '1px solid #eef2ff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>{icon}</div>
-            <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>{label}</p>
+            <p style={{ margin: 0, color: 'rgba(245, 245, 240, 0.6)', fontSize: '14px' }}>{label}</p>
             <p style={{ margin: '8px 0 0', fontSize: '32px', fontWeight: 700, color }}>{value}</p>
           </div>
         ))}
@@ -629,29 +642,30 @@ export default function GuestbookPage() {
       {/* Staff Quota */}
       {staffQuota && (
         <div style={{
-          background: '#fff',
+          background: 'rgba(255, 255, 255, 0.05)',
           borderRadius: '18px',
-          border: '1px solid #e5e7eb',
-          padding: '24px'
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: '24px',
+          backdropFilter: 'blur(10px)'
         }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>Staff Quota</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600, color: '#F5F5F0' }}>Staff Quota</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ flex: 1 }}>
               <div style={{
                 height: '12px',
                 borderRadius: '999px',
-                backgroundColor: '#e5e7eb',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 overflow: 'hidden'
               }}>
                 <div style={{
                   width: `${(staffQuota.staff_used / staffQuota.max_staff) * 100}%`,
                   height: '100%',
-                  background: staffQuota.staff_used >= staffQuota.max_staff ? '#dc2626' : '#2563eb',
+                  background: staffQuota.staff_used >= staffQuota.max_staff ? '#ef4444' : '#3b82f6',
                   transition: 'width 300ms'
                 }} />
               </div>
             </div>
-            <div style={{ fontWeight: 600, color: '#374151' }}>
+            <div style={{ fontWeight: 600, color: '#F5F5F0' }}>
               {staffQuota.staff_used} / {staffQuota.max_staff}
             </div>
           </div>
@@ -660,21 +674,22 @@ export default function GuestbookPage() {
 
       {/* Guest Categories */}
       <div style={{
-        background: '#fff',
+        background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: '18px',
-        border: '1px solid #e5e7eb',
-        padding: '24px'
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        padding: '24px',
+        backdropFilter: 'blur(10px)'
       }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600 }}>Guest Categories</h3>
+        <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600, color: '#F5F5F0' }}>Guest Categories</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
           {[
-            { label: 'Regular', value: guestStats?.regular || 0, color: '#1f2937' },
-            { label: 'VIP', value: guestStats?.vip || 0, color: '#7c3aed' },
-            { label: 'VVIP', value: guestStats?.vvip || 0, color: '#b45309' },
+            { label: 'Regular', value: guestStats?.regular || 0, color: '#9ca3af' },
+            { label: 'VIP', value: guestStats?.vip || 0, color: '#a78bfa' },
+            { label: 'VVIP', value: guestStats?.vvip || 0, color: '#fbbf24' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '36px', fontWeight: 700, color }}>{value}</div>
-              <div style={{ marginTop: '4px', color: '#6b7280' }}>{label}</div>
+              <div style={{ marginTop: '4px', color: 'rgba(245, 245, 240, 0.6)' }}>{label}</div>
             </div>
           ))}
         </div>
@@ -682,26 +697,27 @@ export default function GuestbookPage() {
 
       {/* Check-in Progress */}
       <div style={{
-        background: '#fff',
+        background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: '18px',
-        border: '1px solid #e5e7eb',
-        padding: '24px'
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        padding: '24px',
+        backdropFilter: 'blur(10px)'
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>Check-in Progress</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600, color: '#F5F5F0' }}>Check-in Progress</h3>
         <div style={{
           height: '12px',
           borderRadius: '999px',
-          backgroundColor: '#e5e7eb',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
           overflow: 'hidden'
         }}>
           <div style={{
             width: `${guestStats?.total ? (guestStats.checked_in / guestStats.total) * 100 : 0}%`,
             height: '100%',
-            background: 'linear-gradient(90deg, #34d399, #059669)',
+            background: 'linear-gradient(90deg, #34d399, #10b981)',
             transition: 'width 300ms'
           }} />
         </div>
-        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', color: '#6b7280' }}>
+        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', color: 'rgba(245, 245, 240, 0.6)' }}>
           <span>{guestStats?.checked_in || 0} checked in</span>
           <span>{guestStats?.total || 0} total guests</span>
         </div>
@@ -723,7 +739,9 @@ export default function GuestbookPage() {
             minWidth: '250px',
             padding: '12px 16px',
             borderRadius: '8px',
-            border: '1px solid #d1d5db',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            color: '#F5F5F0',
             fontSize: '15px'
           }}
         />
@@ -733,39 +751,42 @@ export default function GuestbookPage() {
           style={{
             padding: '12px 16px',
             borderRadius: '8px',
-            border: '1px solid #d1d5db',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            color: '#F5F5F0',
             fontSize: '15px',
             cursor: 'pointer'
           }}
         >
-          <option value="all">Semua Status</option>
-          <option value="checked_in">Sudah Check-in</option>
-          <option value="not_checked_in">Belum Check-in</option>
+          <option value="all" style={{ backgroundColor: '#1a1a1a' }}>Semua Status</option>
+          <option value="checked_in" style={{ backgroundColor: '#1a1a1a' }}>Sudah Check-in</option>
+          <option value="not_checked_in" style={{ backgroundColor: '#1a1a1a' }}>Belum Check-in</option>
         </select>
       </div>
 
       {/* Guest List */}
       <div style={{
-        background: '#fff',
+        background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: '18px',
-        border: '1px solid #e5e7eb',
-        overflow: 'hidden'
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        overflow: 'hidden',
+        backdropFilter: 'blur(10px)'
       }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#F5F5F0' }}>
             Daftar Tamu ({filteredGuests.length})
           </h3>
         </div>
         <div>
           {filteredGuests.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(245, 245, 240, 0.5)' }}>
               {searchTerm ? 'Tidak ada tamu yang sesuai dengan pencarian' : 'Belum ada tamu'}
             </div>
           ) : (
             filteredGuests.map((guest) => (
               <div key={guest.id} style={{
                 padding: '20px 24px',
-                borderBottom: '1px solid #f3f4f6',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -776,26 +797,26 @@ export default function GuestbookPage() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '50%',
-                    backgroundColor: guest.is_checked_in ? '#d1fae5' : '#eef2ff',
+                    backgroundColor: guest.is_checked_in ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 600,
-                    color: guest.is_checked_in ? '#065f46' : '#4338ca'
+                    color: guest.is_checked_in ? '#34d399' : '#818cf8'
                   }}>
                     {guest.name.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <p style={{ margin: 0, fontWeight: 600, fontSize: '16px' }}>{guest.name}</p>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '16px', color: '#F5F5F0' }}>{guest.name}</p>
                       {guest.is_checked_in && (
                         <span style={{
                           padding: '4px 10px',
                           borderRadius: '999px',
                           fontSize: '12px',
                           fontWeight: 600,
-                          backgroundColor: '#d1fae5',
-                          color: '#065f46'
+                          backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                          color: '#34d399'
                         }}>
                           ✓ Checked In
                         </span>

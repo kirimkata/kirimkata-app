@@ -45,14 +45,15 @@ export const Tooltip: React.FC<TooltipProps> = ({ text, id, activeTooltip, onTog
         transform: translateX(-50%);
         margin-bottom: 0.5rem;
         padding: 0.5rem 0.75rem;
-        background: #1f2937;
-        color: white;
+        background: #1a1a1a;
+        color: #F5F5F0;
         font-size: 0.75rem;
         line-height: 1.4;
         border-radius: 0.375rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         white-space: nowrap;
         z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         animation: tooltipFadeIn 0.2s ease;
       }
 
@@ -74,7 +75,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ text, id, activeTooltip, onTog
         left: 50%;
         transform: translateX(-50%);
         border: 4px solid transparent;
-        border-top-color: #1f2937;
+        border-top-color: #1a1a1a;
       }
     `}</style>
   </div>

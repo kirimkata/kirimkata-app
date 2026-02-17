@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Users,
+  Calendar,
+  Heart,
+  Image,
+  Gift,
+  Music,
+  MessageSquare
+} from 'lucide-react';
+
+import {
   InvitationFormData,
   GalleryData,
   WeddingGiftData,
@@ -10,7 +20,6 @@ import {
   ClosingData,
 } from './types';
 import { InvitationAPI } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api-config';
 import { BrideGroomSection } from './components/BrideGroomSection';
 import { EventSection } from './components/EventSection';
 import { LoveStorySection } from './components/LoveStorySection';
@@ -616,7 +625,7 @@ export default function EditUndanganPage() {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
-        <p>Memuat data...</p>
+        <p style={{ color: '#F5F5F0' }}>Memuat data...</p>
         <style jsx>{`
           .loading-container {
             display: flex;
@@ -629,8 +638,8 @@ export default function EditUndanganPage() {
           .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #f3f4f6;
-            border-top-color: #3b82f6;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #F5F5F0;
             border-radius: 50%;
             animation: spin 1s linear infinite;
           }
@@ -646,16 +655,16 @@ export default function EditUndanganPage() {
 
   return (
     <div className="editor-container">
-      <div className="editor-header">
-        <p>Kelola semua informasi undangan Anda</p>
+      <div className="editor-header" style={{ marginBottom: '24px' }}>
+        <p style={{ color: 'rgba(245, 245, 240, 0.6)', margin: 0 }}>Kelola semua informasi undangan Anda</p>
       </div>
 
       <form onSubmit={handleSave}>
         {/* Section 1: Bride & Groom */}
-        <div className="editor-card">
+        <div className="editor-card" style={{ marginBottom: '16px' }}>
           <CollapsibleSection
             title="Informasi Mempelai"
-            emoji="👥"
+            icon={<Users size={20} />}
             isExpanded={expandedSections.brideGroom}
             onToggle={() => toggleSection('brideGroom')}
             hasUnsavedChanges={unsavedSections.brideGroom}
@@ -676,7 +685,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Acara & Waktu"
-            emoji="📅"
+            icon={<Calendar size={20} />}
             isExpanded={expandedSections.event}
             onToggle={() => toggleSection('event')}
             hasUnsavedChanges={unsavedSections.event}
@@ -697,7 +706,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Cerita Cinta"
-            emoji="💕"
+            icon={<Heart size={20} />}
             isExpanded={expandedSections.loveStory}
             onToggle={() => toggleSection('loveStory')}
             hasUnsavedChanges={unsavedSections.loveStory}
@@ -718,7 +727,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Galeri Foto"
-            emoji="📸"
+            icon={<Image size={20} />}
             isExpanded={expandedSections.gallery}
             onToggle={() => toggleSection('gallery')}
             hasUnsavedChanges={unsavedSections.gallery}
@@ -739,7 +748,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Hadiah Pernikahan"
-            emoji="🎁"
+            icon={<Gift size={20} />}
             isExpanded={expandedSections.weddingGift}
             onToggle={() => toggleSection('weddingGift')}
             hasUnsavedChanges={unsavedSections.weddingGift}
@@ -760,7 +769,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Musik Latar"
-            emoji="🎵"
+            icon={<Music size={20} />}
             isExpanded={expandedSections.backgroundMusic}
             onToggle={() => toggleSection('backgroundMusic')}
             hasUnsavedChanges={unsavedSections.backgroundMusic}
@@ -781,7 +790,7 @@ export default function EditUndanganPage() {
         <div className="editor-card">
           <CollapsibleSection
             title="Penutup"
-            emoji="🎨"
+            icon={<MessageSquare size={20} />}
             isExpanded={expandedSections.closing}
             onToggle={() => toggleSection('closing')}
             hasUnsavedChanges={unsavedSections.closing}
@@ -798,132 +807,26 @@ export default function EditUndanganPage() {
           </CollapsibleSection>
         </div>
 
-        {/* Message */}
-        {message && <div className={`message ${message.type}`}>{message.text}</div>}
+        <style jsx>{`
+          .editor-container {
+            max-width: 800px;
+            margin: 0 auto;
+          }
 
-        {/* Actions */}
-        <div className="actions">
-          <button type="submit" className="btn-save" disabled={saving}>
-            {saving ? 'Menyimpan...' : '💾 Simpan Semua Perubahan'}
-          </button>
-        </div>
-      </form>
-
-      <style jsx>{`
-        .editor-container {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 0 0.75rem 1.5rem;
-        }
-
-        .editor-header {
-          margin-bottom: 1.25rem;
-        }
-
-        .editor-header h1 {
-          font-size: 1.5rem;
-          font-weight: bold;
-          color: #111827;
-          margin: 0 0 0.375rem 0;
-        }
-
-        .editor-header p {
-          color: #6b7280;
-          margin: 0;
-          font-size: 0.875rem;
-        }
-
-        .editor-card {
-          background: white;
-          border-radius: 0.65rem;
-          padding: 1.25rem;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          margin-bottom: 1.25rem;
-        }
-
-        .editor-card :global(h2) {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: #111827;
-          margin: 0 0 1rem 0;
-        }
-
-        .message {
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          font-size: 0.8125rem;
-          margin-bottom: 1rem;
-          font-weight: 500;
-        }
-
-        .message.success {
-          background-color: #d1fae5;
-          color: #065f46;
-          border: 1px solid #6ee7b7;
-        }
-
-        .message.error {
-          background-color: #fee2e2;
-          color: #991b1b;
-          border: 1px solid #fca5a5;
-        }
-
-        .actions {
-          display: flex;
-          gap: 0.75rem;
-          justify-content: flex-end;
-          padding: 1.5rem 0;
-        }
-
-        .btn-save {
-          padding: 0.75rem 1.5rem;
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          color: white;
-          border: none;
-          border-radius: 0.5rem;
-          cursor: pointer;
-          font-weight: 600;
-          font-family: 'Segoe UI', sans-serif;
-          font-size: 0.875rem;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-        }
-
-        .btn-save:hover:not(:disabled) {
-          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-          transform: translateY(-1px);
-        }
-
-        .btn-save:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .btn-save:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 767px) {
           .editor-card {
-            padding: 1rem;
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 1.5rem;
+            transition: all 0.2s ease;
           }
 
-          .editor-header h1 {
-            font-size: 1.5rem;
+          .editor-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
           }
-
-          .actions {
-            flex-direction: column;
-          }
-
-          .btn-save {
-            width: 100%;
-          }
-        }
-      `}</style>
+        `}</style>
+      </form>
     </div>
   );
 }

@@ -59,33 +59,41 @@ export default function ClientRegisterPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)',
+                padding: '1rem',
+                background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
+                color: '#F5F5F0',
                 fontFamily: 'Segoe UI, sans-serif',
             }}>
                 <div style={{
                     width: '100%',
                     maxWidth: '400px',
                     padding: '2rem',
-                    backgroundColor: 'white',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '1rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
                     textAlign: 'center'
                 }}>
                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#F5F5F0', marginBottom: '0.5rem', fontFamily: 'Georgia, serif', letterSpacing: '0.05em' }}>
                         Check Your Email
                     </h2>
-                    <p style={{ color: '#4b5563', marginBottom: '1.5rem' }}>
+                    <p style={{ color: 'rgba(245, 245, 240, 0.7)', marginBottom: '1.5rem', lineHeight: '1.6', fontSize: '0.875rem' }}>
                         {successMessage}
                     </p>
                     <Link href="/client-dashboard/login" style={{
                         display: 'inline-block',
                         padding: '0.75rem 1.5rem',
-                        backgroundColor: '#2563eb',
-                        color: 'white',
+                        backgroundColor: '#F5F5F0',
+                        color: '#1a1a1a',
                         fontWeight: 600,
-                        borderRadius: '0.375rem',
+                        borderRadius: '50px',
                         textDecoration: 'none',
+                        transition: 'all 0.3s',
+                        fontSize: '0.875rem',
+                        letterSpacing: '0.05em',
+                        fontFamily: 'Segoe UI, sans-serif',
                     }}>
                         Back to Login
                     </Link>
@@ -100,27 +108,33 @@ export default function ClientRegisterPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(to bottom right, #f9fafb, #f3f4f6)',
+            padding: '1rem',
+            background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
+            color: '#F5F5F0',
             fontFamily: 'Segoe UI, sans-serif',
         }}>
             <div style={{
                 width: '100%',
                 maxWidth: '400px',
                 padding: '2rem',
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1rem',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
             }}>
                 <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
                     <h1 style={{
-                        fontSize: '1.875rem',
-                        fontWeight: 'bold',
-                        color: '#111827',
+                        fontSize: '2rem',
+                        fontWeight: '300',
+                        color: '#F5F5F0',
                         marginBottom: '0.5rem',
+                        fontFamily: 'Georgia, serif',
+                        letterSpacing: '0.05em'
                     }}>
                         Create Account
                     </h1>
-                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                    <p style={{ color: 'rgba(245, 245, 240, 0.7)', fontSize: '0.875rem' }}>
                         Join KirimKata today
                     </p>
                 </div>
@@ -131,7 +145,7 @@ export default function ClientRegisterPage() {
                             display: 'block',
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: '#374151',
+                            color: 'rgba(245, 245, 240, 0.9)',
                             marginBottom: '0.5rem',
                         }}>
                             Username
@@ -146,11 +160,16 @@ export default function ClientRegisterPage() {
                             style={{
                                 width: '100%',
                                 padding: '0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
+                                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.875rem',
+                                color: '#F5F5F0',
                                 fontFamily: 'Segoe UI, sans-serif',
+                                outline: 'none'
                             }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                         />
                     </div>
 
@@ -159,7 +178,7 @@ export default function ClientRegisterPage() {
                             display: 'block',
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: '#374151',
+                            color: 'rgba(245, 245, 240, 0.9)',
                             marginBottom: '0.5rem',
                         }}>
                             Email
@@ -172,11 +191,16 @@ export default function ClientRegisterPage() {
                             style={{
                                 width: '100%',
                                 padding: '0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.375rem',
+                                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.875rem',
+                                color: '#F5F5F0',
                                 fontFamily: 'Segoe UI, sans-serif',
+                                outline: 'none'
                             }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                         />
                     </div>
 
@@ -185,7 +209,7 @@ export default function ClientRegisterPage() {
                             display: 'block',
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: '#374151',
+                            color: 'rgba(245, 245, 240, 0.9)',
                             marginBottom: '0.5rem',
                         }}>
                             Password
@@ -201,11 +225,16 @@ export default function ClientRegisterPage() {
                                     width: '100%',
                                     padding: '0.75rem',
                                     paddingRight: '3rem',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '0.375rem',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem',
+                                    color: '#F5F5F0',
                                     fontFamily: 'Segoe UI, sans-serif',
+                                    outline: 'none'
                                 }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                             />
                             <button
                                 type="button"
@@ -222,7 +251,7 @@ export default function ClientRegisterPage() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: '#6b7280',
+                                    color: 'rgba(245, 245, 240, 0.6)',
                                 }}
                             >
                                 {showPassword ? (
@@ -238,7 +267,7 @@ export default function ClientRegisterPage() {
                                 )}
                             </button>
                         </div>
-                        <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 240, 0.5)', marginTop: '0.25rem' }}>
                             Minimum 8 characters
                         </p>
                     </div>
@@ -246,9 +275,10 @@ export default function ClientRegisterPage() {
                     {error && (
                         <div style={{
                             padding: '0.75rem',
-                            backgroundColor: '#fee2e2',
-                            color: '#991b1b',
-                            borderRadius: '0.375rem',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            border: '1px solid rgba(239, 68, 68, 0.5)',
+                            color: '#fca5a5',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             marginBottom: '1rem',
                         }}>
@@ -262,26 +292,42 @@ export default function ClientRegisterPage() {
                         style={{
                             width: '100%',
                             padding: '0.75rem',
-                            background: loading ? '#9ca3af' : 'linear-gradient(to right, #2563eb, #06b6d4)',
-                            color: 'white',
+                            backgroundColor: loading ? 'rgba(245, 245, 240, 0.5)' : '#F5F5F0',
+                            color: '#1a1a1a',
                             fontWeight: 600,
-                            borderRadius: '0.375rem',
+                            borderRadius: '50px',
                             border: 'none',
                             cursor: loading ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontFamily: 'Segoe UI, sans-serif',
                             marginBottom: '1rem',
+                            transition: 'all 0.3s',
+                            letterSpacing: '0.05em'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!loading) {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!loading) {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }
                         }}
                     >
                         {loading ? 'Creating Account...' : 'Register'}
                     </button>
 
                     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>
-                        <span style={{ color: '#6b7280' }}>Already have an account? </span>
+                        <span style={{ color: 'rgba(245, 245, 240, 0.7)' }}>Already have an account? </span>
                         <Link href="/client-dashboard/login" style={{
-                            color: '#2563eb',
+                            color: '#F5F5F0',
                             fontWeight: 500,
                             textDecoration: 'none',
+                            borderBottom: '1px solid rgba(245, 245, 240, 0.3)',
+                            paddingBottom: '2px'
                         }}>
                             Login here
                         </Link>

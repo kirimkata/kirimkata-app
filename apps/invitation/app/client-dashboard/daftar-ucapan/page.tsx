@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { API_ENDPOINTS } from '@/lib/api-config';
+import { RefreshCw, Check, X, HelpCircle, ClipboardList } from 'lucide-react';
 
 interface Wish {
     id: number;
@@ -77,28 +78,34 @@ export default function DaftarUcapanPage() {
             case 'hadir':
                 return (
                     <span style={{
-                        fontSize: '1.25rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         color: '#16a34a',
                     }} title="Hadir">
-                        ✓
+                        <Check size={20} />
                     </span>
                 );
             case 'tidak-hadir':
                 return (
                     <span style={{
-                        fontSize: '1.25rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         color: '#dc2626',
                     }} title="Tidak Hadir">
-                        ✗
+                        <X size={20} />
                     </span>
                 );
             case 'masih-ragu':
                 return (
                     <span style={{
-                        fontSize: '1.25rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         color: '#ca8a04',
                     }} title="Masih Ragu">
-                        ?
+                        <HelpCircle size={20} />
                     </span>
                 );
             default:
@@ -116,17 +123,20 @@ export default function DaftarUcapanPage() {
                 <button
                     onClick={fetchWishes}
                     style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
                         padding: '0.5rem 1rem',
-                        backgroundColor: 'white',
-                        border: '1px solid #d1d5db',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
                         fontSize: '0.875rem',
-                        color: '#374151',
+                        color: '#F5F5F0',
                         fontFamily: 'Segoe UI, sans-serif',
                     }}
                 >
-                    🔄 Refresh
+                    <RefreshCw size={16} /> Refresh
                 </button>
             </div>
 
@@ -139,53 +149,61 @@ export default function DaftarUcapanPage() {
                 marginBottom: '1rem',
             }}>
                 <div style={{
-                    backgroundColor: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     padding: '1rem',
                     borderRadius: '0.5rem',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(10px)',
                 }}>
-                    <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '0.25rem' }}>Total Ucapan</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>{wishes.length}</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'rgba(245, 245, 240, 0.6)', marginBottom: '0.25rem' }}>Total Ucapan</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#F5F5F0' }}>{wishes.length}</div>
                 </div>
                 <div style={{
-                    backgroundColor: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     padding: '1rem',
                     borderRadius: '0.5rem',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(10px)',
                 }}>
-                    <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '0.25rem' }}>Estimasi Tamu Hadir</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>{totalGuests}</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'rgba(245, 245, 240, 0.6)', marginBottom: '0.25rem' }}>Estimasi Tamu Hadir</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#F5F5F0' }}>{totalGuests}</div>
                 </div>
             </div>
 
             <div style={{
-                backgroundColor: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 borderRadius: '0.5rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
                 overflow: 'hidden',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
             }}>
                 {loading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(245, 245, 240, 0.6)' }}>
                         Loading...
                     </div>
                 ) : error === 'no-slug' ? (
                     <div style={{ padding: '3rem', textAlign: 'center' }}>
                         <div style={{
-                            fontSize: '3rem',
+                            display: 'flex',
+                            justifyContent: 'center',
                             marginBottom: '1rem',
+                            color: 'rgba(245, 245, 240, 0.4)'
                         }}>
-                            📋
+                            <ClipboardList size={48} />
                         </div>
                         <h3 style={{
                             fontSize: '1.25rem',
                             fontWeight: 600,
-                            color: '#111827',
+                            color: '#F5F5F0',
                             marginBottom: '0.5rem',
                         }}>
                             Belum Ada Undangan
                         </h3>
                         <p style={{
-                            color: '#6b7280',
+                            color: 'rgba(245, 245, 240, 0.6)',
                             fontSize: '0.875rem',
                             maxWidth: '400px',
                             margin: '0 auto',
@@ -196,11 +214,11 @@ export default function DaftarUcapanPage() {
                         </p>
                     </div>
                 ) : error ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#dc2626' }}>
+                    <div style={{ padding: '3rem', textAlign: 'center', color: '#fca5a5' }}>
                         {error}
                     </div>
                 ) : wishes.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(245, 245, 240, 0.6)' }}>
                         Belum ada ucapan yang masuk.
                     </div>
                 ) : (
@@ -217,31 +235,31 @@ export default function DaftarUcapanPage() {
                                 <col style={{ width: '80px' }} />
                                 <col style={{ width: '90px' }} />
                             </colgroup>
-                            <thead style={{ backgroundColor: '#f9fafb' }}>
+                            <thead style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}>
                                 <tr>
-                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: '0.8125rem', borderRight: '1px solid #e5e7eb' }}>Tanggal</th>
-                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: '0.8125rem', borderRight: '1px solid #e5e7eb' }}>Nama</th>
-                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: '0.8125rem', borderRight: '1px solid #e5e7eb' }}>Ucapan</th>
-                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: '0.8125rem', borderRight: '1px solid #e5e7eb' }}>Kehadiran</th>
-                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: '0.8125rem' }}>Jml Tamu</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#F5F5F0', fontSize: '0.8125rem', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>Tanggal</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#F5F5F0', fontSize: '0.8125rem', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>Nama</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#F5F5F0', fontSize: '0.8125rem', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>Ucapan</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#F5F5F0', fontSize: '0.8125rem', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>Kehadiran</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 600, color: '#F5F5F0', fontSize: '0.8125rem' }}>Jml Tamu</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {wishes.map((wish) => (
-                                    <tr key={wish.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                                        <td style={{ padding: '0.75rem 1rem', color: '#6b7280', fontSize: '0.75rem', verticalAlign: 'top' }}>
+                                    <tr key={wish.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(245, 245, 240, 0.6)', fontSize: '0.75rem', verticalAlign: 'top' }}>
                                             {formatDate(wish.createdAt)}
                                         </td>
-                                        <td style={{ padding: '0.75rem 1rem', color: '#111827', fontSize: '0.875rem', fontWeight: 500, verticalAlign: 'top' }}>
+                                        <td style={{ padding: '0.75rem 1rem', color: '#F5F5F0', fontSize: '0.875rem', fontWeight: 500, verticalAlign: 'top' }}>
                                             {wish.name}
                                         </td>
-                                        <td style={{ padding: '0.75rem 1rem', color: '#374151', fontSize: '0.875rem', minWidth: '260px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.6' }}>
+                                        <td style={{ padding: '0.75rem 1rem', color: 'rgba(245, 245, 240, 0.9)', fontSize: '0.875rem', minWidth: '260px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.6' }}>
                                             {wish.message}
                                         </td>
                                         <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                                             {getAttendanceIcon(wish.attendance)}
                                         </td>
-                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center', color: 'rgba(245, 245, 240, 0.6)', fontSize: '0.875rem' }}>
                                             {wish.guestCount}
                                         </td>
                                     </tr>

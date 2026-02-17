@@ -18,6 +18,7 @@ import { GallerySection } from '@/app/client-dashboard/edit-undangan/components/
 import { WeddingGiftSection } from '@/app/client-dashboard/edit-undangan/components/WeddingGiftSection';
 import { BackgroundMusicSection } from '@/app/client-dashboard/edit-undangan/components/BackgroundMusicSection';
 import { ClosingSection } from '@/app/client-dashboard/edit-undangan/components/ClosingSection';
+import { Users, Calendar, Heart, Image as ImageIcon, Gift, Music, MessageSquare } from 'lucide-react';
 import { CollapsibleSection } from '@/app/client-dashboard/edit-undangan/components/CollapsibleSection';
 
 export default function TambahUndanganPage() {
@@ -314,7 +315,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Informasi Mempelai"
-                        emoji="👥"
+                        icon={<Users className="w-5 h-5" />}
                         isExpanded={expandedSections.brideGroom}
                         onToggle={() => toggleSection('brideGroom')}
                         hasUnsavedChanges={false}
@@ -336,7 +337,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Acara & Waktu"
-                        emoji="📅"
+                        icon={<Calendar className="w-5 h-5" />}
                         isExpanded={expandedSections.event}
                         onToggle={() => toggleSection('event')}
                         hasUnsavedChanges={false}
@@ -358,7 +359,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Cerita Cinta"
-                        emoji="💕"
+                        icon={<Heart className="w-5 h-5" />}
                         isExpanded={expandedSections.loveStory}
                         onToggle={() => toggleSection('loveStory')}
                         hasUnsavedChanges={false}
@@ -380,7 +381,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Galeri Foto"
-                        emoji="📸"
+                        icon={<ImageIcon className="w-5 h-5" />}
                         isExpanded={expandedSections.gallery}
                         onToggle={() => toggleSection('gallery')}
                         hasUnsavedChanges={false}
@@ -402,7 +403,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Hadiah Pernikahan"
-                        emoji="🎁"
+                        icon={<Gift className="w-5 h-5" />}
                         isExpanded={expandedSections.weddingGift}
                         onToggle={() => toggleSection('weddingGift')}
                         hasUnsavedChanges={false}
@@ -424,7 +425,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Musik Latar"
-                        emoji="🎵"
+                        icon={<Music className="w-5 h-5" />}
                         isExpanded={expandedSections.backgroundMusic}
                         onToggle={() => toggleSection('backgroundMusic')}
                         hasUnsavedChanges={false}
@@ -446,7 +447,7 @@ export default function TambahUndanganPage() {
                 <div className="editor-card">
                     <CollapsibleSection
                         title="Penutup"
-                        emoji="🎨"
+                        icon={<MessageSquare className="w-5 h-5" />}
                         isExpanded={expandedSections.closing}
                         onToggle={() => toggleSection('closing')}
                         hasUnsavedChanges={false}
