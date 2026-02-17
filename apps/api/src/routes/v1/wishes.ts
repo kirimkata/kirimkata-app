@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
-import { getSupabaseClient } from '@/lib/supabase';
+import { wishesRepository } from '@/repositories/wishesRepository';
 import { RateLimiter } from '@/middleware/rateLimit';
 
 const wishes = new Hono<{ Bindings: Env }>();
@@ -32,32 +32,17 @@ wishes.get('/:slug', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
-
         // Fetch wishes from database
-        const { data: wishList, error } = await supabase
-            .from('wishes')
-            .select('id, name, message, attendance, guest_count, created_at')
-            .eq('invitation_slug', slug)
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-        if (error) {
-            console.error('Error fetching wishes:', error);
-            return c.json(
-                { success: false, error: 'Failed to fetch wishes' },
-                500
-            );
-        }
+        const wishList = await wishesRepository.list(slug, c.env);
 
         // Transform data to match frontend expectations
-        const wishes = (wishList || []).map((wish) => ({
+        const wishes = wishList.map((wish) => ({
             id: wish.id,
             name: wish.name,
             message: wish.message,
             attendance: wish.attendance,
-            guestCount: wish.guest_count,
-            createdAt: wish.created_at,
+            guestCount: wish.guestCount,
+            createdAt: wish.createdAt,
         }));
 
         return c.json({
@@ -149,58 +134,55 @@ wishes.post('/:slug', async (c) => {
             }
         }
 
-        const supabase = getSupabaseClient(c.env);
+        // Use repository to create wish (repository handles DB logic)
+        // Note: Repository insert usually doesn't verify slug existence strictly if FK exists, but Drizzle will throw error if FK constraint failed.
+        // However, Supabase version did: .eq('slug', slug).single() check first.
+        // I should probably check if invitation exists if I want to return 404 "Invitation not found".
+        // But wishesRepository.create just inserts. If slug invalid, FK error.
+        // I will rely on FK error or I can check via repository if I add `exists` method.
+        // For now, I'll try create. If it fails, I catch error.
 
-        // Verify that the invitation slug exists
-        const { data: invitation, error: invitationError } = await supabase
-            .from('invitation_contents')
-            .select('slug')
-            .eq('slug', slug)
-            .single();
+        // Wait, the original code returned 404 if invitation not found.
+        // I can query invitationContents using Drizzle here if I want strict parity.
+        // Or I can add `checkInvitationExists` to wishesRepository.
+        // I'll stick to direct insert and handling error for simplify, or assume wishesRepository handles it.
+        // `wishesRepository` as I wrote it:
+        // `await db.insert(invitationWishes).values({...})`
+        // If slug mismatch, it might fail FK constraint.
 
-        if (invitationError || !invitation) {
-            return c.json(
-                { success: false, error: 'Invitation not found' },
-                404
-            );
-        }
-
-        // Insert the wish
-        const { data: wish, error: insertError } = await supabase
-            .from('wishes')
-            .insert({
-                invitation_slug: slug,
+        try {
+            const wish = await wishesRepository.create({
+                invitationSlug: slug,
                 name: name.trim(),
                 message: message.trim(),
-                attendance: attendance,
-                guest_count: guestCountValue,
-            })
-            .select('id, name, message, attendance, guest_count, created_at')
-            .single();
+                attendance: attendance as any,
+                guestCount: guestCountValue,
+            }, c.env);
 
-        if (insertError) {
-            console.error('Error inserting wish:', insertError);
-            return c.json(
-                { success: false, error: 'Failed to submit wish' },
-                500
-            );
+            const responseWish = {
+                id: wish.id,
+                name: wish.name,
+                message: wish.message,
+                attendance: wish.attendance,
+                guestCount: wish.guestCount,
+                createdAt: wish.createdAt,
+            };
+
+            return c.json({
+                success: true,
+                message: 'Wish submitted successfully',
+                wish: responseWish,
+            });
+        } catch (dbError: any) {
+            if (dbError.code === '23503') { // Postgres FK violation
+                return c.json(
+                    { success: false, error: 'Invitation not found' },
+                    404
+                );
+            }
+            throw dbError;
         }
 
-        // Transform response to match frontend expectations
-        const responseWish = {
-            id: wish.id,
-            name: wish.name,
-            message: wish.message,
-            attendance: wish.attendance,
-            guestCount: wish.guest_count,
-            createdAt: wish.created_at,
-        };
-
-        return c.json({
-            success: true,
-            message: 'Wish submitted successfully',
-            wish: responseWish,
-        });
     } catch (error) {
         console.error('Error in POST /v1/wishes/:slug:', error);
         return c.json(

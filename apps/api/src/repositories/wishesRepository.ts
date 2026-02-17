@@ -1,4 +1,8 @@
-import { getSupabaseClient } from '../lib/supabase';
+
+import { eq, desc } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { invitationWishes } from '../db/schema';
 import type { Env } from '../lib/types';
 
 export type AttendanceStatus = 'hadir' | 'tidak-hadir' | 'masih-ragu';
@@ -21,68 +25,49 @@ export interface WishRow {
   createdAt: string;
 }
 
-interface WishRecord {
-  id: number;
-  invitation_slug: string;
-  name: string;
-  message: string;
-  attendance: AttendanceStatus;
-  guest_count: number;
-  created_at: string;
-}
+export class WishesRepository {
+  private getDb(env: Env) {
+    const client = postgres(env.DATABASE_URL);
+    return drizzle(client);
+  }
 
-const TABLE_NAME = 'wishes';
+  async create(data: WishInsert, env: Env): Promise<WishRow> {
+    const db = this.getDb(env);
 
-function mapWishRecord(row: WishRecord): WishRow {
-  return {
-    id: row.id,
-    invitationSlug: row.invitation_slug,
-    name: row.name,
-    message: row.message,
-    attendance: row.attendance,
-    guestCount: row.guest_count,
-    createdAt: row.created_at,
-  };
-}
-
-export async function createWish(data: WishInsert): Promise<WishRow> {
-  const supabase = getSupabaseClient();
-
-  const { data: row, error } = await supabase
-    .from(TABLE_NAME)
-    .insert({
-      invitation_slug: data.invitationSlug,
+    const [newWish] = await db.insert(invitationWishes).values({
+      invitationSlug: data.invitationSlug,
       name: data.name,
       message: data.message,
       attendance: data.attendance,
-      guest_count: data.guestCount,
-    })
-    .select('*')
-    .single();
+      guestCount: data.guestCount,
+    }).returning();
 
-  if (error || !row) {
-    console.error('Error inserting wish', error);
-    throw error || new Error('Failed to insert wish');
+    return this.mapToWishRow(newWish);
   }
 
-  return mapWishRecord(row as WishRecord);
-}
+  async list(invitationSlug: string, env: Env): Promise<WishRow[]> {
+    const db = this.getDb(env);
 
-export async function listWishes(invitationSlug: string): Promise<WishRow[]> {
-  const supabase = getSupabaseClient();
+    const results = await db.select()
+      .from(invitationWishes)
+      .where(eq(invitationWishes.invitationSlug, invitationSlug))
+      .orderBy(desc(invitationWishes.createdAt))
+      .limit(100);
 
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .select('*')
-    .eq('invitation_slug', invitationSlug)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error) {
-    console.error('Error loading wishes', error);
-    throw error;
+    return results.map(this.mapToWishRow);
   }
 
-  const rows = (data || []) as WishRecord[];
-  return rows.map(mapWishRecord);
+  private mapToWishRow(row: any): WishRow {
+    return {
+      id: Number(row.id),
+      invitationSlug: row.invitationSlug,
+      name: row.name,
+      message: row.message,
+      attendance: row.attendance as AttendanceStatus,
+      guestCount: row.guestCount,
+      createdAt: row.createdAt,
+    };
+  }
 }
+
+export const wishesRepository = new WishesRepository();

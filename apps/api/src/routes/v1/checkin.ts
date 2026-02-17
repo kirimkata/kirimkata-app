@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env, CheckinMethod, JWTPayload, ClientJWTPayload, StaffJWTPayload } from '@/lib/types';
 import { getDb } from '@/db';
 import { guests, guestbookCheckins } from '@/db/schema';
-import { eq, and, ilike, count } from 'drizzle-orm';
+import { eq, and, ilike, count, desc } from 'drizzle-orm';
 import { verifyToken, extractTokenFromHeader } from '@/services/jwt';
 
 const checkin = new Hono<{ Bindings: Env }>();

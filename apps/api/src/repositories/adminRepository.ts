@@ -1,5 +1,10 @@
-import { getSupabaseClient, getSupabaseServiceClient } from '../lib/supabase';
+
+import { eq, desc } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { admins } from '../db/schema';
 import { encrypt, comparePassword } from '../services-invitation/encryption';
+import type { Env } from '../lib/types';
 
 export interface Admin {
     id: string;
@@ -10,119 +15,136 @@ export interface Admin {
     updated_at: string;
 }
 
-/**
- * Find admin by username
- */
-export async function findAdminByUsername(username: string): Promise<Admin | null> {
-    const supabase = getSupabaseServiceClient();
-
-    const { data, error } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('username', username)
-        .single();
-
-    if (error || !data) {
-        return null;
+export class AdminRepository {
+    private getDb(env: Env) {
+        const client = postgres(env.DATABASE_URL);
+        return drizzle(client);
     }
 
-    return data as Admin;
+    private mapToAdmin(row: any): Admin {
+        return {
+            id: row.id,
+            username: row.username,
+            password_encrypted: row.passwordEncrypted,
+            email: row.email,
+            created_at: row.createdAt,
+            updated_at: row.updatedAt,
+        };
+    }
+
+    /**
+     * Find admin by username
+     */
+    async findAdminByUsername(username: string, env: Env): Promise<Admin | null> {
+        const db = this.getDb(env);
+
+        const result = await db.select()
+            .from(admins)
+            .where(eq(admins.username, username))
+            .limit(1);
+
+        if (result.length === 0) {
+            return null;
+        }
+
+        return this.mapToAdmin(result[0]);
+    }
+
+    /**
+     * Verify admin credentials
+     */
+    async verifyAdminCredentials(
+        username: string,
+        password: string,
+        env: Env
+    ): Promise<Admin | null> {
+        const admin = await this.findAdminByUsername(username, env);
+
+        if (!admin) {
+            return null;
+        }
+
+        const isValid = comparePassword(password, admin.password_encrypted);
+
+        if (!isValid) {
+            return null;
+        }
+
+        return admin;
+    }
+
+    /**
+     * Create new admin
+     */
+    async createAdmin(
+        username: string,
+        password: string,
+        env: Env,
+        email?: string
+    ): Promise<Admin | null> {
+        const db = this.getDb(env);
+        const passwordEncrypted = encrypt(password);
+
+        try {
+            const [newAdmin] = await db.insert(admins).values({
+                username,
+                passwordEncrypted,
+                email: email || null,
+            }).returning();
+
+            return this.mapToAdmin(newAdmin);
+        } catch (error) {
+            console.error('Error creating admin:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update admin password
+     */
+    async updateAdminPassword(
+        adminId: string,
+        currentPassword: string,
+        newPassword: string,
+        env: Env
+    ): Promise<{ success: boolean; error?: string }> {
+        const db = this.getDb(env);
+
+        // Get current admin data
+        const result = await db.select()
+            .from(admins)
+            .where(eq(admins.id, adminId))
+            .limit(1);
+
+        if (result.length === 0) {
+            return { success: false, error: 'Admin not found' };
+        }
+
+        const admin = this.mapToAdmin(result[0]);
+
+        // Verify current password
+        const isValid = comparePassword(currentPassword, admin.password_encrypted);
+        if (!isValid) {
+            return { success: false, error: 'Current password is incorrect' };
+        }
+
+        // Encrypt new password
+        const newPasswordEncrypted = encrypt(newPassword);
+
+        try {
+            await db.update(admins)
+                .set({
+                    passwordEncrypted: newPasswordEncrypted,
+                    updatedAt: new Date().toISOString()
+                })
+                .where(eq(admins.id, adminId));
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating password:', error);
+            return { success: false, error: 'Failed to update password' };
+        }
+    }
 }
 
-/**
- * Verify admin credentials
- */
-export async function verifyAdminCredentials(
-    username: string,
-    password: string
-): Promise<Admin | null> {
-    const admin = await findAdminByUsername(username);
-
-    if (!admin) {
-        return null;
-    }
-
-    const isValid = comparePassword(password, admin.password_encrypted);
-
-    if (!isValid) {
-        return null;
-    }
-
-    return admin;
-}
-
-/**
- * Create new admin
- */
-export async function createAdmin(
-    username: string,
-    password: string,
-    email?: string
-): Promise<Admin | null> {
-    const supabase = getSupabaseServiceClient();
-    const passwordEncrypted = encrypt(password);
-
-    const { data, error } = await supabase
-        .from('admins')
-        .insert({
-            username,
-            password_encrypted: passwordEncrypted,
-            email: email || null,
-        })
-        .select()
-        .single();
-
-    if (error || !data) {
-        console.error('Error creating admin:', error);
-        return null;
-    }
-
-    return data as Admin;
-}
-
-/**
- * Update admin password
- */
-export async function updateAdminPassword(
-    adminId: string,
-    currentPassword: string,
-    newPassword: string
-): Promise<{ success: boolean; error?: string }> {
-    const supabase = getSupabaseServiceClient();
-
-    // Get current admin data
-    const { data: admin, error: fetchError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('id', adminId)
-        .single();
-
-    if (fetchError || !admin) {
-        return { success: false, error: 'Admin not found' };
-    }
-
-    // Verify current password
-    const isValid = comparePassword(currentPassword, admin.password_encrypted);
-    if (!isValid) {
-        return { success: false, error: 'Current password is incorrect' };
-    }
-
-    // Encrypt new password
-    const newPasswordEncrypted = encrypt(newPassword);
-
-    // Update password
-    const { error: updateError } = await supabase
-        .from('admins')
-        .update({
-            password_encrypted: newPasswordEncrypted,
-            updated_at: new Date().toISOString()
-        })
-        .eq('id', adminId);
-
-    if (updateError) {
-        console.error('Error updating password:', updateError);
-        return { success: false, error: 'Failed to update password' };
-    }
-
-    return { success: true };
-}
+export const adminRepository = new AdminRepository();

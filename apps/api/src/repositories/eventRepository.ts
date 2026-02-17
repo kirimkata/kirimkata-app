@@ -1,4 +1,7 @@
-import { getSupabaseClient } from '../lib/supabase';
+import { eq, desc } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { guestbookEvents as events, invitationPages } from '../db/schema';
 import type { Env } from '../lib/types';
 
 export interface Event {
@@ -37,150 +40,245 @@ export interface UpdateEventInput {
 }
 
 export class EventRepository {
-    private tableName = 'events';
+    private getDb(env: Env) {
+        const client = postgres(env.DATABASE_URL);
+        return drizzle(client);
+    }
 
     /**
      * Create new event
      */
-    async create(data: CreateEventInput, env?: Env): Promise<Event> {
-        const supabase = getSupabaseClient(env);
+    async create(data: CreateEventInput, env: Env): Promise<Event> {
+        const db = this.getDb(env);
 
-        const eventData = {
-            client_id: data.client_id,
-            name: data.name,
-            event_date: data.event_date,
-            location: data.location,
-            slug: data.slug,
-            has_invitation: data.has_invitation ?? true,
-            has_guestbook: data.has_guestbook ?? false,
-            seating_mode: 'no_seat',
-            is_active: true,
-        };
+        return await db.transaction(async (tx) => {
+            let invitationId = null;
 
-        const { data: result, error } = await supabase
-            .from(this.tableName)
-            .insert(eventData)
-            .select()
-            .single();
+            if (data.has_invitation !== false && data.slug) {
+                // Create invitation page first
+                const [invitation] = await tx.insert(invitationPages).values({
+                    clientId: data.client_id,
+                    slug: data.slug,
+                    profile: {},
+                    bride: {},
+                    groom: {},
+                    event: {},
+                    greetings: {},
+                    eventDetails: {},
+                    loveStory: [],
+                    gallery: [],
+                    weddingGift: {},
+                    closing: {},
+                }).returning();
+                invitationId = invitation.id;
+            }
 
-        if (error) {
-            console.error('Error creating event:', error);
-            throw new Error(`Failed to create event: ${error.message}`);
-        }
+            const [newEvent] = await tx.insert(events).values({
+                clientId: data.client_id,
+                eventName: data.name,
+                eventDate: data.event_date,
+                venueName: data.location,
+                invitationId: invitationId,
+                hasInvitation: data.has_invitation ?? true,
+                hasGuestbook: data.has_guestbook ?? false,
+                seatingMode: 'no_seat',
+                isActive: true,
+            }).returning();
 
-        return result;
+            return {
+                ...this.mapToEvent(newEvent),
+                slug: data.slug
+            };
+        });
     }
 
     /**
      * Find event by ID
      */
-    async findById(id: string, env?: Env): Promise<Event | null> {
-        const supabase = getSupabaseClient(env);
+    async findById(id: string, env: Env): Promise<Event | null> {
+        const db = this.getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('id', id)
-            .single();
+        const result = await db
+            .select({
+                event: events,
+                slug: invitationPages.slug
+            })
+            .from(events)
+            .leftJoin(invitationPages, eq(events.invitationId, invitationPages.id))
+            .where(eq(events.id, id));
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error finding event by ID:', error);
-            throw new Error(`Failed to find event: ${error.message}`);
+        if (result.length === 0) {
+            return null;
         }
 
-        return data;
+        const row = result[0];
+        return {
+            ...this.mapToEvent(row.event),
+            slug: row.slug || undefined
+        };
     }
 
     /**
      * Find event by slug
      */
-    async findBySlug(slug: string, env?: Env): Promise<Event | null> {
-        const supabase = getSupabaseClient(env);
+    async findBySlug(slug: string, env: Env): Promise<Event | null> {
+        const db = this.getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('slug', slug)
-            .single();
+        const result = await db
+            .select({
+                event: events,
+                slug: invitationPages.slug
+            })
+            .from(events)
+            .innerJoin(invitationPages, eq(events.invitationId, invitationPages.id))
+            .where(eq(invitationPages.slug, slug))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            console.error('Error finding event by slug:', error);
-            throw new Error(`Failed to find event: ${error.message}`);
+        if (result.length === 0) {
+            return null;
         }
 
-        return data;
+        const row = result[0];
+        return {
+            ...this.mapToEvent(row.event),
+            slug: row.slug || undefined
+        };
     }
 
     /**
      * Find all events for a client
      */
-    async findByClientId(clientId: string, env?: Env): Promise<Event[]> {
-        const supabase = getSupabaseClient(env);
+    async findByClientId(clientId: string, env: Env): Promise<Event[]> {
+        const db = this.getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('client_id', clientId)
-            .order('created_at', { ascending: false });
+        const results = await db
+            .select({
+                event: events,
+                slug: invitationPages.slug
+            })
+            .from(events)
+            .leftJoin(invitationPages, eq(events.invitationId, invitationPages.id))
+            .where(eq(events.clientId, clientId))
+            .orderBy(desc(events.createdAt));
 
-        if (error) {
-            console.error('Error finding events by client ID:', error);
-            throw new Error(`Failed to find events: ${error.message}`);
-        }
-
-        return data || [];
+        return results.map(row => ({
+            ...this.mapToEvent(row.event),
+            slug: row.slug || undefined
+        }));
     }
 
     /**
      * Update event
      */
-    async update(id: string, updates: UpdateEventInput, env?: Env): Promise<Event> {
-        const supabase = getSupabaseClient(env);
+    async update(id: string, updates: UpdateEventInput, env: Env): Promise<Event> {
+        const db = this.getDb(env);
 
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        return await db.transaction(async (tx) => {
+            // Get current event to check invitationId
+            const [currentEvent] = await tx
+                .select()
+                .from(events)
+                .where(eq(events.id, id))
+                .limit(1);
 
-        if (error) {
-            console.error('Error updating event:', error);
-            throw new Error(`Failed to update event: ${error.message}`);
-        }
+            if (!currentEvent) {
+                throw new Error('Event not found');
+            }
 
-        return data;
+            // Update invitation slug if provided and linked
+            let newSlug = undefined;
+            if (updates.slug && currentEvent.invitationId) {
+                const [updatedInv] = await tx
+                    .update(invitationPages)
+                    .set({ slug: updates.slug, updatedAt: new Date().toISOString() })
+                    .where(eq(invitationPages.id, currentEvent.invitationId))
+                    .returning();
+                newSlug = updatedInv?.slug;
+            }
+
+            const updateData: any = {};
+            if (updates.name !== undefined) updateData.eventName = updates.name;
+            if (updates.event_date !== undefined) updateData.eventDate = updates.event_date;
+            if (updates.location !== undefined) updateData.venueName = updates.location;
+            if (updates.has_invitation !== undefined) updateData.hasInvitation = updates.has_invitation;
+            if (updates.has_guestbook !== undefined) updateData.hasGuestbook = updates.has_guestbook;
+            if (updates.is_active !== undefined) updateData.isActive = updates.is_active;
+
+            updateData.updatedAt = new Date().toISOString();
+
+            const [updatedEvent] = await tx.update(events)
+                .set(updateData)
+                .where(eq(events.id, id))
+                .returning();
+
+            // Fetch final slug if not updated but exists
+            if (!newSlug && currentEvent.invitationId) {
+                const [inv] = await tx.select({ slug: invitationPages.slug })
+                    .from(invitationPages)
+                    .where(eq(invitationPages.id, currentEvent.invitationId));
+                newSlug = inv?.slug;
+            }
+
+            return {
+                ...this.mapToEvent(updatedEvent),
+                slug: newSlug
+            };
+        });
     }
 
     /**
      * Delete event
      */
-    async delete(id: string, env?: Env): Promise<void> {
-        const supabase = getSupabaseClient(env);
+    async delete(id: string, env: Env): Promise<void> {
+        const db = this.getDb(env);
+        // Cascade delete should handle invitationPages deletion if configured, 
+        // but schema says `invitationId` references `invitationPages.id` with `onDelete: "cascade"`.
+        // Wait, schema: `invitationId: ... references(() => invitationPages.id, { onDelete: "cascade" })`
+        // This means if invitationPage is deleted, event is deleted.
+        // But if event is deleted, invitationPage is NOT automatically deleted unless we do it manually or FK is reversed.
+        // Current schema: Event -> InvitationPage (FK on Event).
+        // Check schema line 167: invitationId references invitationPages.id.
+        // So deleting Event does NOT delete InvitationPage.
 
-        const { error } = await supabase
-            .from(this.tableName)
-            .delete()
-            .eq('id', id);
+        // We probably want to delete the InvitationPage too if it exists?
+        // Or keep it? Usually strict coupling means delete both.
 
-        if (error) {
-            console.error('Error deleting event:', error);
-            throw new Error(`Failed to delete event: ${error.message}`);
+        // Fetch event to get invitationId
+        const [event] = await db.select().from(events).where(eq(events.id, id));
+        if (event && event.invitationId) {
+            await db.delete(invitationPages).where(eq(invitationPages.id, event.invitationId));
         }
+        await db.delete(events).where(eq(events.id, id));
     }
 
     /**
      * Check if slug is available
      */
-    async isSlugAvailable(slug: string, env?: Env): Promise<boolean> {
-        const event = await this.findBySlug(slug, env);
-        return event === null;
+    async isSlugAvailable(slug: string, env: Env): Promise<boolean> {
+        const db = this.getDb(env);
+        // Check global slug uniqueness on invitationPages
+        const [invitation] = await db.select().from(invitationPages).where(eq(invitationPages.slug, slug)).limit(1);
+        return !invitation;
+    }
+
+    /**
+     * Map DB result to Event interface (snake_case)
+     */
+    private mapToEvent(dbEvent: any): Event {
+        return {
+            id: dbEvent.id,
+            client_id: dbEvent.clientId,
+            name: dbEvent.eventName,
+            event_date: dbEvent.eventDate,
+            location: dbEvent.venueName,
+            slug: undefined, // populated by caller
+            has_invitation: dbEvent.hasInvitation,
+            has_guestbook: dbEvent.hasGuestbook,
+            seating_mode: dbEvent.seatingMode,
+            is_active: dbEvent.isActive,
+            created_at: dbEvent.createdAt,
+            updated_at: dbEvent.updatedAt,
+        };
     }
 }
 

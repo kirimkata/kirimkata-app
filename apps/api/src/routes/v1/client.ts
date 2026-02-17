@@ -41,7 +41,6 @@ client.get('/profile', async (c) => {
                 id: clients.id,
                 username: clients.username,
                 email: clients.email,
-                slug: clients.slug,
                 guestbook_access: clients.guestbookAccess,
                 message_template: clients.messageTemplate,
                 created_at: clients.createdAt,
@@ -49,6 +48,18 @@ client.get('/profile', async (c) => {
             .from(clients)
             .where(eq(clients.id, clientId))
             .limit(1);
+
+        // Fetch slug from invitationPages
+        const [invitationData] = await db
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, clientId))
+            .limit(1);
+
+        const clientWithSlug = {
+            ...clientData,
+            slug: invitationData?.slug || null
+        };
 
         if (!clientData) {
             return c.json(
@@ -59,7 +70,7 @@ client.get('/profile', async (c) => {
 
         return c.json({
             success: true,
-            client: clientData,
+            client: clientWithSlug,
         });
     } catch (error) {
         console.error('Error fetching client profile:', error);
@@ -139,10 +150,8 @@ client.put('/settings', async (c) => {
             return c.json({
                 success: true,
                 client: {
-                    id: currentClient.id,
                     username: currentClient.username,
                     email: currentClient.email,
-                    slug: currentClient.slug,
                     guestbook_access: currentClient.guestbookAccess
                 }
             });
@@ -157,7 +166,6 @@ client.put('/settings', async (c) => {
                 id: clients.id,
                 username: clients.username,
                 email: clients.email,
-                slug: clients.slug,
                 guestbook_access: clients.guestbookAccess
             });
 
@@ -275,11 +283,11 @@ client.get('/invitation-content', async (c) => {
         const clientId = c.get('clientId') as string;
         const db = getDb(c.env);
 
-        // Get client slug
+        // Get client slug from invitationPages
         const [clientData] = await db
-            .select({ slug: clients.slug })
-            .from(clients)
-            .where(eq(clients.id, clientId))
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, clientId))
             .limit(1);
 
         if (!clientData || !clientData.slug) {
@@ -329,11 +337,11 @@ client.put('/invitation-content', async (c) => {
 
         const db = getDb(c.env);
 
-        // Get client slug
+        // Get client slug from invitationPages
         const [clientData] = await db
-            .select({ slug: clients.slug })
-            .from(clients)
-            .where(eq(clients.id, clientId))
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, clientId))
             .limit(1);
 
         if (!clientData || !clientData.slug) {
@@ -417,11 +425,11 @@ client.get('/messages', async (c) => {
 
         const db = getDb(c.env);
 
-        // Get client slug
+        // Get client slug from invitationPages
         const [clientData] = await db
-            .select({ slug: clients.slug })
-            .from(clients)
-            .where(eq(clients.id, clientId))
+            .select({ slug: invitationPages.slug })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, clientId))
             .limit(1);
 
         if (!clientData || !clientData.slug) {

@@ -2,10 +2,12 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { guestbookStaff, guestbookEvents } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@/services/encryption';
 
-const guestbookStaff = new Hono<{
+const staffRoute = new Hono<{
     Bindings: Env;
     Variables: {
         clientId: string;
@@ -14,13 +16,13 @@ const guestbookStaff = new Hono<{
 }>();
 
 // All routes require client authentication
-guestbookStaff.use('*', clientAuthMiddleware);
+staffRoute.use('*', clientAuthMiddleware);
 
 /**
  * GET /v1/guestbook/staff?event_id=xxx
  * Get all staff for an event
  */
-guestbookStaff.get('/', async (c) => {
+staffRoute.get('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const eventId = c.req.query('event_id');
@@ -32,17 +34,19 @@ guestbookStaff.get('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', eventId)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -50,24 +54,18 @@ guestbookStaff.get('/', async (c) => {
         }
 
         // Get staff
-        const { data: staff, error } = await supabase
-            .from('guestbook_staff')
-            .select('*')
-            .eq('event_id', eventId)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Get staff error:', error);
-            return c.json(
-                { success: false, error: 'Failed to fetch staff' },
-                500
-            );
-        }
+        const staffList = await db
+            .select()
+            .from(guestbookStaff)
+            .where(and(
+                eq(guestbookStaff.eventId, eventId),
+                eq(guestbookStaff.isActive, true)
+            ))
+            .orderBy(desc(guestbookStaff.createdAt));
 
         return c.json({
             success: true,
-            data: staff || [],
+            data: staffList,
         });
     } catch (error) {
         console.error('Get staff error:', error);
@@ -82,7 +80,7 @@ guestbookStaff.get('/', async (c) => {
  * POST /v1/guestbook/staff
  * Create new staff
  */
-guestbookStaff.post('/', async (c) => {
+staffRoute.post('/', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const body = await c.req.json();
@@ -95,17 +93,19 @@ guestbookStaff.post('/', async (c) => {
             );
         }
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Verify access to event
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', event_id)
-            .eq('client_id', clientId)
-            .single();
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, event_id),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (eventError || !event) {
+        if (!event) {
             return c.json(
                 { success: false, error: 'Event not found or access denied' },
                 404
@@ -113,12 +113,14 @@ guestbookStaff.post('/', async (c) => {
         }
 
         // Check for duplicate username in this event
-        const { data: existing } = await supabase
-            .from('guestbook_staff')
-            .select('id')
-            .eq('event_id', event_id)
-            .eq('username', username)
-            .single();
+        const [existing] = await db
+            .select({ id: guestbookStaff.id })
+            .from(guestbookStaff)
+            .where(and(
+                eq(guestbookStaff.eventId, event_id),
+                eq(guestbookStaff.username, username)
+            ))
+            .limit(1);
 
         if (existing) {
             return c.json(
@@ -128,28 +130,27 @@ guestbookStaff.post('/', async (c) => {
         }
 
         // Hash password
-        const hashedPassword = await hashPassword(password, c.env.ENCRYPTION_KEY);
+        const passwordEncrypted = await hashPassword(password, c.env.ENCRYPTION_KEY);
 
         // Create staff
-        const { data: staff, error } = await supabase
-            .from('guestbook_staff')
-            .insert({
-                event_id,
+        const [staff] = await db
+            .insert(guestbookStaff)
+            .values({
+                clientId,
+                eventId: event_id,
                 username,
-                password_encrypted: hashedPassword,
-                full_name,
+                passwordEncrypted,
+                fullName: full_name,
                 phone: phone || null,
-                can_checkin: permissions?.can_checkin ?? false,
-                can_redeem_souvenir: permissions?.can_redeem_souvenir ?? false,
-                can_redeem_snack: permissions?.can_redeem_snack ?? false,
-                can_access_vip_lounge: permissions?.can_access_vip_lounge ?? false,
-                is_active: true,
+                canCheckin: permissions?.can_checkin ?? false,
+                canRedeemSouvenir: permissions?.can_redeem_souvenir ?? false,
+                canRedeemSnack: permissions?.can_redeem_snack ?? false,
+                canAccessVipLounge: permissions?.can_access_vip_lounge ?? false,
+                isActive: true,
             })
-            .select()
-            .single();
+            .returning();
 
-        if (error || !staff) {
-            console.error('Create staff error:', error);
+        if (!staff) {
             return c.json(
                 { success: false, error: 'Failed to create staff' },
                 500
@@ -173,42 +174,45 @@ guestbookStaff.post('/', async (c) => {
  * PUT /v1/guestbook/staff/:staffId
  * Update staff
  */
-guestbookStaff.put('/:staffId', async (c) => {
+staffRoute.put('/:staffId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const staffId = c.req.param('staffId');
         const body = await c.req.json();
         const { full_name, phone, permissions, is_active } = body;
-        // Note: Password update not implemented in original API, but could be added here if needed.
-        // Original repository only updates profile fields.
 
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Verify access (join with event to check client_id)
-        // Since we can't do deep joins easily for auth check in one go with simple RLS logic if RLS isn't set up perfectly or we want explicit check:
-        // First get staff to get event_id
-        const { data: existingStaff, error: fetchError } = await supabase
-            .from('guestbook_staff')
-            .select('id, event_id')
-            .eq('id', staffId)
-            .single();
+        // Get existing staff to check ownership
+        const [existingStaff] = await db
+            .select({ id: guestbookStaff.id, eventId: guestbookStaff.eventId })
+            .from(guestbookStaff)
+            .where(eq(guestbookStaff.id, staffId))
+            .limit(1);
 
-        if (fetchError || !existingStaff) {
+        if (!existingStaff) {
             return c.json(
                 { success: false, error: 'Staff not found' },
                 404
             );
         }
 
-        // Check if event belongs to client
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', existingStaff.event_id)
-            .eq('client_id', clientId)
-            .single();
+        // Verify event ownership
+        // Note: eventId can be null in DB but strictly shouldn't be for staff. 
+        if (!existingStaff.eventId) {
+            return c.json({ success: false, error: 'Staff has no event assigned' }, 400);
+        }
 
-        if (eventError || !event) {
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, existingStaff.eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
+
+        if (!event) {
             return c.json(
                 { success: false, error: 'Access denied' },
                 403
@@ -217,35 +221,29 @@ guestbookStaff.put('/:staffId', async (c) => {
 
         // Build update object
         const updates: any = {};
-        if (full_name !== undefined) updates.full_name = full_name;
+        if (full_name !== undefined) updates.fullName = full_name;
         if (phone !== undefined) updates.phone = phone;
-        if (is_active !== undefined) updates.is_active = is_active;
+        if (is_active !== undefined) updates.isActive = is_active;
 
         if (permissions) {
-            if (permissions.can_checkin !== undefined) updates.can_checkin = permissions.can_checkin;
-            if (permissions.can_redeem_souvenir !== undefined) updates.can_redeem_souvenir = permissions.can_redeem_souvenir;
-            if (permissions.can_redeem_snack !== undefined) updates.can_redeem_snack = permissions.can_redeem_snack;
-            if (permissions.can_access_vip_lounge !== undefined) updates.can_access_vip_lounge = permissions.can_access_vip_lounge;
+            if (permissions.can_checkin !== undefined) updates.canCheckin = permissions.can_checkin;
+            if (permissions.can_redeem_souvenir !== undefined) updates.canRedeemSouvenir = permissions.can_redeem_souvenir;
+            if (permissions.can_redeem_snack !== undefined) updates.canRedeemSnack = permissions.can_redeem_snack;
+            if (permissions.can_access_vip_lounge !== undefined) updates.canAccessVipLounge = permissions.can_access_vip_lounge;
         }
 
-        const { data: staff, error } = await supabase
-            .from('guestbook_staff')
-            .update(updates)
-            .eq('id', staffId)
-            .select()
-            .single();
+        // Add updatedAt
+        updates.updatedAt = new Date().toISOString();
 
-        if (error) {
-            console.error('Update staff error:', error);
-            return c.json(
-                { success: false, error: 'Failed to update staff' },
-                500
-            );
-        }
+        const [updatedStaff] = await db
+            .update(guestbookStaff)
+            .set(updates)
+            .where(eq(guestbookStaff.id, staffId))
+            .returning();
 
         return c.json({
             success: true,
-            data: staff,
+            data: updatedStaff,
         });
     } catch (error) {
         console.error('Update staff error:', error);
@@ -260,34 +258,40 @@ guestbookStaff.put('/:staffId', async (c) => {
  * DELETE /v1/guestbook/staff/:staffId
  * Delete staff
  */
-guestbookStaff.delete('/:staffId', async (c) => {
+staffRoute.delete('/:staffId', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
         const staffId = c.req.param('staffId');
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Verify access similar to PUT
-        const { data: existingStaff, error: fetchError } = await supabase
-            .from('guestbook_staff')
-            .select('id, event_id')
-            .eq('id', staffId)
-            .single();
+        // Verify access
+        const [existingStaff] = await db
+            .select({ id: guestbookStaff.id, eventId: guestbookStaff.eventId })
+            .from(guestbookStaff)
+            .where(eq(guestbookStaff.id, staffId))
+            .limit(1);
 
-        if (fetchError || !existingStaff) {
+        if (!existingStaff) {
             return c.json(
                 { success: false, error: 'Staff not found' },
                 404
             );
         }
 
-        const { data: event, error: eventError } = await supabase
-            .from('guestbook_events')
-            .select('id')
-            .eq('id', existingStaff.event_id)
-            .eq('client_id', clientId)
-            .single();
+        if (!existingStaff.eventId) {
+            return c.json({ success: false, error: 'Staff has no event assigned' }, 400);
+        }
 
-        if (eventError || !event) {
+        const [event] = await db
+            .select({ id: guestbookEvents.id })
+            .from(guestbookEvents)
+            .where(and(
+                eq(guestbookEvents.id, existingStaff.eventId),
+                eq(guestbookEvents.clientId, clientId)
+            ))
+            .limit(1);
+
+        if (!event) {
             return c.json(
                 { success: false, error: 'Access denied' },
                 403
@@ -295,18 +299,9 @@ guestbookStaff.delete('/:staffId', async (c) => {
         }
 
         // Delete staff
-        const { error } = await supabase
-            .from('guestbook_staff')
-            .delete()
-            .eq('id', staffId);
-
-        if (error) {
-            console.error('Delete staff error:', error);
-            return c.json(
-                { success: false, error: 'Failed to delete staff' },
-                500
-            );
-        }
+        await db
+            .delete(guestbookStaff)
+            .where(eq(guestbookStaff.id, staffId));
 
         return c.json({
             success: true,
@@ -321,4 +316,4 @@ guestbookStaff.delete('/:staffId', async (c) => {
     }
 });
 
-export default guestbookStaff;
+export default staffRoute;

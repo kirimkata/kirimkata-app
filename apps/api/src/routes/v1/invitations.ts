@@ -725,7 +725,7 @@ router.openapi(
         const slug = c.req.param('slug');
         const { settings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }
@@ -762,7 +762,7 @@ router.openapi(
     }),
     async (c) => {
         const slug = c.req.param('slug');
-        const registration = await weddingRegistrationRepo.findBySlug(slug);
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
         if (!registration) return c.json({ error: 'Registration not found' }, 404);
 
         const greetings = await greetingSectionRepo.findByRegistrationId(c.env, registration.id);
@@ -807,7 +807,7 @@ router.openapi(
         const slug = c.req.param('slug');
         const { greetings } = c.req.valid('json');
 
-        const validation = await validateOwnership(slug, auth.clientId);
+        const validation = await validateOwnership(c.env, slug, auth.clientId);
         if (!validation.valid) {
             return c.json({ error: validation.error! }, validation.error === 'Registration not found' ? 404 : 403);
         }

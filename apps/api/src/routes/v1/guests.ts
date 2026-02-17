@@ -3,7 +3,7 @@ import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
 import { getDb } from '@/db';
 import { guests, guestbookCheckins } from '@/db/schema';
-import { eq, asc, sql } from 'drizzle-orm';
+import { eq, asc, sql, and } from 'drizzle-orm';
 
 const guestsRouter = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
 

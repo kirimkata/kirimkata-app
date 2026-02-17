@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from './lib/types';
 import { corsMiddleware } from './middleware/cors';
 import { loggerMiddleware } from './middleware/logger';
-import { initEnv } from './lib/supabase';
+
 
 // Import route modules
 import authRoutes from './routes/v1/auth';
@@ -32,7 +32,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Initialize env for each request (must be first)
 app.use('*', async (c, next) => {
-    initEnv(c.env);
+    // initEnv(c.env); // No longer needed
     await next();
 });
 

@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getDb } from '@/db';
+import { clients, clientMedia } from '@/db/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import {
     uploadToR2,
     deleteFromR2,
@@ -22,9 +24,6 @@ const media = new Hono<{
 // All media routes require authentication
 media.use('*', clientAuthMiddleware);
 
-// All media routes require authentication
-media.use('*', clientAuthMiddleware);
-
 /**
  * POST /v1/media/upload
  * Upload file to R2
@@ -32,7 +31,7 @@ media.use('*', clientAuthMiddleware);
 media.post('/upload', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
         // Parse multipart form data
         const formData = await c.req.formData();
@@ -72,95 +71,93 @@ media.post('/upload', async (c) => {
             }, 400);
         }
 
-        // Check quota and get client slug
-        const quotaField = `quota_${fileType}s` as 'quota_photos' | 'quota_music' | 'quota_videos';
-        const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('quota_photos, quota_music, quota_videos, slug')
-            .eq('id', clientId)
-            .single();
+        // Check quota (slug removed from clients, using clientId for storage path)
+        const [clientData] = await db
+            .select({
+                quotaPhotos: clients.quotaPhotos,
+                quotaMusic: clients.quotaMusic,
+                quotaVideos: clients.quotaVideos,
+            })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (clientError || !clientData) {
+        if (!clientData) {
             return c.json({ error: 'Client not found' }, 404);
         }
 
-        if (!clientData.slug) {
-            return c.json({ error: 'Client has no slug assigned' }, 400);
-        }
-
-        const quotaLimit = (clientData as any)[quotaField];
-        const clientSlug = clientData.slug;
+        let quotaLimit = 0;
+        if (fileType === 'photo') quotaLimit = clientData.quotaPhotos || 0;
+        else if (fileType === 'music') quotaLimit = clientData.quotaMusic || 0;
+        else if (fileType === 'video') quotaLimit = clientData.quotaVideos || 0;
 
         // Count existing files
-        const { count, error: countError } = await supabase
-            .from('client_media')
-            .select('*', { count: 'exact', head: true })
-            .eq('client_id', clientId)
-            .eq('file_type', fileType);
+        const [countResult] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(clientMedia)
+            .where(and(
+                eq(clientMedia.clientId, clientId),
+                eq(clientMedia.fileType, fileType)
+            ));
 
-        if (countError) {
-            throw countError;
-        }
+        const count = Number(countResult?.count || 0);
 
-        const currentCount = count || 0;
-
-        if (currentCount >= quotaLimit) {
-            const typeLabel = fileType === 'photo' ? 'foto' : fileType === 'music' ? 'musik' : 'video';
+        if (count >= quotaLimit) {
             return c.json({
                 error: 'Quota exceeded',
-                message: `Anda telah mencapai batas maksimum upload ${typeLabel} (${currentCount}/${quotaLimit}). Silakan hapus file yang tidak digunakan terlebih dahulu.`,
-                current: currentCount,
-                limit: quotaLimit,
-                type: fileType
-            }, 400);
+                message: `You have reached your quota for ${fileType}s (${quotaLimit})`
+            }, 403);
         }
 
-        // Convert file to ArrayBuffer
+        // Upload to R2
+        const sanitizedFileName = sanitizeFileName(file.name);
         const arrayBuffer = await file.arrayBuffer();
 
-        // Sanitize filename
-        const sanitizedFileName = sanitizeFileName(file.name);
+        // Use clientId as the path prefix for organization
+        const path = `${clientId}/${fileType}`;
 
-        // Upload to R2 using slug instead of client_id
-        const path = `clients/${clientSlug}/${fileType}s`;
-        const fileUrl = await uploadToR2(
+        const publicUrl = await uploadToR2(
             c.env.MEDIA_BUCKET,
             {
                 file: arrayBuffer,
                 fileName: sanitizedFileName,
                 contentType: mimeType,
-                path,
+                path: path,
             },
-            c.env.R2_PUBLIC_URL || 'https://media.kirimkata.com'
+            c.env.R2_PUBLIC_URL || ''
         );
 
-        // Save metadata to database
-        const { data: insertedFile, error: insertError } = await supabase
-            .from('client_media')
-            .insert({
-                client_id: clientId,
-                file_name: sanitizedFileName,
-                file_url: fileUrl,
-                file_type: fileType,
-                file_size: file.size,
-                mime_type: mimeType,
-            })
-            .select()
-            .single();
-
-        if (insertError) {
-            throw insertError;
+        if (!publicUrl) {
+            return c.json({ error: 'Failed to upload file to storage' }, 500);
         }
+
+        // Save to database
+        const [savedMedia] = await db
+            .insert(clientMedia)
+            .values({
+                clientId: clientId,
+                fileName: file.name, // Original name
+                fileUrl: publicUrl,
+                fileType: fileType,
+                fileSize: file.size,
+                mimeType: mimeType,
+            })
+            .returning();
 
         return c.json({
             success: true,
-            file: insertedFile
+            data: {
+                id: savedMedia.id,
+                url: savedMedia.fileUrl,
+                fileName: savedMedia.fileName,
+                fileType: savedMedia.fileType
+            }
         });
 
     } catch (error: any) {
         console.error('Upload error:', error);
         return c.json({
-            error: 'Upload failed',
+            error: 'Internal server error',
             message: error.message
         }, 500);
     }
@@ -168,101 +165,100 @@ media.post('/upload', async (c) => {
 
 /**
  * GET /v1/media/list
- * List all media files for client
+ * List client media
  */
 media.get('/list', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const fileType = c.req.query('type');
+        const db = getDb(c.env);
 
-        // Get query parameter for file type filter
-        const typeFilter = c.req.query('type'); // 'photo', 'music', 'video', or 'all'
+        let query = db
+            .select()
+            .from(clientMedia)
+            .where(eq(clientMedia.clientId, clientId))
+            .orderBy(desc(clientMedia.uploadedAt));
 
-        let query = supabase
-            .from('client_media')
-            .select('id, file_name, file_url, file_type, file_size, mime_type, uploaded_at')
-            .eq('client_id', clientId);
-
-        if (typeFilter && typeFilter !== 'all') {
-            query = query.eq('file_type', typeFilter);
+        if (fileType) {
+            // @ts-ignore - Condition abstraction in Drizzle query builder
+            query = db
+                .select()
+                .from(clientMedia)
+                .where(and(
+                    eq(clientMedia.clientId, clientId),
+                    eq(clientMedia.fileType, fileType)
+                ))
+                .orderBy(desc(clientMedia.uploadedAt));
         }
 
-        query = query.order('uploaded_at', { ascending: false });
-
-        const { data: files, error } = await query;
-
-        if (error) {
-            throw error;
-        }
+        const files = await query;
 
         return c.json({
-            files: files || []
+            success: true,
+            data: files.map(f => ({
+                id: f.id,
+                url: f.fileUrl,
+                fileName: f.fileName,
+                fileType: f.fileType,
+                fileSize: f.fileSize,
+                uploadedAt: f.uploadedAt,
+                mimeType: f.mimeType
+            }))
         });
-
     } catch (error: any) {
-        console.error('List files error:', error);
+        console.error('List media error:', error);
         return c.json({
-            error: 'Failed to list files',
+            error: 'Internal server error',
             message: error.message
         }, 500);
     }
 });
 
 /**
- * DELETE /v1/media/delete
- * Delete a media file
+ * DELETE /v1/media/:id
+ * Delete file
  */
-media.delete('/delete', async (c) => {
+media.delete('/:id', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const mediaId = parseInt(c.req.param('id'), 10);
+        const db = getDb(c.env);
 
-        // Get file ID from request body
-        const body = await c.req.json();
-        const fileId = body.fileId;
-
-        if (!fileId) {
-            return c.json({ error: 'File ID required' }, 400);
+        if (isNaN(mediaId)) {
+            return c.json({ error: 'Invalid media ID' }, 400);
         }
 
-        // Get file info and verify ownership
-        const { data: file, error: fileError } = await supabase
-            .from('client_media')
-            .select('file_url, client_id')
-            .eq('id', fileId)
-            .single();
+        // Find file first to get URL (for R2 delete)
+        const [file] = await db
+            .select()
+            .from(clientMedia)
+            .where(and(
+                eq(clientMedia.id, mediaId),
+                eq(clientMedia.clientId, clientId)
+            ))
+            .limit(1);
 
-        if (fileError || !file) {
+        if (!file) {
             return c.json({ error: 'File not found' }, 404);
         }
 
-        // Verify ownership
-        if (file.client_id !== clientId) {
-            return c.json({ error: 'Unauthorized' }, 403);
-        }
-
-        // Extract R2 path from URL
-        const fileUrl = file.file_url;
-        const r2PublicUrl = c.env.R2_PUBLIC_URL || 'https://media.kirimkata.com';
-        const r2Path = fileUrl.replace(`${r2PublicUrl}/`, '');
-
         // Delete from R2
+        let key = '';
         try {
-            await deleteFromR2(c.env.MEDIA_BUCKET, { path: r2Path });
-        } catch (r2Error) {
-            console.error('R2 delete error:', r2Error);
-            // Continue to delete from database even if R2 delete fails
+            const urlObj = new URL(file.fileUrl);
+            key = urlObj.pathname.substring(1); // Remove leading slash
+        } catch (e) {
+            // If URL parsing fails, maybe it's relative or invalid?
         }
 
-        // Delete from database
-        const { error: deleteError } = await supabase
-            .from('client_media')
-            .delete()
-            .eq('id', fileId);
-
-        if (deleteError) {
-            throw deleteError;
+        if (key) {
+            await deleteFromR2(c.env.MEDIA_BUCKET, { path: key });
         }
+
+        // Delete from DB
+        await db
+            .delete(clientMedia)
+            .where(eq(clientMedia.id, mediaId));
 
         return c.json({
             success: true,
@@ -270,9 +266,9 @@ media.delete('/delete', async (c) => {
         });
 
     } catch (error: any) {
-        console.error('Delete file error:', error);
+        console.error('Delete media error:', error);
         return c.json({
-            error: 'Failed to delete file',
+            error: 'Internal server error',
             message: error.message
         }, 500);
     }
@@ -280,186 +276,78 @@ media.delete('/delete', async (c) => {
 
 /**
  * GET /v1/media/quota
- * Get media quota information
+ * Get current quota usage
  */
 media.get('/quota', async (c) => {
     try {
         const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
+        const db = getDb(c.env);
 
-        // Get quota limits from clients table
-        const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('quota_photos, quota_music, quota_videos')
-            .eq('id', clientId)
-            .single();
+        // Get limits from client
+        const [clientData] = await db
+            .select({
+                quotaPhotos: clients.quotaPhotos,
+                quotaMusic: clients.quotaMusic,
+                quotaVideos: clients.quotaVideos
+            })
+            .from(clients)
+            .where(eq(clients.id, clientId))
+            .limit(1);
 
-        if (clientError || !clientData) {
+        if (!clientData) {
             return c.json({ error: 'Client not found' }, 404);
         }
 
-        const { quota_photos, quota_music, quota_videos } = clientData;
+        // Get usage counts
+        // Aggregate by fileType
+        const usageResults = await db
+            .select({
+                fileType: clientMedia.fileType,
+                count: sql<number>`count(*)`
+            })
+            .from(clientMedia)
+            .where(eq(clientMedia.clientId, clientId))
+            .groupBy(clientMedia.fileType);
 
-        // Get current usage for each type
-        const { data: mediaFiles, error: mediaError } = await supabase
-            .from('client_media')
-            .select('file_type')
-            .eq('client_id', clientId);
-
-        if (mediaError) {
-            throw mediaError;
-        }
-
-        const usage: Record<string, number> = {
-            photo: 0,
+        const usage = {
+            photos: 0,
             music: 0,
-            video: 0,
+            videos: 0
         };
 
-        mediaFiles?.forEach((file) => {
-            usage[file.file_type] = (usage[file.file_type] || 0) + 1;
+        usageResults.forEach(row => {
+            const count = Number(row.count);
+            if (row.fileType === 'photo') usage.photos = count;
+            else if (row.fileType === 'music') usage.music = count;
+            else if (row.fileType === 'video') usage.videos = count;
         });
 
         return c.json({
-            photos: {
-                used: usage.photo,
-                limit: quota_photos,
-                remaining: quota_photos - usage.photo,
-            },
-            music: {
-                used: usage.music,
-                limit: quota_music,
-                remaining: quota_music - usage.music,
-            },
-            videos: {
-                used: usage.video,
-                limit: quota_videos,
-                remaining: quota_videos - usage.video,
-            },
+            success: true,
+            quota: {
+                photos: {
+                    used: usage.photos,
+                    limit: clientData.quotaPhotos,
+                    remaining: (clientData.quotaPhotos || 0) - usage.photos
+                },
+                music: {
+                    used: usage.music,
+                    limit: clientData.quotaMusic,
+                    remaining: (clientData.quotaMusic || 0) - usage.music
+                },
+                videos: {
+                    used: usage.videos,
+                    limit: clientData.quotaVideos,
+                    remaining: (clientData.quotaVideos || 0) - usage.videos
+                }
+            }
         });
-
     } catch (error: any) {
-        console.error('Quota check error:', error);
+        console.error('Get quota error:', error);
         return c.json({
-            error: 'Failed to check quota',
+            error: 'Internal server error',
             message: error.message
         }, 500);
-    }
-});
-
-/**
- * GET /v1/media/custom-images
- * Get custom images for client's invitation
- */
-media.get('/custom-images', async (c) => {
-    try {
-        const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
-
-        // Get client's slug first
-        const { data: client, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .eq('id', clientId)
-            .single();
-
-        if (clientError || !client?.slug) {
-            return c.json(
-                { success: false, error: 'Client slug not found' },
-                404
-            );
-        }
-
-        // Get invitation content with custom_images and theme_key
-        const { data: invitation, error } = await supabase
-            .from('invitation_contents')
-            .select('custom_images, theme_key')
-            .eq('slug', client.slug)
-            .single();
-
-        // If no invitation found or error, return empty data (not an error)
-        if (error || !invitation) {
-            console.warn('No invitation content found for slug:', client.slug);
-            return c.json({
-                success: true,
-                custom_images: null,
-                theme_key: null,
-                message: 'Belum ada data undangan',
-            });
-        }
-
-        return c.json({
-            success: true,
-            custom_images: invitation.custom_images || null,
-            theme_key: invitation.theme_key || null,
-        });
-    } catch (error) {
-        console.error('Error in GET custom-images:', error);
-        return c.json(
-            { success: false, error: 'Internal server error' },
-            500
-        );
-    }
-});
-
-/**
- * PUT /v1/media/custom-images
- * Update custom images for client's invitation
- */
-media.put('/custom-images', async (c) => {
-    try {
-        const clientId = c.get('clientId') as string;
-        const supabase = getSupabaseClient(c.env);
-
-        const body = await c.req.json();
-        const { custom_images } = body;
-
-        if (!custom_images || typeof custom_images !== 'object') {
-            return c.json(
-                { success: false, error: 'Invalid custom images data' },
-                400
-            );
-        }
-
-        // Get client's slug first
-        const { data: client, error: clientError } = await supabase
-            .from('clients')
-            .select('slug')
-            .eq('id', clientId)
-            .single();
-
-        if (clientError || !client?.slug) {
-            return c.json(
-                { success: false, error: 'Client slug not found' },
-                404
-            );
-        }
-
-        // Update invitation_contents with custom_images
-        const { error } = await supabase
-            .from('invitation_contents')
-            .update({ custom_images })
-            .eq('slug', client.slug);
-
-        if (error) {
-            console.error('Error saving custom images:', error);
-            return c.json(
-                { success: false, error: 'Failed to save custom images' },
-                500
-            );
-        }
-
-        return c.json({
-            success: true,
-            message: 'Custom images saved successfully',
-            custom_images,
-        });
-    } catch (error) {
-        console.error('Error in PUT custom-images:', error);
-        return c.json(
-            { success: false, error: 'Internal server error' },
-            500
-        );
     }
 });
 

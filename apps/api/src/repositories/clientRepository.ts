@@ -1,5 +1,10 @@
-import { getSupabaseClient, getSupabaseServiceClient } from '../lib/supabase';
+
+import { eq, desc, not, isNull, and, isNotNull } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { clients, invitationContents, invitationPages } from '../db/schema';
 import { encrypt, comparePassword } from '../services-invitation/encryption';
+import type { Env } from '../lib/types';
 
 export interface CustomImages {
     background?: string;
@@ -13,215 +18,214 @@ export interface Client {
     username: string;
     password_encrypted: string;
     email: string | null;
-    slug: string | null;
     guestbook_access?: boolean;
     created_at: string;
     updated_at: string;
+    quota_photos?: number;
+    quota_music?: number;
+    quota_videos?: number;
 }
 
 export interface CreateClientInput {
     username: string;
     password: string;
     email?: string;
-    slug?: string;
 }
 
 export interface UpdateClientInput {
     username?: string;
     password?: string;
     email?: string;
-    slug?: string;
 }
 
-/**
- * Find client by username
- */
-export async function findClientByUsername(username: string): Promise<Client | null> {
-    const supabase = getSupabaseServiceClient();
-
-    // Use .limit(1) instead of .single() to avoid Cloudflare 500 error
-    const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('username', username)
-        .limit(1);
-
-    if (error || !data || data.length === 0) {
-        return null;
+export class ClientRepository {
+    private getDb(env: Env) {
+        const client = postgres(env.DATABASE_URL);
+        return drizzle(client);
     }
 
-    return data[0] as Client;
+    private mapToClient(row: any): Client {
+        return {
+            id: row.id,
+            username: row.username,
+            password_encrypted: row.passwordEncrypted,
+            email: row.email,
+            guestbook_access: row.guestbookAccess,
+            created_at: row.createdAt,
+            updated_at: row.updatedAt,
+            quota_photos: row.quotaPhotos,
+            quota_music: row.quotaMusic,
+            quota_videos: row.quotaVideos,
+        };
+    }
+
+    /**
+     * Find client by username
+     */
+    async findClientByUsername(username: string, env: Env): Promise<Client | null> {
+        const db = this.getDb(env);
+
+        const result = await db.select()
+            .from(clients)
+            .where(eq(clients.username, username))
+            .limit(1);
+
+        if (result.length === 0) {
+            return null;
+        }
+
+        return this.mapToClient(result[0]);
+    }
+
+    /**
+     * Verify client credentials
+     */
+    async verifyClientCredentials(
+        username: string,
+        password: string,
+        env: Env
+    ): Promise<Client | null> {
+        const client = await this.findClientByUsername(username, env);
+
+        if (!client) {
+            return null;
+        }
+
+        const isValid = comparePassword(password, client.password_encrypted);
+
+        if (!isValid) {
+            return null;
+        }
+
+        return client;
+    }
+
+    /**
+     * Get all clients
+     */
+    async getAllClients(env: Env): Promise<Client[]> {
+        const db = this.getDb(env);
+
+        const results = await db.select()
+            .from(clients)
+            .orderBy(desc(clients.createdAt));
+
+        return results.map(this.mapToClient);
+    }
+
+    /**
+     * Get client by ID
+     */
+    async getClientById(id: string, env: Env): Promise<Client | null> {
+        const db = this.getDb(env);
+
+        const result = await db.select()
+            .from(clients)
+            .where(eq(clients.id, id));
+
+        if (result.length === 0) {
+            return null;
+        }
+
+        return this.mapToClient(result[0]);
+    }
+
+    /**
+     * Create new client
+     */
+    async createClient(input: CreateClientInput, env: Env): Promise<Client | null> {
+        const db = this.getDb(env);
+        const passwordEncrypted = encrypt(input.password);
+
+        try {
+            const [newClient] = await db.insert(clients).values({
+                username: input.username,
+                passwordEncrypted: passwordEncrypted,
+                email: input.email || null,
+            }).returning();
+
+            return this.mapToClient(newClient);
+        } catch (error) {
+            console.error('Error creating client:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update client
+     */
+    async updateClient(
+        id: string,
+        input: UpdateClientInput,
+        env: Env
+    ): Promise<Client | null> {
+        const db = this.getDb(env);
+
+        const updateData: any = {};
+
+        if (input.username !== undefined) updateData.username = input.username;
+        if (input.email !== undefined) updateData.email = input.email || null;
+        if (input.password) {
+            updateData.passwordEncrypted = encrypt(input.password);
+        }
+
+        updateData.updatedAt = new Date().toISOString();
+
+        try {
+            const [updatedClient] = await db.update(clients)
+                .set(updateData)
+                .where(eq(clients.id, id))
+                .returning();
+
+            return this.mapToClient(updatedClient);
+        } catch (error) {
+            console.error('Error updating client:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Delete client
+     */
+    async deleteClient(id: string, env: Env): Promise<boolean> {
+        const db = this.getDb(env);
+
+        try {
+            await db.delete(clients).where(eq(clients.id, id));
+            return true;
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get available slugs (slugs not assigned to any client)
+     */
+    async getAvailableSlugs(env: Env): Promise<string[]> {
+        const db = this.getDb(env);
+
+        try {
+            // Get all slugs from invitation_contents
+            const allSlugsResult = await db.select({ slug: invitationContents.slug }).from(invitationContents);
+
+            // Get all assigned slugs from invitation_pages
+            const assignedSlugsResult = await db.select({ slug: invitationPages.slug })
+                .from(invitationPages)
+                .where(isNotNull(invitationPages.slug));
+
+            const assigned = new Set((assignedSlugsResult || []).map(c => c.slug).filter(Boolean) as string[]);
+
+            const available = allSlugsResult
+                .map(s => s.slug)
+                .filter(slug => !assigned.has(slug));
+
+            return available;
+        } catch (error) {
+            console.error('Error fetching available slugs:', error);
+            return [];
+        }
+    }
 }
 
-/**
- * Verify client credentials
- */
-export async function verifyClientCredentials(
-    username: string,
-    password: string
-): Promise<Client | null> {
-    const client = await findClientByUsername(username);
-
-    if (!client) {
-        return null;
-    }
-
-    const isValid = comparePassword(password, client.password_encrypted);
-
-    if (!isValid) {
-        return null;
-    }
-
-    return client;
-}
-
-/**
- * Get all clients
- */
-export async function getAllClients(): Promise<Client[]> {
-    const supabase = getSupabaseServiceClient();
-
-    const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching clients:', error);
-        return [];
-    }
-
-    return (data as Client[]) || [];
-}
-
-/**
- * Get client by ID
- */
-export async function getClientById(id: string): Promise<Client | null> {
-    const supabase = getSupabaseServiceClient();
-
-    const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-    if (error || !data) {
-        return null;
-    }
-
-    return data as Client;
-}
-
-/**
- * Create new client
- */
-export async function createClient(input: CreateClientInput): Promise<Client | null> {
-    const supabase = getSupabaseServiceClient();
-    const passwordEncrypted = encrypt(input.password);
-
-    const { data, error } = await supabase
-        .from('clients')
-        .insert({
-            username: input.username,
-            password_encrypted: passwordEncrypted,
-            email: input.email || null,
-            slug: input.slug || null,
-        })
-        .select()
-        .single();
-
-    if (error) {
-        console.error('Error creating client:', error);
-        return null;
-    }
-
-    return data as Client;
-}
-
-/**
- * Update client
- */
-export async function updateClient(
-    id: string,
-    input: UpdateClientInput
-): Promise<Client | null> {
-    const supabase = getSupabaseServiceClient();
-
-    const updateData: any = {};
-
-    if (input.username !== undefined) updateData.username = input.username;
-    if (input.email !== undefined) updateData.email = input.email || null;
-    if (input.slug !== undefined) updateData.slug = input.slug || null;
-    if (input.password) {
-        updateData.password_encrypted = encrypt(input.password);
-    }
-
-    const { data, error } = await supabase
-        .from('clients')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('Error updating client:', error);
-        return null;
-    }
-
-    return data as Client;
-}
-
-/**
- * Delete client
- */
-export async function deleteClient(id: string): Promise<boolean> {
-    const supabase = getSupabaseServiceClient();
-
-    const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Error deleting client:', error);
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * Get available slugs (slugs not assigned to any client)
- */
-export async function getAvailableSlugs(): Promise<string[]> {
-    const supabase = getSupabaseServiceClient();
-
-    // Get all slugs from invitation_contents
-    const { data: allSlugs, error: slugsError } = await supabase
-        .from('invitation_contents')
-        .select('slug');
-
-    if (slugsError || !allSlugs) {
-        console.error('Error fetching slugs:', slugsError);
-        return [];
-    }
-
-    // Get all assigned slugs from clients
-    const { data: assignedSlugs, error: clientsError } = await supabase
-        .from('clients')
-        .select('slug')
-        .not('slug', 'is', null);
-
-    if (clientsError) {
-        console.error('Error fetching assigned slugs:', clientsError);
-        return [];
-    }
-
-    const assigned = new Set((assignedSlugs || []).map((c: any) => c.slug));
-    const available = allSlugs
-        .map((s: any) => s.slug)
-        .filter((slug: string) => !assigned.has(slug));
-
-    return available;
-}
+export const clientRepository = new ClientRepository();

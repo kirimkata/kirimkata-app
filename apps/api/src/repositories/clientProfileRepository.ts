@@ -1,4 +1,9 @@
-import { getSupabaseClient } from '../lib/supabase';
+
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { invitationContents } from '../db/schema';
+import type { Env } from '../lib/types';
 
 // Define ClientProfile interface locally  
 interface ClientProfile {
@@ -8,44 +13,51 @@ interface ClientProfile {
     custom_images?: any;
 }
 
-const TABLE_NAME = 'invitation_contents';
+export class ClientProfileRepository {
+    private getDb(env: Env) {
+        const client = postgres(env.DATABASE_URL);
+        return drizzle(client);
+    }
 
-interface InvitationContentRow {
-    slug: string;
-    client_profile: ClientProfile;
-    theme_key?: string;
-}
+    /**
+     * Fetch client profile and theme from database
+     * Returns null if not found or error occurs
+     */
+    async fetchClientProfileFromDB(slug: string, env: Env): Promise<{ profile: ClientProfile; themeKey?: string } | null> {
+        const db = this.getDb(env);
 
-/**
- * Fetch client profile and theme from database
- * Returns null if not found or error occurs
- */
-export async function fetchClientProfileFromDB(slug: string): Promise<{ profile: ClientProfile; themeKey?: string } | null> {
-    try {
-        const supabase = getSupabaseClient();
+        try {
+            const result = await db.select({
+                slug: invitationContents.slug,
+                profile: invitationContents.profile,
+                themeKey: invitationContents.themeKey,
+            })
+                .from(invitationContents)
+                .where(eq(invitationContents.slug, slug))
+                .limit(1);
 
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('slug, client_profile, theme_key')
-            .eq('slug', slug)
-            .limit(1);
+            if (result.length === 0) {
+                return null;
+            }
 
-        if (error) {
-            console.error('Error fetching client profile from Supabase', error);
+            const row = result[0];
+
+            // Map 'profile' from DB to 'ClientProfile' structure expected by the app
+            // Note: The app expected 'client_profile' from Supabase query, but schema has 'profile'.
+            // Accessing 'profile' column content.
+            if (!row.profile) {
+                return null;
+            }
+
+            return {
+                profile: row.profile as unknown as ClientProfile,
+                themeKey: row.themeKey || undefined,
+            };
+        } catch (clientError) {
+            console.warn('Database error fetching client profile', clientError);
             return null;
         }
-
-        const row = (data && data[0]) as InvitationContentRow | undefined;
-        if (!row || !row.client_profile) {
-            return null;
-        }
-
-        return {
-            profile: row.client_profile,
-            themeKey: row.theme_key,
-        };
-    } catch (clientError) {
-        console.warn('Supabase client is not available or misconfigured', clientError);
-        return null;
     }
 }
+
+export const clientProfileRepository = new ClientProfileRepository();
