@@ -509,4 +509,92 @@ admin.put('/settings', async (c) => {
     }
 });
 
+/**
+ * GET /v1/admin/orders/pending
+ * Get orders pending payment verification
+ */
+admin.get('/orders/pending', async (c) => {
+    try {
+        const db = getDb(c.env);
+        const { OrderRepository } = await import('@/repositories/OrderRepository');
+        const orderRepo = new OrderRepository(db, c.env);
+
+        const pendingOrders = await orderRepo.findPendingVerification();
+
+        return c.json({
+            success: true,
+            data: pendingOrders,
+        });
+    } catch (error: any) {
+        console.error('Error fetching pending orders:', error);
+        return c.json(
+            { error: 'Internal server error', message: error.message },
+            500
+        );
+    }
+});
+
+/**
+ * POST /v1/admin/orders/:id/verify
+ * Verify payment and create invitation
+ */
+admin.post('/orders/:id/verify', async (c) => {
+    try {
+        const db = getDb(c.env);
+        const { OrderService } = await import('@/services/OrderService');
+        const orderService = new OrderService(db, c.env);
+
+        const orderId = c.req.param('id');
+        const adminId = c.get('adminId');
+
+        const result = await orderService.verifyPayment(orderId, adminId);
+
+        return c.json({
+            success: true,
+            data: result,
+        });
+    } catch (error: any) {
+        console.error('Error verifying payment:', error);
+        return c.json(
+            { error: error.message },
+            400
+        );
+    }
+});
+
+/**
+ * POST /v1/admin/orders/:id/reject
+ * Reject payment
+ */
+admin.post('/orders/:id/reject', async (c) => {
+    try {
+        const db = getDb(c.env);
+        const { OrderService } = await import('@/services/OrderService');
+        const orderService = new OrderService(db, c.env);
+
+        const orderId = c.req.param('id');
+        const adminId = c.get('adminId');
+        const body = await c.req.json();
+        const { reason } = body;
+
+        if (!reason) {
+            return c.json({ error: 'Rejection reason is required' }, 400);
+        }
+
+        const result = await orderService.rejectPayment(orderId, adminId, reason);
+
+        return c.json({
+            success: true,
+            data: result,
+        });
+    } catch (error: any) {
+        console.error('Error rejecting payment:', error);
+        return c.json(
+            { error: error.message },
+            400
+        );
+    }
+});
+
 export default admin;
+

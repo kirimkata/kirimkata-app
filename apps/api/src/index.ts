@@ -26,6 +26,10 @@ import sharedRoutes from './routes/v1/shared';
 import registrationRoutes from './routes/v1/registration';
 import invitationsRoutes from './routes/v1/invitations';
 import eventsRoutes from './routes/v1/events';
+import templatesRoutes from './routes/v1/templates';
+import addonsRoutes from './routes/v1/addons';
+import ordersRoutes from './routes/v1/orders';
+import invoicesRoutes from './routes/v1/invoices';
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -81,6 +85,12 @@ app.route('/v1/shared', sharedRoutes);
 app.route('/v1/registration', registrationRoutes);
 app.route('/v1/invitations', invitationsRoutes);
 app.route('/v1/events', eventsRoutes);
+
+// E-commerce routes
+app.route('/v1/templates', templatesRoutes);
+app.route('/v1/addons', addonsRoutes);
+app.route('/v1/orders', ordersRoutes);
+app.route('/v1/invoices', invoicesRoutes);
 
 // 404 handler
 app.notFound((c) => {
