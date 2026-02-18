@@ -118,6 +118,27 @@ export default function AdminLayout({
 
                     <nav className="sidebar-nav">
                         <Link
+                            href="/admin-kirimkata"
+                            className={pathname === '/admin-kirimkata' ? 'active' : ''}
+                            onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                        >
+                            🏠 Dashboard
+                        </Link>
+                        <Link
+                            href="/admin-kirimkata/pesanan"
+                            className={pathname?.startsWith('/admin-kirimkata/pesanan') ? 'active' : ''}
+                            onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                        >
+                            🛒 Pesanan Saya
+                        </Link>
+                        <Link
+                            href="/admin-kirimkata/invoice"
+                            className={pathname?.startsWith('/admin-kirimkata/invoice') ? 'active' : ''}
+                            onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                        >
+                            📄 Invoice
+                        </Link>
+                        <Link
                             href="/admin-kirimkata/clients"
                             className={pathname === '/admin-kirimkata/clients' ? 'active' : ''}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}

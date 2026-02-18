@@ -101,6 +101,12 @@ export const API_ENDPOINTS = {
         list: (slug: string) => `${API_BASE_URL}/v1/wishes/${slug}`,
         submit: (slug: string) => `${API_BASE_URL}/v1/wishes/${slug}`,
     },
+
+    // Public invitation (no auth required)
+    public: {
+        invitation: (slug: string) => `${API_BASE_URL}/v1/public/${slug}`,
+        status: (slug: string) => `${API_BASE_URL}/v1/public/${slug}/status`,
+    },
 };
 
 /**

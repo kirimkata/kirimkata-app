@@ -559,4 +559,233 @@ export class InvitationAPI {
         return res.json();
     }
 
+    // ============ TEMPLATES ============
+
+    static async getTemplates(token: string, filters?: { active?: boolean; category?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.active) params.append('active', 'true');
+        if (filters?.category) params.append('category', filters.category);
+
+        const res = await fetch(`${API_BASE_URL}/v1/templates?${params.toString()}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getTemplate(id: number, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/templates/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ ADDONS ============
+
+    static async getAddons(token: string, filters?: { active?: boolean; category?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.active) params.append('active', 'true');
+        if (filters?.category) params.append('category', filters.category);
+
+        const res = await fetch(`${API_BASE_URL}/v1/addons?${params.toString()}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getAddon(id: number, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/addons/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ ORDERS ============
+
+    static async createOrder(data: {
+        type: string;
+        title: string;
+        slug: string;
+        mainDate: string;
+        inviterType: string;
+        inviterData: any;
+        templateId: number;
+        addonIds?: number[];
+        voucherCode?: string;
+    }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async getOrders(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/orders`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getOrder(id: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/orders/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async uploadPaymentProof(orderId: string, data: {
+        paymentProofUrl: string;
+        paymentMethod: string;
+        paymentBank?: string;
+        paymentAccountName?: string;
+    }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/orders/${orderId}/payment-proof`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async cancelOrder(orderId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/orders/${orderId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ INVOICES ============
+
+    static async getInvoices(token: string, filters?: { status?: string }) {
+        const params = new URLSearchParams();
+        if (filters?.status) params.append('status', filters.status);
+
+        const res = await fetch(`${API_BASE_URL}/v1/invoices?${params.toString()}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getInvoice(id: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invoices/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async getInvoiceByOrder(orderId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invoices/order/${orderId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    // ============ GUESTBOOK ADDON ============
+
+    static async getGuestbookAddon(invitationId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async enableGuestbook(invitationId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}/enable`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async disableGuestbook(invitationId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}/disable`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        return res.json();
+    }
+
+    static async uploadGuestbookPayment(invitationId: string, data: {
+        paymentProofUrl: string;
+        paymentAmount: number;
+    }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}/payment-proof`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async updateGuestbookConfig(invitationId: string, data: {
+        seatingMode?: string;
+        staffQuota?: number;
+        config?: any;
+    }, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}/config`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    // ============ PUBLIC INVITATION (NO AUTH) ============
+
+    static async getPublicInvitation(slug: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/public/${slug}`);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+    }
+
+    static async getPublicInvitationStatus(slug: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/public/${slug}/status`);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+    }
+
 }
