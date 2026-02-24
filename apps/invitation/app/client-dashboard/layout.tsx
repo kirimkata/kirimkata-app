@@ -128,7 +128,7 @@ function ClientLayoutContent({
         );
     }
 
-    const isPublicRoute = ['/client-dashboard/login', '/client-dashboard/register', '/client-dashboard/verify-email'].some(path => pathname.startsWith(path));
+    const isPublicRoute = ['/client-dashboard/login', '/client-dashboard/register', '/client-dashboard/verify-email', '/client-dashboard/new-order'].some(path => pathname.startsWith(path));
 
     if (!isAuthenticated && !isPublicRoute) {
         return null;

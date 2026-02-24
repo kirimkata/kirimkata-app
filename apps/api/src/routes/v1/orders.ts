@@ -7,6 +7,29 @@ import { clientAuthMiddleware } from '../../middleware/auth';
 const app = new Hono<AppEnv>();
 
 /**
+ * POST /v1/orders/check-slug
+ * Check if a slug is available (requires auth)
+ */
+app.post('/check-slug', clientAuthMiddleware, async (c) => {
+    try {
+        const db = getDb(c.env);
+        const orderService = new OrderService(db, c.env);
+        const body = await c.req.json();
+        const { slug } = body;
+
+        if (!slug) {
+            return c.json({ success: false, error: 'Slug is required' }, 400);
+        }
+
+        const available = await (orderService as any).orderRepo.isSlugAvailable(slug);
+        return c.json({ success: true, data: { available, slug } });
+    } catch (error: any) {
+        console.error('Error checking slug:', error);
+        return c.json({ success: false, error: error.message }, 500);
+    }
+});
+
+/**
  * POST /v1/orders
  * Create new order (requires auth)
  */
