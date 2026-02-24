@@ -16,7 +16,7 @@ import {
     Clock,
     CheckCircle
 } from 'lucide-react';
-import CreateEventModal from './CreateEventModal';
+
 import { InvitationAPI } from '@/lib/api/client';
 
 export default function InvitationsPage() {
@@ -102,8 +102,8 @@ export default function InvitationsPage() {
                         Kelola semua undangan pernikahan Anda di sini
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
+                <Link
+                    href="/client-dashboard/new-order"
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -116,12 +116,13 @@ export default function InvitationsPage() {
                         fontWeight: 600,
                         cursor: 'pointer',
                         fontSize: '14px',
+                        textDecoration: 'none',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                     }}
                 >
                     <Plus size={18} />
                     Buat Undangan Baru
-                </button>
+                </Link>
             </div>
 
             {/* Filters & Search */}
@@ -336,8 +337,8 @@ export default function InvitationsPage() {
                     <p style={{ color: colors.textSecondary, marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
                         Anda belum membuat undangan pernikahan apapun. Mulai buat undangan pertama Anda sekarang!
                     </p>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
+                    <Link
+                        href="/client-dashboard/new-order"
                         style={{
                             padding: '10px 24px',
                             backgroundColor: colors.primary,
@@ -346,21 +347,17 @@ export default function InvitationsPage() {
                             border: 'none',
                             fontWeight: 600,
                             cursor: 'pointer',
-                            fontSize: '14px'
+                            fontSize: '14px',
+                            textDecoration: 'none',
+                            display: 'inline-block'
                         }}
                     >
                         Buat Undangan Sekarang
-                    </button>
+                    </Link>
                 </div>
             )}
 
-            <CreateEventModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onSuccess={() => {
-                    // Fetch events is already called inside modal, but we can do extra stuff here if needed
-                }}
-            />
+
             <style jsx>{`
                 .invitations-header {
                     display: flex;

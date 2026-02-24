@@ -5,6 +5,7 @@ import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { TemplateRepository } from '../repositories/TemplateRepository';
 import { AddonRepository } from '../repositories/AddonRepository';
 import { InvitationRepository } from '../repositories/InvitationRepository';
+import { guestbookEvents } from '../db/schema';
 
 export class OrderService {
     private orderRepo: OrderRepository;
@@ -146,6 +147,7 @@ export class OrderService {
     async verifyPayment(orderId: string, adminId: string): Promise<{
         order: any;
         invitation: any;
+        event: any;
         invoice: any;
     }> {
         // 1. Get order
@@ -228,6 +230,18 @@ export class OrderService {
             activeUntil,
         });
 
+        // 5.5 Create Event for Client Dashboard
+        const [newEvent] = await this.db.insert(guestbookEvents).values({
+            clientId: verifiedOrder.clientId,
+            eventName: verifiedOrder.title,
+            eventDate: verifiedOrder.mainDate,
+            invitationId: invitation.id,
+            hasInvitation: true,
+            hasGuestbook: false, // Default false unless they bought a guestbook addon
+            seatingMode: 'no_seat',
+            isActive: true,
+        }).returning();
+
         // 6. Mark invoice as paid
         const invoice = await this.invoiceRepo.findByOrderId(orderId);
         if (invoice) {
@@ -237,6 +251,7 @@ export class OrderService {
         return {
             order: verifiedOrder,
             invitation,
+            event: newEvent,
             invoice,
         };
     }
