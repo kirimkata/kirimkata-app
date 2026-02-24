@@ -7,6 +7,7 @@ import { InvitationAPI } from '@/lib/api/client';
 interface DashboardStats {
     totalOrders: number;
     pendingOrders: number;
+    pendingVerification: number;
     activeInvitations: number;
     unpaidInvoices: number;
 }
@@ -15,7 +16,7 @@ interface RecentOrder {
     id: string;
     orderNumber: string;
     title: string;
-    totalAmount: number;
+    total: number;
     orderStatus: string;
     createdAt: string;
 }
@@ -24,6 +25,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats>({
         totalOrders: 0,
         pendingOrders: 0,
+        pendingVerification: 0,
         activeInvitations: 0,
         unpaidInvoices: 0,
     });
@@ -36,19 +38,25 @@ export default function DashboardPage() {
 
     const loadDashboardData = async () => {
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
 
             // Load orders
             const ordersRes = await InvitationAPI.getOrders(token);
             if (ordersRes.success) {
                 const orders = ordersRes.data;
-                setRecentOrders(orders.slice(0, 5)); // Show 5 most recent
+                setRecentOrders(orders.slice(0, 5));
 
                 setStats(prev => ({
                     ...prev,
                     totalOrders: orders.length,
                     pendingOrders: orders.filter((o: any) => o.orderStatus === 'pending').length,
                 }));
+            }
+
+            // Load pending verification count
+            const pendingRes = await InvitationAPI.getPendingOrders(token);
+            if (pendingRes.success) {
+                setStats(prev => ({ ...prev, pendingVerification: pendingRes.data?.length || 0 }));
             }
 
             // Load invoices
@@ -123,6 +131,25 @@ export default function DashboardPage() {
                             <div className="bg-yellow-100 p-3 rounded-full">
                                 <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                <Link href="/admin-kirimkata/verifikasi">
+                    <div className={`rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer ${stats.pendingVerification > 0 ? 'bg-blue-50 border-2 border-blue-300' : 'bg-white'}`}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-sm">Menunggu Verifikasi</p>
+                                <p className={`text-3xl font-bold mt-2 ${stats.pendingVerification > 0 ? 'text-blue-600' : 'text-gray-800'}`}>{stats.pendingVerification}</p>
+                                {stats.pendingVerification > 0 && (
+                                    <p className="text-xs text-blue-600 mt-1 font-medium">Perlu tindakan →</p>
+                                )}
+                            </div>
+                            <div className={`p-3 rounded-full ${stats.pendingVerification > 0 ? 'bg-blue-200' : 'bg-blue-100'}`}>
+                                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
                         </div>
@@ -221,7 +248,7 @@ export default function DashboardPage() {
                                         <p className="text-sm text-gray-500">#{order.orderNumber}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-medium">Rp {order.totalAmount.toLocaleString('id-ID')}</p>
+                                        <p className="font-medium">Rp {order.total?.toLocaleString('id-ID')}</p>
                                         <p className={`text-sm ${getStatusColor(order.orderStatus)}`}>
                                             {order.orderStatus}
                                         </p>

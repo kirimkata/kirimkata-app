@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../../lib/types';
 import { getDb } from '../../db';
 import { OrderService } from '../../services/OrderService';
-import { clientAuthMiddleware } from '../../middleware/auth';
+import { authMiddleware, clientAuthMiddleware } from '../../middleware/auth';
 
 const app = new Hono<AppEnv>();
 
@@ -76,7 +76,7 @@ app.post('/', clientAuthMiddleware, async (c) => {
  * GET /v1/orders/:id
  * Get order details (requires auth)
  */
-app.get('/:id', clientAuthMiddleware, async (c) => {
+app.get('/:id', authMiddleware, async (c) => {
     try {
         const db = getDb(c.env);
         const orderService = new OrderService(db, c.env);
@@ -156,18 +156,23 @@ app.post('/:id/cancel', clientAuthMiddleware, async (c) => {
 
 /**
  * GET /v1/orders
- * Get client's orders (requires auth)
+ * Get client's or all orders (requires auth)
  */
-app.get('/', clientAuthMiddleware, async (c) => {
+app.get('/', authMiddleware, async (c) => {
     try {
         const db = getDb(c.env);
         const orderService = new OrderService(db, c.env);
 
         const payload = c.get('jwtPayload') as any;
-        const clientId = payload.userId || payload.client_id;
-
         const { orderRepo } = orderService as any;
-        const orders = await orderRepo.findByClientId(clientId);
+
+        let orders;
+        if (payload.type === 'ADMIN') {
+            orders = await orderRepo.findByClientId();
+        } else {
+            const clientId = payload.userId || payload.client_id;
+            orders = await orderRepo.findByClientId(clientId);
+        }
 
         return c.json({ success: true, data: orders });
     } catch (error: any) {

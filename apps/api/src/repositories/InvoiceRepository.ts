@@ -100,20 +100,24 @@ export class InvoiceRepository {
     /**
      * Find all invoices for a client
      */
-    async findByClientId(clientId: string, filters?: {
+    async findByClientId(clientId?: string, filters?: {
         paymentStatus?: string;
     }): Promise<typeof invoices.$inferSelect[]> {
-        const conditions = [eq(invoices.clientId, clientId)];
+        const conditions = [];
+        if (clientId) {
+            conditions.push(eq(invoices.clientId, clientId));
+        }
 
         if (filters?.paymentStatus) {
             conditions.push(eq(invoices.paymentStatus, filters.paymentStatus));
         }
 
-        return this.db
-            .select()
-            .from(invoices)
-            .where(and(...conditions))
-            .orderBy(desc(invoices.createdAt));
+        let query: any = this.db.select().from(invoices);
+        if (conditions.length > 0) {
+            query = query.where(and(...conditions));
+        }
+
+        return query.orderBy(desc(invoices.createdAt));
     }
 
     /**

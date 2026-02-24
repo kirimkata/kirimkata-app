@@ -82,7 +82,7 @@ export default function CreateOrderPage() {
     const loadTemplates = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
             const response = await InvitationAPI.getTemplates(token, { active: true });
 
             if (response.success) {
@@ -100,7 +100,7 @@ export default function CreateOrderPage() {
     const loadAddons = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
             const response = await InvitationAPI.getAddons(token, { active: true });
 
             if (response.success) {
@@ -167,7 +167,7 @@ export default function CreateOrderPage() {
             setLoading(true);
             setError('');
 
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
 
             const orderData = {
                 type: formData.type,
@@ -205,8 +205,8 @@ export default function CreateOrderPage() {
                             <div key={step} className="flex items-center">
                                 <div
                                     className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= step
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-300 text-gray-600'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-300 text-gray-600'
                                         }`}
                                 >
                                     {step}
@@ -456,8 +456,8 @@ export default function CreateOrderPage() {
                                         <div
                                             key={addon.id}
                                             className={`bg-white rounded-lg shadow p-4 cursor-pointer border-2 ${formData.addonIds.includes(addon.id)
-                                                    ? 'border-blue-600'
-                                                    : 'border-transparent'
+                                                ? 'border-blue-600'
+                                                : 'border-transparent'
                                                 }`}
                                             onClick={() => toggleAddon(addon)}
                                         >

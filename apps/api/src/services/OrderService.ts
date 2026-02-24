@@ -4,7 +4,7 @@ import { OrderRepository } from '../repositories/OrderRepository';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { TemplateRepository } from '../repositories/TemplateRepository';
 import { AddonRepository } from '../repositories/AddonRepository';
-import { InvitationRepository } from '../repositories/invitationRepository';
+import { InvitationRepository } from '../repositories/InvitationRepository';
 
 export class OrderService {
     private orderRepo: OrderRepository;
@@ -126,8 +126,8 @@ export class OrderService {
             throw new Error('Order not found');
         }
 
-        // Check if order is still pending
-        if (order.paymentStatus !== 'pending') {
+        // Check if order can still accept payment proof
+        if (order.paymentStatus !== 'unpaid' && order.paymentStatus !== 'rejected') {
             throw new Error(`Cannot upload payment proof. Order payment status is "${order.paymentStatus}"`);
         }
 

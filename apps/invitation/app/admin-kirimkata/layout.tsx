@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { InvitationAPI } from '@/lib/api/client';
 
 export default function AdminLayout({
     children,
@@ -15,6 +16,7 @@ export default function AdminLayout({
     const [loading, setLoading] = useState(true);
     const [adminData, setAdminData] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
         const token = localStorage.getItem('admin_token');
@@ -32,6 +34,14 @@ export default function AdminLayout({
             } catch (e) {
                 setAdminData({ username: 'Admin' });
             }
+            // Fetch pending orders count for badge (async inner)
+            const fetchPendingCount = async () => {
+                try {
+                    const res = await InvitationAPI.getPendingOrders(token);
+                    if (res.success) setPendingCount(res.data?.length || 0);
+                } catch { /* badge not critical */ }
+            };
+            fetchPendingCount();
         }
 
         setLoading(false);
@@ -129,7 +139,30 @@ export default function AdminLayout({
                             className={pathname?.startsWith('/admin-kirimkata/pesanan') ? 'active' : ''}
                             onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
                         >
-                            🛒 Pesanan Saya
+                            🛒 Semua Pesanan
+                        </Link>
+                        <Link
+                            href="/admin-kirimkata/verifikasi"
+                            className={pathname?.startsWith('/admin-kirimkata/verifikasi') ? 'active' : ''}
+                            onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                        >
+                            <span>✅ Verifikasi Pesanan</span>
+                            {pendingCount > 0 && (
+                                <span style={{
+                                    background: '#dc2626',
+                                    color: 'white',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    borderRadius: '9999px',
+                                    minWidth: '18px',
+                                    height: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0 5px',
+                                }}>{pendingCount}</span>
+                            )}
                         </Link>
                         <Link
                             href="/admin-kirimkata/invoice"

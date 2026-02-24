@@ -10,7 +10,7 @@ interface Invoice {
     clientId: string;
     orderId: string;
     orderNumber?: string;
-    totalAmount: number;
+    total: number;
     paymentStatus: string;
     dueDate?: string;
     createdAt: string;
@@ -29,7 +29,7 @@ export default function InvoicesListPage() {
     const loadInvoices = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
 
             const filters = filter !== 'all' ? { status: filter } : undefined;
             const response = await InvitationAPI.getInvoices(token, filters);
@@ -49,7 +49,7 @@ export default function InvoicesListPage() {
     const getStatusBadgeColor = (status: string) => {
         const colors: Record<string, string> = {
             unpaid: 'bg-red-100 text-red-800',
-            awaiting_verification: 'bg-yellow-100 text-yellow-800',
+            pending_verification: 'bg-yellow-100 text-yellow-800',
             paid: 'bg-green-100 text-green-800',
             rejected: 'bg-red-100 text-red-800',
         };
@@ -59,7 +59,7 @@ export default function InvoicesListPage() {
     const formatStatus = (status: string) => {
         const labels: Record<string, string> = {
             unpaid: 'Belum Dibayar',
-            awaiting_verification: 'Menunggu Verifikasi',
+            pending_verification: 'Menunggu Verifikasi',
             paid: 'Lunas',
             rejected: 'Ditolak',
         };
@@ -87,7 +87,7 @@ export default function InvoicesListPage() {
                 >
                     <option value="all">Semua Invoice</option>
                     <option value="unpaid">Belum Dibayar</option>
-                    <option value="awaiting_verification">Menunggu Verifikasi</option>
+                    <option value="pending_verification">Menunggu Verifikasi</option>
                     <option value="paid">Lunas</option>
                 </select>
             </div>
@@ -152,7 +152,7 @@ export default function InvoicesListPage() {
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                        Rp {invoice.totalAmount.toLocaleString('id-ID')}
+                                        Rp {invoice.total?.toLocaleString('id-ID')}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeColor(invoice.paymentStatus)}`}>

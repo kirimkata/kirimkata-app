@@ -406,7 +406,7 @@ function Step3({ colors }: { colors: any }) {
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Gagal membuat pesanan.');
-            router.push(`/client-dashboard/invitations?order=${data.data.order.id}&success=1`);
+            router.push(`/client-dashboard/invoice?new=1`);
         } catch (e: any) {
             setError(e.message);
         } finally {

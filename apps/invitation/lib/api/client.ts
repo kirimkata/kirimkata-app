@@ -708,7 +708,36 @@ export class InvitationAPI {
         return res.json();
     }
 
-    // ============ GUESTBOOK ADDON ============
+    // ============ ADMIN — ORDER VERIFICATION ============
+
+    static async getPendingOrders(token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/admin/orders/pending`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        return res.json();
+    }
+
+    static async verifyOrder(orderId: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/admin/orders/${orderId}/verify`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        return res.json();
+    }
+
+    static async rejectOrder(orderId: string, reason: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/admin/orders/${orderId}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ reason }),
+        });
+        return res.json();
+    }
+
+
 
     static async getGuestbookAddon(invitationId: string, token: string) {
         const res = await fetch(`${API_BASE_URL}/v1/invitations-guestbook/${invitationId}`, {

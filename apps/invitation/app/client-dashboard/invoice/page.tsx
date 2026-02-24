@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/contexts/ThemeContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     FileText, Clock, CheckCircle2, XCircle, ChevronRight,
     AlertCircle, Loader2, RefreshCw, Plus, Copy, Check
@@ -215,11 +215,21 @@ function PaymentModal({ invoice, onClose, onSuccess, colors }: {
 export default function InvoicePage() {
     const { colors } = useTheme();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
     const [payTarget, setPayTarget] = useState<any | null>(null);
+    const [showNewBanner, setShowNewBanner] = useState(false);
+
+    useEffect(() => {
+        if (searchParams?.get('new') === '1') {
+            setShowNewBanner(true);
+            // Auto-dismiss after 8 seconds
+            setTimeout(() => setShowNewBanner(false), 8000);
+        }
+    }, [searchParams]);
 
     const fetchInvoices = async () => {
         setLoading(true);
@@ -285,6 +295,30 @@ export default function InvoicePage() {
                     <AlertCircle size={16} style={{ flexShrink: 0 }} /> {error}
                     <button onClick={fetchInvoices} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
                         <RefreshCw size={13} /> Coba lagi
+                    </button>
+                </div>
+            )}
+
+            {/* Banner sukses setelah buat pesanan baru */}
+            {showNewBanner && (
+                <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '16px 20px', backgroundColor: '#dcfce7', borderRadius: 10,
+                    border: '1px solid #86efac', marginBottom: 20,
+                }}>
+                    <CheckCircle2 size={20} style={{ color: '#16a34a', flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#15803d', marginBottom: 4 }}>
+                            🎉 Pesanan berhasil dibuat!
+                        </p>
+                        <p style={{ fontSize: 13, color: '#166534' }}>
+                            Silakan selesaikan pembayaran dengan menekan tombol <strong>Bayar Sekarang</strong> di invoice di bawah ini.
+                            Setelah pembayaran dikonfirmasi, undangan Anda akan segera diaktifkan.
+                        </p>
+                    </div>
+                    <button onClick={() => setShowNewBanner(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#16a34a', fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}>
+                        ×
                     </button>
                 </div>
             )}

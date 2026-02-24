@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../../lib/types';
 import { getDb } from '../../db';
 import { InvoiceRepository } from '../../repositories/InvoiceRepository';
-import { clientAuthMiddleware } from '../../middleware/auth';
+import { authMiddleware, clientAuthMiddleware } from '../../middleware/auth';
 import { orders } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -12,19 +12,24 @@ const app = new Hono<AppEnv>();
  * GET /v1/invoices
  * Get client's invoices with order details joined (requires auth)
  */
-app.get('/', clientAuthMiddleware, async (c) => {
+app.get('/', authMiddleware, async (c) => {
     try {
         const db = getDb(c.env);
         const invoiceRepo = new InvoiceRepository(db, c.env);
 
         const payload = c.get('jwtPayload') as any;
-        const clientId = payload.userId || payload.client_id;
 
         const status = c.req.query('status');
         const filters: any = {};
         if (status) filters.paymentStatus = status;
 
-        const invoiceList = await invoiceRepo.findByClientId(clientId, filters);
+        let invoiceList;
+        if (payload.type === 'ADMIN') {
+            invoiceList = await invoiceRepo.findByClientId(undefined, filters);
+        } else {
+            const clientId = payload.userId || payload.client_id;
+            invoiceList = await invoiceRepo.findByClientId(clientId, filters);
+        }
 
         // Enrich with order data (title, slug, orderNumber)
         const enriched = await Promise.all(
@@ -61,7 +66,7 @@ app.get('/', clientAuthMiddleware, async (c) => {
  * GET /v1/invoices/order/:orderId
  * Get invoice by order ID (requires auth)
  */
-app.get('/order/:orderId', clientAuthMiddleware, async (c) => {
+app.get('/order/:orderId', authMiddleware, async (c) => {
     try {
         const db = getDb(c.env);
         const invoiceRepo = new InvoiceRepository(db, c.env);
@@ -90,7 +95,7 @@ app.get('/order/:orderId', clientAuthMiddleware, async (c) => {
  * GET /v1/invoices/:id
  * Get invoice by ID (requires auth)
  */
-app.get('/:id', clientAuthMiddleware, async (c) => {
+app.get('/:id', authMiddleware, async (c) => {
     try {
         const db = getDb(c.env);
         const invoiceRepo = new InvoiceRepository(db, c.env);

@@ -138,16 +138,18 @@ export class OrderRepository {
     /**
      * Find all orders for a client
      */
-    async findByClientId(clientId: string, filters?: {
+    async findByClientId(clientId?: string, filters?: {
         paymentStatus?: string;
         status?: string;
     }): Promise<typeof orders.$inferSelect[]> {
-        let query = this.db
+        let query: any = this.db
             .select()
-            .from(orders)
-            .where(eq(orders.clientId, clientId));
+            .from(orders);
 
-        const conditions = [eq(orders.clientId, clientId)];
+        const conditions = [];
+        if (clientId) {
+            conditions.push(eq(orders.clientId, clientId));
+        }
 
         if (filters?.paymentStatus) {
             conditions.push(eq(orders.paymentStatus, filters.paymentStatus));
@@ -157,7 +159,7 @@ export class OrderRepository {
             conditions.push(eq(orders.status, filters.status));
         }
 
-        if (conditions.length > 1) {
+        if (conditions.length > 0) {
             query = this.db
                 .select()
                 .from(orders)

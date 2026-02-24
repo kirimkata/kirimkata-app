@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { InvitationAPI } from '@/lib/api/client';
+import { CheckCircle, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface Order {
     id: string;
@@ -17,7 +18,7 @@ interface Order {
     templateName?: string;
     basePrice: number;
     selectedAddons: any[];
-    totalAmount: number;
+    total: number;
     paymentStatus: string;
     orderStatus: string;
     paymentProofUrl?: string;
@@ -28,7 +29,7 @@ interface Order {
 interface Invoice {
     id: string;
     invoiceNumber: string;
-    totalAmount: number;
+    total: number;
     paymentStatus: string;
     dueDate?: string;
 }
@@ -45,12 +46,13 @@ export default function OrderDetailPage() {
     const [error, setError] = useState('');
     const [showUploadModal, setShowUploadModal] = useState(false);
 
-    const [paymentData, setPaymentData] = useState({
-        paymentProofUrl: '',
-        paymentMethod: 'manual_transfer',
-        paymentBank: '',
-        paymentAccountName: '',
-    });
+    // Admin verify/reject state
+    const [verifying, setVerifying] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
+    const [rejectLoading, setRejectLoading] = useState(false);
+    const [rejectError, setRejectError] = useState('');
+    const [actionSuccess, setActionSuccess] = useState('');
 
     useEffect(() => {
         if (orderId) {
@@ -60,7 +62,7 @@ export default function OrderDetailPage() {
 
     const loadOrderDetails = async () => {
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
 
             // Load order
             const orderResponse = await InvitationAPI.getOrder(orderId, token);
@@ -92,12 +94,12 @@ export default function OrderDetailPage() {
             setUploading(true);
             setError('');
 
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
             const response = await InvitationAPI.uploadPaymentProof(orderId, paymentData, token);
 
             if (response.success) {
                 setShowUploadModal(false);
-                loadOrderDetails(); // Reload data
+                loadOrderDetails();
                 alert('Bukti pembayaran berhasil diupload! Menunggu verifikasi admin.');
             } else {
                 setError(response.error || 'Gagal mengupload bukti pembayaran');
@@ -116,7 +118,7 @@ export default function OrderDetailPage() {
 
         try {
             setLoading(true);
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
             const response = await InvitationAPI.cancelOrder(orderId, token);
 
             if (response.success) {
@@ -132,6 +134,57 @@ export default function OrderDetailPage() {
         }
     };
 
+    // Admin: Verify payment
+    const handleVerify = async () => {
+        if (!confirm('Verifikasi pembayaran ini? Undangan akan langsung dibuat.')) return;
+        setVerifying(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('admin_token') || '';
+            const res = await InvitationAPI.verifyOrder(orderId, token);
+            if (res.success) {
+                setActionSuccess('✅ Pembayaran berhasil diverifikasi! Undangan telah dibuat.');
+                loadOrderDetails();
+            } else {
+                setError(res.error || 'Gagal memverifikasi pembayaran.');
+            }
+        } catch {
+            setError('Terjadi kesalahan saat verifikasi.');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    // Admin: Reject payment
+    const handleRejectSubmit = async () => {
+        if (!rejectReason.trim()) { setRejectError('Alasan penolakan wajib diisi.'); return; }
+        setRejectLoading(true);
+        setRejectError('');
+        try {
+            const token = localStorage.getItem('admin_token') || '';
+            const res = await InvitationAPI.rejectOrder(orderId, rejectReason.trim(), token);
+            if (res.success) {
+                setShowRejectModal(false);
+                setRejectReason('');
+                setActionSuccess('❌ Pembayaran ditolak. User dapat mengulang pembayaran.');
+                loadOrderDetails();
+            } else {
+                setRejectError(res.error || 'Gagal menolak pembayaran.');
+            }
+        } catch {
+            setRejectError('Terjadi kesalahan.');
+        } finally {
+            setRejectLoading(false);
+        }
+    };
+
+    const [paymentData, setPaymentData] = useState({
+        paymentProofUrl: '',
+        paymentMethod: 'manual_transfer',
+        paymentBank: '',
+        paymentAccountName: '',
+    });
+
     const getStatusBadgeColor = (status: string) => {
         const colors: Record<string, string> = {
             pending: 'bg-yellow-100 text-yellow-800',
@@ -140,7 +193,7 @@ export default function OrderDetailPage() {
             expired: 'bg-gray-100 text-gray-800',
             cancelled: 'bg-gray-100 text-gray-800',
             unpaid: 'bg-red-100 text-red-800',
-            awaiting_verification: 'bg-yellow-100 text-yellow-800',
+            pending_verification: 'bg-yellow-100 text-yellow-800',
             paid: 'bg-green-100 text-green-800',
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
@@ -154,7 +207,7 @@ export default function OrderDetailPage() {
             expired: 'Kadaluarsa',
             cancelled: 'Dibatalkan',
             unpaid: 'Belum Dibayar',
-            awaiting_verification: 'Menunggu Verifikasi',
+            pending_verification: 'Menunggu Verifikasi',
             paid: 'Lunas',
         };
         return labels[status] || status;
@@ -240,7 +293,7 @@ export default function OrderDetailPage() {
                             ))}
                             <div className="border-t pt-2 flex justify-between font-bold">
                                 <span>Total</span>
-                                <span className="text-blue-600">Rp {order.totalAmount.toLocaleString('id-ID')}</span>
+                                <span className="text-blue-600">Rp {order.total?.toLocaleString('id-ID')}</span>
                             </div>
                         </div>
                     </div>
@@ -252,7 +305,7 @@ export default function OrderDetailPage() {
                         <h3 className="font-semibold mb-3">Informasi Invoice</h3>
                         <div className="space-y-2 text-sm">
                             <p><strong>No. Invoice:</strong> {invoice.invoiceNumber}</p>
-                            <p><strong>Total:</strong> Rp {invoice.totalAmount.toLocaleString('id-ID')}</p>
+                            <p><strong>Total:</strong> Rp {invoice.total?.toLocaleString('id-ID')}</p>
                             <p><strong>Status Pembayaran:</strong> <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadgeColor(invoice.paymentStatus)}`}>{formatStatus(invoice.paymentStatus)}</span></p>
                             {invoice.dueDate && (
                                 <p><strong>Jatuh Tempo:</strong> {new Date(invoice.dueDate).toLocaleDateString('id-ID')}</p>
@@ -265,14 +318,66 @@ export default function OrderDetailPage() {
                 {order.paymentProofUrl && (
                     <div className="border-t pt-6 mb-6">
                         <h3 className="font-semibold mb-3">Bukti Pembayaran</h3>
-                        <img
-                            src={order.paymentProofUrl}
-                            alt="Bukti Pembayaran"
-                            className="max-w-md rounded-lg border"
-                        />
-                        {order.paymentMethod && (
-                            <p className="text-sm text-gray-600 mt-2">Metode: {order.paymentMethod}</p>
+                        {order.paymentProofUrl.startsWith('QRIS-REF:') ? (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm font-medium text-blue-800 mb-1">Pembayaran via QRIS</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs text-gray-600">Nomor Referensi:</span>
+                                    <code className="font-mono text-sm bg-white border border-blue-200 px-3 py-1 rounded text-gray-900">
+                                        {order.paymentProofUrl.replace('QRIS-REF:', '')}
+                                    </code>
+                                </div>
+                                {order.paymentMethod && (
+                                    <p className="text-xs text-gray-500 mt-2">Metode: {order.paymentMethod.replace(/_/g, ' ')}</p>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <img
+                                    src={order.paymentProofUrl}
+                                    alt="Bukti Pembayaran"
+                                    className="max-w-md rounded-lg border"
+                                />
+                                {order.paymentMethod && (
+                                    <p className="text-sm text-gray-600 mt-2">Metode: {order.paymentMethod}</p>
+                                )}
+                            </div>
                         )}
+                    </div>
+                )}
+
+                {/* Action Success Banner */}
+                {actionSuccess && (
+                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm font-medium">
+                        {actionSuccess}
+                    </div>
+                )}
+
+                {/* Admin: Verifikasi Pembayaran */}
+                {order.paymentStatus === 'pending_verification' && (
+                    <div className="border-t pt-6 mb-6">
+                        <h3 className="font-semibold mb-3 text-blue-900">Verifikasi Pembayaran</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Periksa bukti pembayaran di atas, lalu pilih tindakan:
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleVerify}
+                                disabled={verifying}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-wait"
+                            >
+                                <CheckCircle size={16} />
+                                {verifying ? 'Memverifikasi...' : 'Verifikasi Pembayaran'}
+                            </button>
+                            <button
+                                onClick={() => { setShowRejectModal(true); setRejectReason(''); setRejectError(''); }}
+                                disabled={verifying}
+                                className="flex items-center gap-2 px-6 py-2.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 font-semibold disabled:opacity-50"
+                            >
+                                <XCircle size={16} />
+                                Tolak Pembayaran
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -296,7 +401,7 @@ export default function OrderDetailPage() {
                     )}
 
                     {order.orderStatus === 'verified' && (
-                        <Link href={`/admin-kirimkata/${order.slug}`}>
+                        <Link href={`/client-dashboard/edit-undangan?slug=${order.slug}`}>
                             <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                                 Lihat Undangan
                             </button>
@@ -380,6 +485,57 @@ export default function OrderDetailPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Payment Modal */}
+            {showRejectModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                <XCircle size={20} className="text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900">Tolak Pembayaran</h3>
+                                <p className="text-sm text-gray-500">{order?.title}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Alasan Penolakan <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                rows={3}
+                                value={rejectReason}
+                                onChange={(e) => { setRejectReason(e.target.value); setRejectError(''); }}
+                                placeholder="Contoh: Nominal transfer tidak sesuai, bukti pembayaran tidak valid, dll."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                            />
+                            {rejectError && (
+                                <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                                    <AlertCircle size={11} /> {rejectError}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-800">
+                            Pesanan akan dikembalikan ke status <strong>Ditolak</strong>. User dapat mengulang pembayaran.
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowRejectModal(false)} disabled={rejectLoading}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                                Batal
+                            </button>
+                            <button onClick={handleRejectSubmit} disabled={rejectLoading}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                                {rejectLoading ? <RefreshCw size={13} className="animate-spin" /> : <XCircle size={13} />}
+                                {rejectLoading ? 'Menolak...' : 'Tolak Pesanan'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

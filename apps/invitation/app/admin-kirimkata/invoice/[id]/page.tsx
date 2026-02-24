@@ -12,7 +12,7 @@ interface Invoice {
     orderId: string;
     orderNumber?: string;
     orderTitle?: string;
-    totalAmount: number;
+    total: number;
     paymentStatus: string;
     dueDate?: string;
     paidAt?: string;
@@ -40,7 +40,7 @@ export default function InvoiceDetailPage() {
 
     const loadInvoiceDetails = async () => {
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('admin_token') || '';
             const response = await InvitationAPI.getInvoice(invoiceId, token);
 
             if (response.success) {
@@ -217,7 +217,7 @@ export default function InvoiceDetailPage() {
                     <div className="flex justify-between items-center">
                         <span className="text-xl font-semibold">Total</span>
                         <span className="text-3xl font-bold text-blue-600">
-                            Rp {invoice.totalAmount.toLocaleString('id-ID')}
+                            Rp {invoice.total?.toLocaleString('id-ID')}
                         </span>
                     </div>
                 </div>
