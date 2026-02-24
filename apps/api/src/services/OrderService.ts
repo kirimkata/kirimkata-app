@@ -4,7 +4,7 @@ import { OrderRepository } from '../repositories/OrderRepository';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { TemplateRepository } from '../repositories/TemplateRepository';
 import { AddonRepository } from '../repositories/AddonRepository';
-import { InvitationRepository } from '../repositories/InvitationRepository';
+import { InvitationRepository } from '../repositories/invitationRepository';
 
 export class OrderService {
     private orderRepo: OrderRepository;
