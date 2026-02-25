@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useClient } from '@/lib/contexts/ClientContext';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
 import { InvitationAPI } from '@/lib/api/client';
-import {
-    Save, Globe, EyeOff, CheckCircle, AlertCircle, Loader, ChevronDown, ChevronUp
-} from 'lucide-react';
+import { Save, Globe, EyeOff, CheckCircle, AlertCircle, Loader, ChevronDown, ChevronUp } from 'lucide-react';
+import { FormField, TextInput, SelectInput, Button, useToast } from '@/components/ui';
 
 type SectionKey = 'mempelai' | 'event1' | 'event2' | 'streaming';
 
@@ -37,17 +36,9 @@ const timezoneOptions = [
 ];
 
 /** Shared label wrapper — reads colors from ThemeContext */
-const F = ({ label, children }: { label: string; children: React.ReactNode }) => {
-    const { colors } = useTheme();
-    return (
-        <div>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, marginBottom: '6px', display: 'block' }}>
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-};
+const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <FormField label={label}>{children}</FormField>
+);
 
 /** Collapsible section header — reads colors from ThemeContext */
 const SectionHead = ({ sectionKey, num, title, sub, isOpen, onToggle }: {
@@ -316,35 +307,18 @@ export default function DataPernikahanPage() {
         );
     }
 
-    const inp = useMemo<React.CSSProperties>(() => ({
-        width: '100%',
-        padding: '10px 14px',
-        borderRadius: '8px',
-        border: `1px solid ${colors.border}`,
-        backgroundColor: colors.background,
-        color: colors.text,
-        fontSize: '14px',
-        outline: 'none',
-        boxSizing: 'border-box',
-    }), [colors]);
 
-    const lbl = useMemo<React.CSSProperties>(() => ({
-        fontSize: '13px',
-        fontWeight: 600,
-        color: colors.textSecondary,
-        marginBottom: '6px',
-        display: 'block',
-    }), [colors]);
+    const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 
-    const grid2: React.CSSProperties = useMemo(() => ({ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }), []);
-
-    const card = useMemo<React.CSSProperties>(() => ({
+    const card: React.CSSProperties = {
         backgroundColor: colors.sidebar,
         border: `1px solid ${colors.border}`,
         borderRadius: '12px',
         marginBottom: '16px',
         overflow: 'hidden',
-    }), [colors]);
+    };
+
+
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -393,14 +367,14 @@ export default function DataPernikahanPage() {
                     <div style={{ padding: '20px', borderTop: `1px solid ${colors.border}` }}>
                         <div style={{ ...grid2, marginBottom: '16px' }}>
                             <F label="Tipe Acara">
-                                <select value={form.event_type} onChange={e => handleChange('event_type', e.target.value)} style={inp}>
+                                <SelectInput value={form.event_type} onChange={e => handleChange('event_type', e.target.value)}>
                                     {eventTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
+                                </SelectInput>
                             </F>
                             <F label="Timezone">
-                                <select value={form.timezone} onChange={e => handleChange('timezone', e.target.value)} style={inp}>
+                                <SelectInput value={form.timezone} onChange={e => handleChange('timezone', e.target.value)}>
                                     {timezoneOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
+                                </SelectInput>
                             </F>
                         </div>
 
@@ -408,30 +382,30 @@ export default function DataPernikahanPage() {
                         {form.event_type === 'custom' && (
                             <div style={{ ...grid2, marginBottom: '16px', padding: '14px', borderRadius: '8px', backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)' }}>
                                 <F label={`Nama Acara Pertama`}>
-                                    <input style={inp} value={form.custom_event1_label} onChange={e => handleChange('custom_event1_label', e.target.value)} placeholder="e.g. Ijab Qabul" />
+                                    <TextInput value={form.custom_event1_label} onChange={e => handleChange('custom_event1_label', e.target.value)} placeholder="e.g. Ijab Qabul" />
                                 </F>
                                 <F label={`Nama Acara Kedua`}>
-                                    <input style={inp} value={form.custom_event2_label} onChange={e => handleChange('custom_event2_label', e.target.value)} placeholder="e.g. Walimahan" />
+                                    <TextInput value={form.custom_event2_label} onChange={e => handleChange('custom_event2_label', e.target.value)} placeholder="e.g. Walimahan" />
                                 </F>
                             </div>
                         )}
 
                         <div style={{ fontWeight: 700, fontSize: '13px', color: colors.textSecondary, marginBottom: '12px', letterSpacing: '0.05em' }}>PENGANTIN WANITA</div>
                         <div style={{ ...grid2, marginBottom: '16px' }}>
-                            <F label="Nama Panggilan *"><input style={inp} value={form.bride_name} onChange={e => handleChange('bride_name', e.target.value)} placeholder="e.g. Sarah" /></F>
-                            <F label="Nama Lengkap *"><input style={inp} value={form.bride_full_name} onChange={e => handleChange('bride_full_name', e.target.value)} placeholder="e.g. Sarah Amelia" /></F>
-                            <F label="Nama Ayah"><input style={inp} value={form.bride_father_name} onChange={e => handleChange('bride_father_name', e.target.value)} placeholder="Opsional" /></F>
-                            <F label="Nama Ibu"><input style={inp} value={form.bride_mother_name} onChange={e => handleChange('bride_mother_name', e.target.value)} placeholder="Opsional" /></F>
-                            <F label="Instagram"><input style={inp} value={form.bride_instagram} onChange={e => handleChange('bride_instagram', e.target.value)} placeholder="@username" /></F>
+                            <F label="Nama Panggilan *"><TextInput value={form.bride_name} onChange={e => handleChange('bride_name', e.target.value)} placeholder="e.g. Sarah" /></F>
+                            <F label="Nama Lengkap *"><TextInput value={form.bride_full_name} onChange={e => handleChange('bride_full_name', e.target.value)} placeholder="e.g. Sarah Amelia" /></F>
+                            <F label="Nama Ayah"><TextInput value={form.bride_father_name} onChange={e => handleChange('bride_father_name', e.target.value)} placeholder="Opsional" /></F>
+                            <F label="Nama Ibu"><TextInput value={form.bride_mother_name} onChange={e => handleChange('bride_mother_name', e.target.value)} placeholder="Opsional" /></F>
+                            <F label="Instagram"><TextInput value={form.bride_instagram} onChange={e => handleChange('bride_instagram', e.target.value)} placeholder="@username" /></F>
                         </div>
 
                         <div style={{ fontWeight: 700, fontSize: '13px', color: colors.textSecondary, marginBottom: '12px', letterSpacing: '0.05em' }}>PENGANTIN PRIA</div>
                         <div style={grid2}>
-                            <F label="Nama Panggilan *"><input style={inp} value={form.groom_name} onChange={e => handleChange('groom_name', e.target.value)} placeholder="e.g. Budi" /></F>
-                            <F label="Nama Lengkap *"><input style={inp} value={form.groom_full_name} onChange={e => handleChange('groom_full_name', e.target.value)} placeholder="e.g. Budi Santoso" /></F>
-                            <F label="Nama Ayah"><input style={inp} value={form.groom_father_name} onChange={e => handleChange('groom_father_name', e.target.value)} placeholder="Opsional" /></F>
-                            <F label="Nama Ibu"><input style={inp} value={form.groom_mother_name} onChange={e => handleChange('groom_mother_name', e.target.value)} placeholder="Opsional" /></F>
-                            <F label="Instagram"><input style={inp} value={form.groom_instagram} onChange={e => handleChange('groom_instagram', e.target.value)} placeholder="@username" /></F>
+                            <F label="Nama Panggilan *"><TextInput value={form.groom_name} onChange={e => handleChange('groom_name', e.target.value)} placeholder="e.g. Budi" /></F>
+                            <F label="Nama Lengkap *"><TextInput value={form.groom_full_name} onChange={e => handleChange('groom_full_name', e.target.value)} placeholder="e.g. Budi Santoso" /></F>
+                            <F label="Nama Ayah"><TextInput value={form.groom_father_name} onChange={e => handleChange('groom_father_name', e.target.value)} placeholder="Opsional" /></F>
+                            <F label="Nama Ibu"><TextInput value={form.groom_mother_name} onChange={e => handleChange('groom_mother_name', e.target.value)} placeholder="Opsional" /></F>
+                            <F label="Instagram"><TextInput value={form.groom_instagram} onChange={e => handleChange('groom_instagram', e.target.value)} placeholder="@username" /></F>
                         </div>
                     </div>
                 )}
@@ -449,20 +423,20 @@ export default function DataPernikahanPage() {
                 {openSections.event1 && (
                     <div style={{ padding: '20px', borderTop: `1px solid ${colors.border}` }}>
                         <div style={{ ...grid2, marginBottom: '16px' }}>
-                            <F label={`Tanggal ${event1Label} *`}><input type="date" style={inp} value={form.event1_date} onChange={e => handleChange('event1_date', e.target.value)} /></F>
-                            <F label="Waktu Mulai *"><input type="time" style={inp} value={form.event1_time} onChange={e => handleChange('event1_time', e.target.value)} /></F>
-                            <F label="Waktu Selesai"><input type="time" style={inp} value={form.event1_end_time} onChange={e => handleChange('event1_end_time', e.target.value)} /></F>
-                            <F label="Nama Gedung/Venue"><input style={inp} value={form.event1_venue_name} onChange={e => handleChange('event1_venue_name', e.target.value)} placeholder="e.g. Masjid Al-Ikhlas" /></F>
+                            <F label={`Tanggal ${event1Label} *`}><TextInput type="date" value={form.event1_date} onChange={e => handleChange('event1_date', e.target.value)} /></F>
+                            <F label="Waktu Mulai *"><TextInput type="time" value={form.event1_time} onChange={e => handleChange('event1_time', e.target.value)} /></F>
+                            <F label="Waktu Selesai"><TextInput type="time" value={form.event1_end_time} onChange={e => handleChange('event1_end_time', e.target.value)} /></F>
+                            <F label="Nama Gedung/Venue"><TextInput value={form.event1_venue_name} onChange={e => handleChange('event1_venue_name', e.target.value)} placeholder="e.g. Masjid Al-Ikhlas" /></F>
                         </div>
                         <F label="Alamat Lengkap">
-                            <textarea rows={2} style={{ ...inp, resize: 'vertical' }} value={form.event1_venue_address} onChange={e => handleChange('event1_venue_address', e.target.value)} placeholder="Alamat lengkap venue" />
+                            <textarea rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.text, fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} value={form.event1_venue_address} onChange={e => handleChange('event1_venue_address', e.target.value)} placeholder="Alamat lengkap venue" />
                         </F>
                         <div style={{ ...grid2, marginTop: '16px' }}>
-                            <F label="Kota"><input style={inp} value={form.event1_venue_city} onChange={e => handleChange('event1_venue_city', e.target.value)} /></F>
-                            <F label="Provinsi"><input style={inp} value={form.event1_venue_province} onChange={e => handleChange('event1_venue_province', e.target.value)} /></F>
+                            <F label="Kota"><TextInput value={form.event1_venue_city} onChange={e => handleChange('event1_venue_city', e.target.value)} /></F>
+                            <F label="Provinsi"><TextInput value={form.event1_venue_province} onChange={e => handleChange('event1_venue_province', e.target.value)} /></F>
                         </div>
                         <div style={{ marginTop: '16px' }}>
-                            <F label="Link Google Maps"><input style={inp} value={form.event1_maps_url} onChange={e => handleChange('event1_maps_url', e.target.value)} placeholder="https://maps.google.com/..." /></F>
+                            <F label="Link Google Maps"><TextInput value={form.event1_maps_url} onChange={e => handleChange('event1_maps_url', e.target.value)} placeholder="https://maps.google.com/..." /></F>
                         </div>
                     </div>
                 )}
@@ -485,12 +459,12 @@ export default function DataPernikahanPage() {
                         </label>
                         {!form.event2_same_date && (
                             <div style={{ marginBottom: '16px' }}>
-                                <F label={`Tanggal ${event2Label}`}><input type="date" style={inp} value={form.event2_date} onChange={e => handleChange('event2_date', e.target.value)} /></F>
+                                <F label={`Tanggal ${event2Label}`}><TextInput type="date" value={form.event2_date} onChange={e => handleChange('event2_date', e.target.value)} /></F>
                             </div>
                         )}
                         <div style={{ ...grid2, marginBottom: '16px' }}>
-                            <F label="Waktu Mulai"><input type="time" style={inp} value={form.event2_time} onChange={e => handleChange('event2_time', e.target.value)} /></F>
-                            <F label="Waktu Selesai"><input type="time" style={inp} value={form.event2_end_time} onChange={e => handleChange('event2_end_time', e.target.value)} /></F>
+                            <F label="Waktu Mulai"><TextInput type="time" value={form.event2_time} onChange={e => handleChange('event2_time', e.target.value)} /></F>
+                            <F label="Waktu Selesai"><TextInput type="time" value={form.event2_end_time} onChange={e => handleChange('event2_end_time', e.target.value)} /></F>
                         </div>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', cursor: 'pointer' }}>
                             <input type="checkbox" checked={form.event2_same_venue} onChange={e => handleChange('event2_same_venue', e.target.checked)} />
@@ -499,19 +473,19 @@ export default function DataPernikahanPage() {
                         {!form.event2_same_venue && (
                             <>
                                 <F label="Nama Gedung/Venue">
-                                    <input style={inp} value={form.event2_venue_name} onChange={e => handleChange('event2_venue_name', e.target.value)} placeholder="e.g. Ballroom Hotel XYZ" />
+                                    <TextInput value={form.event2_venue_name} onChange={e => handleChange('event2_venue_name', e.target.value)} placeholder="e.g. Ballroom Hotel XYZ" />
                                 </F>
                                 <div style={{ marginTop: '12px' }}>
                                     <F label="Alamat Lengkap">
-                                        <textarea rows={2} style={{ ...inp, resize: 'vertical' }} value={form.event2_venue_address} onChange={e => handleChange('event2_venue_address', e.target.value)} />
+                                        <textarea rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.text, fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} value={form.event2_venue_address} onChange={e => handleChange('event2_venue_address', e.target.value)} />
                                     </F>
                                 </div>
                                 <div style={{ ...grid2, marginTop: '12px' }}>
-                                    <F label="Kota"><input style={inp} value={form.event2_venue_city} onChange={e => handleChange('event2_venue_city', e.target.value)} /></F>
-                                    <F label="Provinsi"><input style={inp} value={form.event2_venue_province} onChange={e => handleChange('event2_venue_province', e.target.value)} /></F>
+                                    <F label="Kota"><TextInput value={form.event2_venue_city} onChange={e => handleChange('event2_venue_city', e.target.value)} /></F>
+                                    <F label="Provinsi"><TextInput value={form.event2_venue_province} onChange={e => handleChange('event2_venue_province', e.target.value)} /></F>
                                 </div>
                                 <div style={{ marginTop: '12px' }}>
-                                    <F label="Link Google Maps"><input style={inp} value={form.event2_maps_url} onChange={e => handleChange('event2_maps_url', e.target.value)} placeholder="https://maps.google.com/..." /></F>
+                                    <F label="Link Google Maps"><TextInput value={form.event2_maps_url} onChange={e => handleChange('event2_maps_url', e.target.value)} placeholder="https://maps.google.com/..." /></F>
                                 </div>
                             </>
                         )}
@@ -530,11 +504,11 @@ export default function DataPernikahanPage() {
                         </label>
                         {form.streaming_enabled && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <F label="URL Streaming"><input style={inp} value={form.streaming_url} onChange={e => handleChange('streaming_url', e.target.value)} placeholder="https://youtube.com/..." /></F>
+                                <F label="URL Streaming"><TextInput value={form.streaming_url} onChange={e => handleChange('streaming_url', e.target.value)} placeholder="https://youtube.com/..." /></F>
                                 <F label="Deskripsi">
-                                    <textarea rows={2} style={{ ...inp, resize: 'vertical' }} value={form.streaming_description} onChange={e => handleChange('streaming_description', e.target.value)} placeholder="Keterangan singkat tentang live streaming" />
+                                    <textarea rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.text, fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} value={form.streaming_description} onChange={e => handleChange('streaming_description', e.target.value)} placeholder="Keterangan singkat tentang live streaming" />
                                 </F>
-                                <F label="Label Tombol"><input style={inp} value={form.streaming_button_label} onChange={e => handleChange('streaming_button_label', e.target.value)} /></F>
+                                <F label="Label Tombol"><TextInput value={form.streaming_button_label} onChange={e => handleChange('streaming_button_label', e.target.value)} /></F>
                             </div>
                         )}
                     </div>
@@ -547,35 +521,28 @@ export default function DataPernikahanPage() {
                 padding: '20px 0', position: 'sticky', bottom: 0,
                 backgroundColor: colors.background, borderTop: `1px solid ${colors.border}`,
             }}>
-                <button onClick={handleSave} disabled={saving} style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '12px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600,
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    border: `1px solid ${colors.border}`,
-                    backgroundColor: saveStatus === 'success' ? '#22c55e' : saveStatus === 'error' ? '#ef4444' : colors.sidebar,
-                    color: saveStatus !== 'idle' ? '#fff' : colors.text,
-                    opacity: saving ? 0.7 : 1, transition: 'all 0.2s',
-                }}>
-                    {saving ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> :
-                        saveStatus === 'success' ? <CheckCircle size={16} /> :
-                            saveStatus === 'error' ? <AlertCircle size={16} /> : <Save size={16} />}
+                <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={handleSave}
+                    loading={saving}
+                    icon={saveStatus === 'success' ? <CheckCircle size={16} /> : saveStatus === 'error' ? <AlertCircle size={16} /> : <Save size={16} />}
+                    style={saveStatus === 'success' ? { background: '#22c55e', color: '#fff', border: 'none' } : saveStatus === 'error' ? { background: '#ef4444', color: '#fff', border: 'none' } : {}}
+                >
                     {saving ? 'Menyimpan...' : saveStatus === 'success' ? 'Tersimpan!' : saveStatus === 'error' ? 'Gagal Simpan' : 'Simpan'}
-                </button>
+                </Button>
 
                 {!isPublished && (
-                    <button onClick={handlePublish} disabled={publishing} style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '12px 28px', borderRadius: '10px', fontSize: '14px', fontWeight: 700,
-                        cursor: publishing ? 'not-allowed' : 'pointer', border: 'none',
-                        background: publishStatus === 'success' ? '#22c55e' : publishStatus === 'error' ? '#ef4444' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                        color: '#fff', opacity: publishing ? 0.7 : 1,
-                        boxShadow: '0 4px 12px rgba(99,102,241,0.35)', transition: 'all 0.2s',
-                    }}>
-                        {publishing ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> :
-                            publishStatus === 'success' ? <CheckCircle size={16} /> :
-                                publishStatus === 'error' ? <AlertCircle size={16} /> : <Globe size={16} />}
+                    <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={handlePublish}
+                        loading={publishing}
+                        icon={publishStatus === 'success' ? <CheckCircle size={16} /> : publishStatus === 'error' ? <AlertCircle size={16} /> : <Globe size={16} />}
+                        style={publishStatus === 'success' ? { background: '#22c55e' } : publishStatus === 'error' ? { background: '#ef4444' } : {}}
+                    >
                         {publishing ? 'Publishing...' : publishStatus === 'success' ? 'Published!' : 'Publish Undangan'}
-                    </button>
+                    </Button>
                 )}
             </div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

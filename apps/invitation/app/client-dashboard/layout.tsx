@@ -31,12 +31,15 @@ import {
 
 import { ClientProvider, useClient } from '@/lib/contexts/ClientContext';
 import { ThemeProvider, useTheme } from '@/lib/contexts/ThemeContext';
+import { ToastProvider } from '@/components/ui';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     return (
         <ClientProvider>
             <ThemeProvider>
-                <ClientLayoutContent>{children}</ClientLayoutContent>
+                <ToastProvider>
+                    <ClientLayoutContent>{children}</ClientLayoutContent>
+                </ToastProvider>
             </ThemeProvider>
         </ClientProvider>
     );

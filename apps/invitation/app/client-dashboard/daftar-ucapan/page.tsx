@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_ENDPOINTS } from '@/lib/api-config';
 import { RefreshCw, Check, X, HelpCircle, ClipboardList } from 'lucide-react';
+import { useTheme } from '@/lib/contexts/ThemeContext';
+import { Button } from '@/components/ui';
 
 interface Wish {
     id: number;
@@ -14,6 +16,7 @@ interface Wish {
 }
 
 export default function DaftarUcapanPage() {
+    const { colors } = useTheme();
     const [wishes, setWishes] = useState<Wish[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -120,24 +123,9 @@ export default function DaftarUcapanPage() {
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                <button
-                    onClick={fetchWishes}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 1rem',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        color: '#F5F5F0',
-                        fontFamily: 'Segoe UI, sans-serif',
-                    }}
-                >
-                    <RefreshCw size={16} /> Refresh
-                </button>
+                <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={fetchWishes} loading={loading}>
+                    Refresh
+                </Button>
             </div>
 
             {/* Stats Cards */}

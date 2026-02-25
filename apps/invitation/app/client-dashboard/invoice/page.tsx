@@ -8,6 +8,7 @@ import {
     AlertCircle, Loader2, RefreshCw, Plus, Copy, Check
 } from 'lucide-react';
 import Image from 'next/image';
+import { Button } from '@/components/ui';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.kirimkata.com';
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('client_token') : null;

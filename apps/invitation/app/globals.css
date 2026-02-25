@@ -404,9 +404,19 @@ body.dashboard-page input[type="search"],
 body.dashboard-page input[type="url"],
 body.dashboard-page input[type="tel"],
 body.dashboard-page input[type="number"],
+body.dashboard-page input:not([type]),
 body.dashboard-page textarea {
   cursor: text !important;
 }
+
+body.dashboard-page input[type="date"],
+body.dashboard-page input[type="time"],
+body.dashboard-page input[type="datetime-local"],
+body.dashboard-page input[type="month"],
+body.dashboard-page input[type="week"] {
+  cursor: default !important;
+}
+
 
 
 /* Mobile Viewport Height Fix - Prevent content expansion when address bar hides */

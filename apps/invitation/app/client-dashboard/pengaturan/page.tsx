@@ -1,9 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/lib/contexts/ThemeContext';
 import { InvitationAPI } from '@/lib/api/client';
+import { FormField, TextInput, Button, useToast } from '@/components/ui';
+import { Save } from 'lucide-react';
 
 export default function PengaturanPage() {
+    const { colors } = useTheme();
+    const { showToast } = useToast();
     const [email, setEmail] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -11,196 +16,139 @@ export default function PengaturanPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Local snackbar state
-    const [snackbar, setSnackbar] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
-
-    const showSnackbar = (message: string, type: 'success' | 'error' = 'success') => {
-        setSnackbar({ show: true, message, type });
-        setTimeout(() => {
-            setSnackbar(prev => ({ ...prev, show: false }));
-        }, 3000);
-    };
-
-    // Fetch client data
     useEffect(() => {
         const fetchClientData = async () => {
             setIsLoading(true);
             try {
                 const token = localStorage.getItem('client_token');
-                if (!token) {
-                    setIsLoading(false);
-                    return;
-                }
-
+                if (!token) { setIsLoading(false); return; }
                 const result = await InvitationAPI.getClientProfile(token);
-
                 if (result.success && result.client) {
                     setEmail(result.client.email || '');
                 } else {
-                    showSnackbar('Gagal memuat data profil', 'error');
+                    showToast('error', 'Gagal memuat data profil');
                 }
-            } catch (error) {
-                console.error('Error fetching client data:', error);
-                showSnackbar('Terjadi kesalahan saat memuat data', 'error');
+            } catch {
+                showToast('error', 'Terjadi kesalahan saat memuat data');
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchClientData();
-    }, []);
+    }, [showToast]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Validate password if changing
         if (newPassword) {
-            if (newPassword !== confirmPassword) {
-                showSnackbar('Password baru tidak cocok', 'error');
-                return;
-            }
-            if (!currentPassword) {
-                showSnackbar('Masukkan password saat ini untuk mengubah password', 'error');
-                return;
-            }
+            if (newPassword !== confirmPassword) { showToast('error', 'Password baru tidak cocok'); return; }
+            if (!currentPassword) { showToast('error', 'Masukkan password saat ini untuk mengubah password'); return; }
         }
-
         setIsSaving(true);
         try {
             const token = localStorage.getItem('client_token');
-            if (!token) {
-                showSnackbar('Sesi habis, silakan login kembali', 'error');
-                return;
-            }
-
+            if (!token) { showToast('error', 'Sesi habis, silakan login kembali'); return; }
             const updateData: any = { email };
-            if (newPassword) {
-                updateData.currentPassword = currentPassword;
-                updateData.newPassword = newPassword;
-            }
-
+            if (newPassword) { updateData.currentPassword = currentPassword; updateData.newPassword = newPassword; }
             const result = await InvitationAPI.updateClientSettings(updateData, token);
-
             if (result.success) {
-                showSnackbar('Pengaturan berhasil disimpan');
-                setCurrentPassword('');
-                setNewPassword('');
-                setConfirmPassword('');
+                showToast('success', 'Pengaturan berhasil disimpan');
+                setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
             } else {
-                showSnackbar(result.error || 'Gagal menyimpan pengaturan', 'error');
+                showToast('error', result.error || 'Gagal menyimpan pengaturan');
             }
-        } catch (error) {
-            console.error('Error updating settings:', error);
-            showSnackbar('Terjadi kesalahan saat menyimpan pengaturan', 'error');
+        } catch {
+            showToast('error', 'Terjadi kesalahan saat menyimpan pengaturan');
         } finally {
             setIsSaving(false);
         }
     };
 
+    const card: React.CSSProperties = {
+        backgroundColor: colors.card,
+        borderRadius: '12px',
+        border: `1px solid ${colors.border}`,
+        padding: '28px',
+        maxWidth: '560px',
+    };
+
+    const divider: React.CSSProperties = {
+        borderTop: `1px solid ${colors.border}`,
+        margin: '24px 0',
+    };
+
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', borderWidth: '3px', borderStyle: 'solid', borderColor: `${colors.border} ${colors.border} ${colors.border} ${colors.primary}`, animation: 'spin 1s linear infinite' }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+
     return (
-        <div className="p-6 relative">
-            {/* Snackbar */}
-            {snackbar.show && (
-                <div
-                    className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white text-sm font-medium transition-all transform ${snackbar.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                        }`}
-                >
-                    {snackbar.message}
-                </div>
-            )}
+        <div style={{ maxWidth: '600px' }}>
+            <div style={{ marginBottom: '28px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 800, color: colors.text, margin: 0 }}>Pengaturan Akun</h1>
+                <p style={{ fontSize: '14px', color: colors.textSecondary, marginTop: '6px' }}>Kelola email dan password akun Anda</p>
+            </div>
 
-            <h1 className="text-2xl font-bold mb-6 text-[#F5F5F0]">Pengaturan Akun</h1>
-
-            <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '0.75rem',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '1.5rem',
-                maxWidth: '42rem',
-                backdropFilter: 'blur(10px)',
-            }}>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Email Section */}
+            <div style={card}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Email */}
                     <div>
-                        <h2 className="text-lg font-semibold mb-4 text-[#F5F5F0]">Email</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
-                                    Alamat Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
-                                    placeholder="nama@email.com"
-                                    required
-                                />
-                            </div>
-                        </div>
+                        <h2 style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '16px' }}>Email</h2>
+                        <FormField label="Alamat Email">
+                            <TextInput
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="nama@email.com"
+                                required
+                            />
+                        </FormField>
                     </div>
 
-                    <hr className="border-white/10" />
+                    <div style={divider} />
 
-                    {/* Password Section */}
+                    {/* Password */}
                     <div>
-                        <h2 className="text-lg font-semibold mb-4 text-[#F5F5F0]">Ganti Password</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
-                                    Password Saat Ini
-                                </label>
-                                <input
+                        <h2 style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '16px' }}>Ganti Password</h2>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <FormField label="Password Saat Ini" hint="Diperlukan jika ingin mengubah password">
+                                <TextInput
                                     type="password"
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                     placeholder="Masukkan password saat ini"
                                 />
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Diperlukan jika ingin mengubah password
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
-                                        Password Baru
-                                    </label>
-                                    <input
+                            </FormField>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <FormField label="Password Baru">
+                                    <TextInput
                                         type="password"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                         placeholder="Password baru"
                                         minLength={6}
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#F5F5F0] mb-1">
-                                        Konfirmasi Password
-                                    </label>
-                                    <input
+                                </FormField>
+                                <FormField label="Konfirmasi Password">
+                                    <TextInput
                                         type="password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white/5 text-[#F5F5F0]"
                                         placeholder="Ulangi password baru"
                                         minLength={6}
                                     />
-                                </div>
+                                </FormField>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-4">
-                        <button
-                            type="submit"
-                            disabled={isSaving}
-                            className={`w-full text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium ${isSaving ? 'bg-gray-600' : 'bg-blue-600'}`}
-                        >
-                            {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button type="submit" variant="primary" size="md" loading={isSaving} icon={<Save size={14} />}>
+                            Simpan Perubahan
+                        </Button>
                     </div>
                 </form>
             </div>

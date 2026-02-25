@@ -22,6 +22,7 @@ import {
     Loader
 } from 'lucide-react';
 import { InvitationAPI } from '@/lib/api/client';
+import { Button } from '@/components/ui';
 
 export default function EventDashboardPage() {
     const { selectedEvent, isLoading, clientData } = useClient();
@@ -351,43 +352,31 @@ export default function EventDashboardPage() {
                     </div>
                     {/* Publish / Unpublish button */}
                     {isPublished === false && (
-                        <button
+                        <Button
+                            variant={registrationComplete === false ? 'ghost' : 'primary'}
+                            size="sm"
                             onClick={registrationComplete ? handlePublish : undefined}
                             disabled={publishing || registrationComplete === false}
+                            loading={publishing}
+                            icon={<Globe size={14} />}
                             title={registrationComplete === false ? 'Lengkapi Data Pernikahan terlebih dahulu' : ''}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
-                                fontWeight: 700, cursor: (publishing || registrationComplete === false) ? 'not-allowed' : 'pointer',
-                                border: 'none', flexShrink: 0,
-                                background: registrationComplete === false
-                                    ? '#e5e7eb'
-                                    : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                                color: registrationComplete === false ? '#9ca3af' : '#fff',
-                                opacity: publishing ? 0.6 : 1,
-                                boxShadow: registrationComplete === false ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
-                            }}
+                            style={{ flexShrink: 0 }}
                         >
-                            {publishing ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={14} />}
-                            {publishing ? '...' : 'Publish'}
-                        </button>
+                            Publish
+                        </Button>
                     )}
                     {isPublished === true && (
-                        <button
+                        <Button
+                            variant="danger"
+                            size="sm"
                             onClick={handleUnpublish}
                             disabled={publishing}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
-                                fontWeight: 600, cursor: publishing ? 'not-allowed' : 'pointer',
-                                border: '1px solid rgba(239,68,68,0.4)', flexShrink: 0,
-                                backgroundColor: 'transparent', color: '#ef4444',
-                                opacity: publishing ? 0.6 : 1,
-                            }}
+                            loading={publishing}
+                            icon={<EyeOff size={14} />}
+                            style={{ flexShrink: 0 }}
                         >
-                            {publishing ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <EyeOff size={14} />}
-                            {publishing ? '...' : 'Unpublish'}
-                        </button>
+                            Unpublish
+                        </Button>
                     )}
                 </div>
             </div>

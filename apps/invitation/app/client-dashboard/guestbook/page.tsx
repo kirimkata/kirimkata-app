@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useClient } from '@/lib/contexts/ClientContext';
 import { InvitationAPI } from '@/lib/api/client';
 import { Users, CheckSquare, MapPin, Shield, Search } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 // ============================================================================
 // INTERFACES
@@ -571,42 +572,26 @@ export default function GuestbookPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
                 onClick={handleCreateStaff}
                 disabled={isSubmittingStaff}
-                style={{
-                  flex: 1,
-                  padding: '14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#F5F5F0',
-                  color: '#1a1a1a',
-                  fontWeight: 600,
-                  cursor: isSubmittingStaff ? 'not-allowed' : 'pointer',
-                  opacity: isSubmittingStaff ? 0.6 : 1
-                }}
+                loading={isSubmittingStaff}
+                style={{ background: '#F5F5F0', color: '#1a1a1a', boxShadow: 'none' }}
               >
-                {isSubmittingStaff ? 'Menyimpan...' : 'Simpan'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowStaffModal(false);
-                  resetStaffForm();
-                }}
+                Simpan
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                fullWidth
+                onClick={() => { setShowStaffModal(false); resetStaffForm(); }}
                 disabled={isSubmittingStaff}
-                style={{
-                  flex: 1,
-                  padding: '14px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  backgroundColor: 'transparent',
-                  color: '#F5F5F0',
-                  fontWeight: 600,
-                  cursor: isSubmittingStaff ? 'not-allowed' : 'pointer'
-                }}
               >
                 Batal
-              </button>
+              </Button>
             </div>
           </div>
         </div>
