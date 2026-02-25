@@ -6,6 +6,8 @@ import { InvitationRepository } from '../../repositories/invitationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
 import { clientAuthMiddleware } from '../../middleware/auth';
 import { RateLimiter } from '../../middleware/rateLimit';
+import { invitationPages } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 const router = new Hono<{ Bindings: Env; Variables: { clientId: string } }>();
 
@@ -145,11 +147,81 @@ router.put('/:slug', clientAuthMiddleware, async (c) => {
     try {
         const slug = c.req.param('slug');
         const clientId = c.get('clientId') as string;
+        const db = getDb(c.env);
 
-        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
+        let registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
 
         if (!registration) {
-            return c.json({ error: 'Registration not found' }, 404);
+            // Slug may have been created by admin directly in invitation_pages.
+            // Auto-create a wedding_registration record so the client can edit it.
+            const [invPage] = await db
+                .select({ id: invitationPages.id, clientId: invitationPages.clientId, slug: invitationPages.slug })
+                .from(invitationPages)
+                .where(eq(invitationPages.slug, slug))
+                .limit(1);
+
+            if (!invPage) {
+                return c.json({ error: 'Registration not found' }, 404);
+            }
+
+            // Ownership check
+            if (invPage.clientId && invPage.clientId !== clientId) {
+                return c.json({ error: 'Unauthorized access to this registration' }, 403);
+            }
+
+            // Read the submitted body now so we can seed required fields
+            const body = await c.req.json();
+
+            // Create a new wedding_registration seeded from submitted data
+            registration = await weddingRegistrationRepo.create(c.env, {
+                client_id: clientId,
+                slug: slug,
+                event_type: body.event_type || 'islam',
+                bride_name: body.bride_name || '',
+                bride_full_name: body.bride_full_name || '',
+                groom_name: body.groom_name || '',
+                groom_full_name: body.groom_full_name || '',
+                event1_date: body.event1_date || new Date().toISOString().split('T')[0],
+                event1_time: body.event1_time || '00:00',
+                event2_same_date: body.event2_same_date ?? false,
+                event2_same_venue: body.event2_same_venue ?? false,
+                timezone: body.timezone || 'WIB',
+                ...(body.bride_father_name && { bride_father_name: body.bride_father_name }),
+                ...(body.bride_mother_name && { bride_mother_name: body.bride_mother_name }),
+                ...(body.bride_instagram && { bride_instagram: body.bride_instagram }),
+                ...(body.groom_father_name && { groom_father_name: body.groom_father_name }),
+                ...(body.groom_mother_name && { groom_mother_name: body.groom_mother_name }),
+                ...(body.groom_instagram && { groom_instagram: body.groom_instagram }),
+                ...(body.event1_end_time && { event1_end_time: body.event1_end_time }),
+                ...(body.event1_venue_name && { event1_venue_name: body.event1_venue_name }),
+                ...(body.event1_venue_address && { event1_venue_address: body.event1_venue_address }),
+                ...(body.event1_venue_city && { event1_venue_city: body.event1_venue_city }),
+                ...(body.event1_venue_province && { event1_venue_province: body.event1_venue_province }),
+                ...(body.event1_maps_url && { event1_maps_url: body.event1_maps_url }),
+                ...(body.event2_date && { event2_date: body.event2_date }),
+                ...(body.event2_time && { event2_time: body.event2_time }),
+                ...(body.event2_end_time && { event2_end_time: body.event2_end_time }),
+                ...(body.event2_venue_name && { event2_venue_name: body.event2_venue_name }),
+                ...(body.event2_venue_address && { event2_venue_address: body.event2_venue_address }),
+                ...(body.event2_venue_city && { event2_venue_city: body.event2_venue_city }),
+                ...(body.event2_venue_province && { event2_venue_province: body.event2_venue_province }),
+                ...(body.event2_maps_url && { event2_maps_url: body.event2_maps_url }),
+                ...(body.custom_event1_label && { custom_event1_label: body.custom_event1_label }),
+                ...(body.custom_event2_label && { custom_event2_label: body.custom_event2_label }),
+            });
+
+            // Recompile with new data
+            try {
+                await invitationCompiler.compileAndCache(c.env, slug);
+            } catch (compileError) {
+                console.error('Error recompiling invitation after auto-create:', compileError);
+            }
+
+            return c.json({
+                success: true,
+                data: registration,
+                message: 'Wedding registration created and updated successfully'
+            });
         }
 
         // Ownership validation
