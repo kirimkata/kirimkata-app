@@ -56,8 +56,9 @@ export default function MediaLibraryPage() {
 
             const data = await InvitationAPI.getMediaQuota(token);
 
-            if (data.photos) {
-                setQuota(data);
+            // API returns { success, quota: { photos, music, videos } }
+            if (data.quota?.photos) {
+                setQuota(data.quota);
             }
         } catch (error) {
             console.error('Failed to fetch quota:', error);
@@ -72,7 +73,8 @@ export default function MediaLibraryPage() {
 
             const data = await InvitationAPI.getMediaList(token, activeTab);
 
-            if (data.files) {
+            // API returns { success, files: [...] }
+            if (Array.isArray(data.files)) {
                 setFiles(data.files);
             }
         } catch (error) {
