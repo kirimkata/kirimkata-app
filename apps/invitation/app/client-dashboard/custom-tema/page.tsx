@@ -245,8 +245,8 @@ export default function CustomTemaPage() {
     }
 
     // Only block access if theme_key is explicitly set to a different theme
-    // Allow access if theme_key is null (not set) or is template1
-    if (themeKey && themeKey !== 'parallax/parallax-template1') {
+    // Allow access if theme_key is null (not set) or is template1 or custom1
+    if (themeKey && !['parallax/parallax-template1', 'parallax/parallax-custom1'].includes(themeKey)) {
         return <div className="p-8 text-center text-gray-500">Tema ini tidak mendukung kustomisasi gambar.</div>;
     }
 

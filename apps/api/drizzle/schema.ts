@@ -1,5 +1,5 @@
 import { pgTable, index, foreignKey, pgEnum, serial, uuid, varchar, text, integer, timestamp, bigserial, unique, date, time, boolean, jsonb, numeric } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
+  import { sql } from "drizzle-orm"
 
 export const buckettype = pgEnum("buckettype", ['VECTOR', 'ANALYTICS', 'STANDARD'])
 export const equalityOp = pgEnum("equality_op", ['in', 'gte', 'gt', 'lte', 'lt', 'neq', 'eq'])
@@ -383,7 +383,7 @@ export const orders = pgTable("orders", {
 	mainDate: date("main_date").notNull(),
 	inviterType: varchar("inviter_type", { length: 50 }).default('couple'::character varying),
 	inviterData: jsonb("inviter_data").notNull(),
-	templateId: integer("template_id").notNull().references(() => templates.id),
+	templateId: integer("template_id").references(() => templates.id, { onDelete: "set null" } ),
 	templatePrice: integer("template_price").notNull(),
 	addons: jsonb("addons").default([]),
 	subtotal: integer("subtotal").notNull(),

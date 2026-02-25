@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
-  Users,
-  Calendar,
   Heart,
   Image,
   Gift,
   Music,
-  MessageSquare
+  MessageSquare,
+  ClipboardList,
+  ArrowRight
 } from 'lucide-react';
 
 import {
@@ -20,8 +21,6 @@ import {
   ClosingData,
 } from './types';
 import { InvitationAPI } from '@/lib/api/client';
-import { BrideGroomSection } from './components/BrideGroomSection';
-import { EventSection } from './components/EventSection';
 import { LoveStorySection } from './components/LoveStorySection';
 import { GallerySection } from './components/GallerySection';
 import { WeddingGiftSection } from './components/WeddingGiftSection';
@@ -37,8 +36,6 @@ export default function EditUndanganPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState({
-    brideGroom: true,
-    event: true,
     loveStory: true,
     gallery: true,
     weddingGift: true,
@@ -49,8 +46,6 @@ export default function EditUndanganPage() {
   // Track unsaved changes per section
   const [savedFormData, setSavedFormData] = useState<InvitationFormData | null>(null);
   const [unsavedSections, setUnsavedSections] = useState({
-    brideGroom: false,
-    event: false,
     loveStory: false,
     gallery: false,
     weddingGift: false,
@@ -58,8 +53,6 @@ export default function EditUndanganPage() {
     closing: false,
   });
   const [savingSections, setSavingSections] = useState({
-    brideGroom: false,
-    event: false,
     loveStory: false,
     gallery: false,
     weddingGift: false,
@@ -240,14 +233,11 @@ export default function EditUndanganPage() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Detect unsaved changes for all sections
+  // Detect unsaved changes for supplementary sections only
   useEffect(() => {
     if (!savedFormData) return;
 
     setUnsavedSections({
-      brideGroom: JSON.stringify(formData.bride) !== JSON.stringify(savedFormData.bride) ||
-        JSON.stringify(formData.groom) !== JSON.stringify(savedFormData.groom),
-      event: JSON.stringify(formData.event) !== JSON.stringify(savedFormData.event),
       loveStory: JSON.stringify(formData.loveStory) !== JSON.stringify(savedFormData.loveStory),
       gallery: JSON.stringify(formData.gallery) !== JSON.stringify(savedFormData.gallery),
       weddingGift: JSON.stringify(formData.weddingGift) !== JSON.stringify(savedFormData.weddingGift),
@@ -308,317 +298,124 @@ export default function EditUndanganPage() {
     }));
   };
 
-  // Per-section save handlers (POC: BrideGroom and Gallery only)
-  const handleSaveBrideGroom = async () => {
-    // Validate bride & groom data
-    if (!formData.bride.name.trim() || !formData.bride.fullName.trim()) {
-      setMessage({ type: 'error', text: 'Nama mempelai wanita wajib diisi' });
-      return;
-    }
-    if (!formData.groom.name.trim() || !formData.groom.fullName.trim()) {
-      setMessage({ type: 'error', text: 'Nama mempelai pria wajib diisi' });
-      return;
-    }
-
-    setSavingSections(prev => ({ ...prev, brideGroom: true }));
-    setMessage(null);
-
-    try {
-      const token = localStorage.getItem('client_token');
-      if (!token) throw new Error('Not authenticated');
-
-      const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
-      }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
-      // Update saved state
-      setSavedFormData(prev => prev ? { ...prev, bride: formData.bride, groom: formData.groom } : null);
-      setMessage({ type: 'success', text: 'Informasi Mempelai berhasil disimpan!' });
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, brideGroom: false }));
-    }
-  };
-
   const handleSaveGallery = async () => {
     setSavingSections(prev => ({ ...prev, gallery: true }));
     setMessage(null);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
-      // Update saved state
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setSavedFormData(prev => prev ? { ...prev, gallery: formData.gallery } : null);
       setMessage({ type: 'success', text: 'Galeri Foto berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, gallery: false }));
-    }
-  };
-
-  const handleSaveEvent = async () => {
-    setSavingSections(prev => ({ ...prev, event: true }));
-    setMessage(null);
-
-    try {
-      const token = localStorage.getItem('client_token');
-      if (!token) throw new Error('Not authenticated');
-
-      const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
-      }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
-      setSavedFormData(prev => prev ? { ...prev, event: formData.event } : null);
-      setMessage({ type: 'success', text: 'Acara & Waktu berhasil disimpan!' });
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, event: false }));
-    }
+    } finally { setSavingSections(prev => ({ ...prev, gallery: false })); }
   };
 
   const handleSaveLoveStory = async () => {
     setSavingSections(prev => ({ ...prev, loveStory: true }));
     setMessage(null);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setSavedFormData(prev => prev ? { ...prev, loveStory: formData.loveStory } : null);
       setMessage({ type: 'success', text: 'Love Story berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, loveStory: false }));
-    }
+    } finally { setSavingSections(prev => ({ ...prev, loveStory: false })); }
   };
 
   const handleSaveWeddingGift = async () => {
     setSavingSections(prev => ({ ...prev, weddingGift: true }));
     setMessage(null);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setSavedFormData(prev => prev ? { ...prev, weddingGift: formData.weddingGift } : null);
       setMessage({ type: 'success', text: 'Wedding Gift berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, weddingGift: false }));
-    }
+    } finally { setSavingSections(prev => ({ ...prev, weddingGift: false })); }
   };
 
   const handleSaveBackgroundMusic = async () => {
     setSavingSections(prev => ({ ...prev, backgroundMusic: true }));
     setMessage(null);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setSavedFormData(prev => prev ? { ...prev, backgroundMusic: formData.backgroundMusic } : null);
       setMessage({ type: 'success', text: 'Background Music berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, backgroundMusic: false }));
-    }
+    } finally { setSavingSections(prev => ({ ...prev, backgroundMusic: false })); }
   };
 
   const handleSaveClosing = async () => {
     setSavingSections(prev => ({ ...prev, closing: true }));
     setMessage(null);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setSavedFormData(prev => prev ? { ...prev, closing: formData.closing } : null);
       setMessage({ type: 'success', text: 'Penutup berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSavingSections(prev => ({ ...prev, closing: false }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    if (!formData.bride.name.trim()) {
-      setMessage({ type: 'error', text: 'Nama panggilan mempelai wanita wajib diisi' });
-      return false;
-    }
-    if (!formData.bride.fullName.trim()) {
-      setMessage({ type: 'error', text: 'Nama lengkap mempelai wanita wajib diisi' });
-      return false;
-    }
-    if (!formData.groom.name.trim()) {
-      setMessage({ type: 'error', text: 'Nama panggilan mempelai pria wajib diisi' });
-      return false;
-    }
-    if (!formData.groom.fullName.trim()) {
-      setMessage({ type: 'error', text: 'Nama lengkap mempelai pria wajib diisi' });
-      return false;
-    }
-
-    const instagramRegex = /^[a-zA-Z0-9._]*$/;
-    if (formData.bride.instagram && !instagramRegex.test(formData.bride.instagram)) {
-      setMessage({ type: 'error', text: 'Format Instagram mempelai wanita tidak valid (tanpa @)' });
-      return false;
-    }
-    if (formData.groom.instagram && !instagramRegex.test(formData.groom.instagram)) {
-      setMessage({ type: 'error', text: 'Format Instagram mempelai pria tidak valid (tanpa @)' });
-      return false;
-    }
-
-    return true;
+    } finally { setSavingSections(prev => ({ ...prev, closing: false })); }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-
-    if (!validateForm()) {
-      return;
-    }
-
     setSaving(true);
-
     try {
       const token = localStorage.getItem('client_token');
       if (!token) throw new Error('Not authenticated');
-
       const data = await InvitationAPI.saveInvitationContent({
-        bride: formData.bride,
-        groom: formData.groom,
-        event: formData.event,
-        loveStory: formData.loveStory,
-        gallery: formData.gallery,
-        weddingGift: formData.weddingGift,
-        backgroundMusic: formData.backgroundMusic,
-        closing: formData.closing,
+        bride: formData.bride, groom: formData.groom, event: formData.event,
+        loveStory: formData.loveStory, gallery: formData.gallery,
+        weddingGift: formData.weddingGift, backgroundMusic: formData.backgroundMusic, closing: formData.closing,
       }, token);
-
-      if (!data.success) {
-        throw new Error(data.error || 'Gagal menyimpan data');
-      }
-
+      if (!data.success) throw new Error(data.error || 'Gagal menyimpan data');
       setMessage({ type: 'success', text: 'Data berhasil disimpan!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Terjadi kesalahan. Silakan coba lagi.' });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   if (loading) {
@@ -627,82 +424,50 @@ export default function EditUndanganPage() {
         <div className="spinner"></div>
         <p style={{ color: '#F5F5F0' }}>Memuat data...</p>
         <style jsx>{`
-          .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-            gap: 1rem;
-          }
-          .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #F5F5F0;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
+          .loading-container { display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:1rem; }
+          .spinner { width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top-color:#F5F5F0;border-radius:50%;animation:spin 1s linear infinite; }
+          @keyframes spin { to { transform:rotate(360deg); } }
         `}</style>
       </div>
     );
   }
 
+
+
   return (
     <div className="editor-container">
       <div className="editor-header" style={{ marginBottom: '24px' }}>
-        <p style={{ color: 'rgba(245, 245, 240, 0.6)', margin: 0 }}>Kelola semua informasi undangan Anda</p>
+        <p style={{ color: 'rgba(245, 245, 240, 0.6)', margin: 0 }}>Tambahkan cerita cinta, galeri, hadiah, dan konten tambahan undangan Anda</p>
+      </div>
+
+      {/* Banner: Data utama ada di Data Pernikahan */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: '12px', padding: '14px 18px', borderRadius: '10px',
+        marginBottom: '20px',
+        backgroundColor: 'rgba(99,102,241,0.08)',
+        border: '1px solid rgba(99,102,241,0.25)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <ClipboardList size={18} color="#818cf8" />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: '#e0e7ff' }}>Data Mempelai &amp; Acara</div>
+            <div style={{ fontSize: '12px', color: 'rgba(245,245,240,0.5)' }}>Nama mempelai, tanggal, dan lokasi acara diisi di halaman Data Pernikahan</div>
+          </div>
+        </div>
+        <Link href="/client-dashboard/data-pernikahan" style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
+          fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+          backgroundColor: 'rgba(99,102,241,0.15)', color: '#818cf8',
+          border: '1px solid rgba(99,102,241,0.3)',
+        }}>
+          Data Pernikahan <ArrowRight size={14} />
+        </Link>
       </div>
 
       <form onSubmit={handleSave}>
-        {/* Section 1: Bride & Groom */}
-        <div className="editor-card" style={{ marginBottom: '16px' }}>
-          <CollapsibleSection
-            title="Informasi Mempelai"
-            icon={<Users size={20} />}
-            isExpanded={expandedSections.brideGroom}
-            onToggle={() => toggleSection('brideGroom')}
-            hasUnsavedChanges={unsavedSections.brideGroom}
-            onSave={handleSaveBrideGroom}
-            saving={savingSections.brideGroom}
-          >
-            <BrideGroomSection
-              data={{ bride: formData.bride, groom: formData.groom }}
-              onChange={handleBrideGroomChange}
-              disabled={saving}
-              activeTooltip={activeTooltip}
-              onTooltipToggle={toggleTooltip}
-            />
-          </CollapsibleSection>
-        </div>
-
-        {/* Section 2: Event */}
-        <div className="editor-card">
-          <CollapsibleSection
-            title="Acara & Waktu"
-            icon={<Calendar size={20} />}
-            isExpanded={expandedSections.event}
-            onToggle={() => toggleSection('event')}
-            hasUnsavedChanges={unsavedSections.event}
-            onSave={handleSaveEvent}
-            saving={savingSections.event}
-          >
-            <EventSection
-              data={formData.event}
-              onChange={handleEventChange}
-              disabled={saving}
-              activeTooltip={activeTooltip}
-              onTooltipToggle={toggleTooltip}
-            />
-          </CollapsibleSection>
-        </div>
-
-        {/* Section 3: Love Story */}
+        {/* Section 1: Love Story */}
         <div className="editor-card">
           <CollapsibleSection
             title="Cerita Cinta"

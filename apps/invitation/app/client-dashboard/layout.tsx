@@ -25,7 +25,8 @@ import {
     DollarSign,
     CreditCard,
     User,
-    ArrowLeft
+    ArrowLeft,
+    ClipboardList
 } from 'lucide-react';
 
 import { ClientProvider, useClient } from '@/lib/contexts/ClientContext';
@@ -119,8 +120,9 @@ function ClientLayoutContent({
                     width: '48px',
                     height: '48px',
                     borderRadius: '50%',
-                    border: `4px solid ${colors.border}`,
-                    borderTopColor: '#2563eb',
+                    borderWidth: '4px',
+                    borderStyle: 'solid',
+                    borderColor: `${colors.border} ${colors.border} ${colors.border} #2563eb`,
                     animation: 'spin 1s linear infinite'
                 }} />
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -306,6 +308,7 @@ function ClientLayoutContent({
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: colors.textSecondary, marginBottom: '8px', paddingLeft: '12px', letterSpacing: '0.05em' }}>MENU UNDANGAN</div>
 
                                 {[
+                                    { path: '/client-dashboard/data-pernikahan', icon: ClipboardList, label: 'Data Pernikahan' },
                                     { path: '/client-dashboard/event-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
                                     { path: '/client-dashboard/edit-undangan', icon: Edit3, label: 'Edit Undangan' },
                                     { path: '/client-dashboard/daftar-ucapan', icon: Heart, label: 'Daftar Ucapan' },

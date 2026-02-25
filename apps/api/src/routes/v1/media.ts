@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '@/lib/types';
 import { clientAuthMiddleware } from '@/middleware/auth';
 import { getDb } from '@/db';
-import { clients, clientMedia } from '@/db/schema';
+import { clients, clientMedia, invitationPages } from '@/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import {
     uploadToR2,
@@ -344,6 +344,92 @@ media.get('/quota', async (c) => {
         });
     } catch (error: any) {
         console.error('Get quota error:', error);
+        return c.json({
+            error: 'Internal server error',
+            message: error.message
+        }, 500);
+    }
+});
+
+/**
+ * GET /v1/media/custom-images
+ * Get custom images for client's invitation
+ */
+media.get('/custom-images', async (c) => {
+    try {
+        const clientId = c.get('clientId') as string;
+        const db = getDb(c.env);
+
+        // We pull themeKey and customImages from invitationPages
+        const [invitationData] = await db
+            .select({
+                themeKey: invitationPages.themeKey,
+                customImages: invitationPages.customImages
+            })
+            .from(invitationPages)
+            .where(eq(invitationPages.clientId, clientId))
+            .limit(1);
+
+        if (!invitationData) {
+            // Client might not have an active invitation
+            return c.json({
+                success: true,
+                theme_key: null,
+                custom_images: null,
+                message: 'No active invitation found'
+            });
+        }
+
+        return c.json({
+            success: true,
+            theme_key: invitationData.themeKey,
+            custom_images: invitationData.customImages || {}
+        });
+
+    } catch (error: any) {
+        console.error('Get custom images error:', error);
+        return c.json({
+            error: 'Internal server error',
+            message: error.message
+        }, 500);
+    }
+});
+
+/**
+ * PUT /v1/media/custom-images
+ * Save custom images for client's invitation
+ */
+media.put('/custom-images', async (c) => {
+    try {
+        const clientId = c.get('clientId') as string;
+        const body = await c.req.json();
+        const { custom_images } = body;
+        const db = getDb(c.env);
+
+        if (!custom_images) {
+            return c.json({ success: false, error: 'custom_images is required' }, 400);
+        }
+
+        const [updatedInvitation] = await db
+            .update(invitationPages)
+            .set({
+                customImages: custom_images,
+                updatedAt: new Date().toISOString()
+            })
+            .where(eq(invitationPages.clientId, clientId))
+            .returning();
+
+        if (!updatedInvitation) {
+            return c.json({ success: false, error: 'Failed to find active invitation to update' }, 404);
+        }
+
+        return c.json({
+            success: true,
+            message: 'Custom images updated successfully'
+        });
+
+    } catch (error: any) {
+        console.error('Put custom images error:', error);
         return c.json({
             error: 'Internal server error',
             message: error.message

@@ -14,7 +14,12 @@ import {
     Edit3,
     ExternalLink,
     Clock,
-    CheckCircle
+    CheckCircle,
+    AlertCircle,
+    ClipboardList,
+    Globe,
+    EyeOff,
+    Loader
 } from 'lucide-react';
 import { InvitationAPI } from '@/lib/api/client';
 
@@ -25,8 +30,13 @@ export default function EventDashboardPage() {
     const [stats, setStats] = useState({
         guests: 0,
         wishes: 0,
-        rsvps: 0 // Placeholder if we don't have this API yet
+        rsvps: 0
     });
+    const [isPublished, setIsPublished] = useState<boolean | null>(null);
+    const [publishing, setPublishing] = useState(false);
+    const [registrationComplete, setRegistrationComplete] = useState<boolean | null>(null);
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
     useEffect(() => {
         if (!isLoading && !selectedEvent) {
@@ -61,6 +71,78 @@ export default function EventDashboardPage() {
         fetchStats();
     }, [selectedEvent]);
 
+    useEffect(() => {
+        const fetchPublishStatus = async () => {
+            if (!selectedEvent?.slug) return;
+            const token = localStorage.getItem('client_token');
+            if (!token) return;
+            try {
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+                // Check invitation_pages isActive via client API
+                const res = await fetch(`${API_BASE_URL}/v1/client/invitations/${selectedEvent.slug}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setIsPublished(data?.data?.isActive ?? data?.data?.is_active ?? null);
+                }
+            } catch { }
+        };
+        fetchPublishStatus();
+    }, [selectedEvent]);
+
+    useEffect(() => {
+        const checkRegistrationComplete = async () => {
+            if (!selectedEvent?.slug) return;
+            const token = localStorage.getItem('client_token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/v1/registration/${selectedEvent.slug}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const reg = data?.data || data?.registration || data;
+                    // Complete = bride_name + event1_date filled
+                    setRegistrationComplete(!!(reg?.bride_name || reg?.brideName) && !!(reg?.event1_date || reg?.event1Date));
+                } else {
+                    setRegistrationComplete(false);
+                }
+            } catch { setRegistrationComplete(false); }
+        };
+        checkRegistrationComplete();
+    }, [selectedEvent]);
+
+    const handlePublish = async () => {
+        if (!selectedEvent?.slug) return;
+        const token = localStorage.getItem('client_token');
+        if (!token) return;
+        setPublishing(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/registration/${selectedEvent.slug}/publish`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok) setIsPublished(true);
+        } catch { }
+        finally { setPublishing(false); }
+    };
+
+    const handleUnpublish = async () => {
+        if (!selectedEvent?.slug) return;
+        const token = localStorage.getItem('client_token');
+        if (!token) return;
+        setPublishing(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/registration/${selectedEvent.slug}/unpublish`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok) setIsPublished(false);
+        } catch { }
+        finally { setPublishing(false); }
+    };
+
     if (isLoading || !selectedEvent) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
@@ -68,8 +150,9 @@ export default function EventDashboardPage() {
                     width: '32px',
                     height: '32px',
                     borderRadius: '50%',
-                    border: `3px solid ${colors.border}`,
-                    borderTopColor: colors.primary,
+                    borderWidth: '3px',
+                    borderStyle: 'solid',
+                    borderColor: `${colors.border} ${colors.border} ${colors.border} ${colors.primary}`,
                     animation: 'spin 1s linear infinite'
                 }} />
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -95,6 +178,37 @@ export default function EventDashboardPage() {
 
     return (
         <div>
+            {/* Unpublished Warning Banner */}
+            {isPublished === false && (
+                <div style={{
+                    padding: '14px 18px',
+                    borderRadius: '10px',
+                    marginBottom: '20px',
+                    backgroundColor: 'rgba(251,191,36,0.1)',
+                    border: '1px solid rgba(251,191,36,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <AlertCircle size={20} color="#f59e0b" />
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: '14px', color: colors.text }}>Undangan belum dipublikasikan</div>
+                            <div style={{ fontSize: '12px', color: colors.textSecondary }}>Lengkapi Data Pernikahan dan klik Publish agar tamu bisa mengakses undangan Anda.</div>
+                        </div>
+                    </div>
+                    <Link href="/client-dashboard/data-pernikahan" style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
+                        fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff',
+                    }}>
+                        <ClipboardList size={14} /> Lengkapi & Publish
+                    </Link>
+                </div>
+            )}
+
             {/* Welcome Banner */}
             <div
                 className="dashboard-banner"
@@ -122,7 +236,7 @@ export default function EventDashboardPage() {
 
                 {selectedEvent.slug && (
                     <a
-                        href={`https://kirimkata.com/${selectedEvent.slug}`}
+                        href={`/${selectedEvent.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -206,11 +320,12 @@ export default function EventDashboardPage() {
                     </div>
                 </div>
 
+                {/* Publish Status Card */}
                 <div style={{
                     backgroundColor: colors.card,
                     borderRadius: '12px',
                     padding: '20px',
-                    border: `1px solid ${colors.border}`,
+                    border: `1px solid ${isPublished ? 'rgba(34,197,94,0.4)' : colors.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px'
@@ -219,18 +334,61 @@ export default function EventDashboardPage() {
                         width: '48px',
                         height: '48px',
                         borderRadius: '12px',
-                        backgroundColor: selectedEvent.is_active ? '#dcfce7' : '#f3f4f6',
-                        color: selectedEvent.is_active ? '#166534' : '#4b5563',
+                        backgroundColor: isPublished ? '#dcfce7' : '#f3f4f6',
+                        color: isPublished ? '#166534' : '#4b5563',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        flexShrink: 0,
                     }}>
-                        {selectedEvent.is_active ? <CheckCircle size={24} /> : <Clock size={24} />}
+                        {isPublished ? <CheckCircle size={24} /> : <Clock size={24} />}
                     </div>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '14px', color: colors.textSecondary }}>Status Undangan</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: colors.text }}>{selectedEvent.is_active ? 'Aktif' : 'Draft'}</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: colors.text }}>
+                            {isPublished === null ? '...' : isPublished ? 'Published ✓' : 'Belum Publish'}
+                        </div>
                     </div>
+                    {/* Publish / Unpublish button */}
+                    {isPublished === false && (
+                        <button
+                            onClick={registrationComplete ? handlePublish : undefined}
+                            disabled={publishing || registrationComplete === false}
+                            title={registrationComplete === false ? 'Lengkapi Data Pernikahan terlebih dahulu' : ''}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
+                                fontWeight: 700, cursor: (publishing || registrationComplete === false) ? 'not-allowed' : 'pointer',
+                                border: 'none', flexShrink: 0,
+                                background: registrationComplete === false
+                                    ? '#e5e7eb'
+                                    : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                color: registrationComplete === false ? '#9ca3af' : '#fff',
+                                opacity: publishing ? 0.6 : 1,
+                                boxShadow: registrationComplete === false ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
+                            }}
+                        >
+                            {publishing ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={14} />}
+                            {publishing ? '...' : 'Publish'}
+                        </button>
+                    )}
+                    {isPublished === true && (
+                        <button
+                            onClick={handleUnpublish}
+                            disabled={publishing}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '8px 14px', borderRadius: '8px', fontSize: '13px',
+                                fontWeight: 600, cursor: publishing ? 'not-allowed' : 'pointer',
+                                border: '1px solid rgba(239,68,68,0.4)', flexShrink: 0,
+                                backgroundColor: 'transparent', color: '#ef4444',
+                                opacity: publishing ? 0.6 : 1,
+                            }}
+                        >
+                            {publishing ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <EyeOff size={14} />}
+                            {publishing ? '...' : 'Unpublish'}
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -5,6 +5,8 @@ import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { TemplateRepository } from '../repositories/TemplateRepository';
 import { AddonRepository } from '../repositories/AddonRepository';
 import { InvitationRepository } from '../repositories/invitationRepository';
+import { weddingRegistrationRepo } from '../repositories/weddingRegistrationRepository';
+import { themeSettingsRepo } from '../repositories/themeSettingsRepository';
 import { guestbookEvents } from '../db/schema';
 
 export class OrderService {
@@ -179,7 +181,7 @@ export class OrderService {
             clientId: verifiedOrder.clientId,
             slug: verifiedOrder.slug,
             profile: {
-                theme: 'parallax-custom1',
+                theme: 'parallax/parallax-custom1',
                 name: verifiedOrder.title,
                 slug: verifiedOrder.slug,
             },
@@ -230,7 +232,36 @@ export class OrderService {
             activeUntil,
         });
 
-        // 5.5 Create Event for Client Dashboard
+        // 5.5 Create WeddingRegistration so that /v1/invitations/:slug/theme can find it
+        // theme_settings has a FK to wedding_registrations, so we need this record first
+        const wedding = await weddingRegistrationRepo.create(this.env, {
+            client_id: verifiedOrder.clientId,
+            slug: verifiedOrder.slug,
+            event_type: 'custom',
+            bride_name: inviterData?.bride?.name || '',
+            bride_full_name: inviterData?.bride?.fullName || '',
+            groom_name: inviterData?.groom?.name || '',
+            groom_full_name: inviterData?.groom?.fullName || '',
+            event1_date: verifiedOrder.mainDate || '',
+            event2_same_date: true,
+            event2_same_venue: true,
+            timezone: 'WIB',
+            event1_time: '00:00',
+        });
+
+        // 5.6 Create default theme_settings for this registration
+        // This enables the /v1/invitations/:slug/theme endpoint to toggle modules
+        await themeSettingsRepo.upsertSettings(this.env, {
+            registrationId: wedding.id,
+            themeKey: 'parallax/parallax-custom1',
+            enableGallery: true,
+            enableLoveStory: true,
+            enableWeddingGift: true,
+            enableWishes: true,
+            enableClosing: true,
+        });
+
+        // 5.7 Create Event for Client Dashboard
         const [newEvent] = await this.db.insert(guestbookEvents).values({
             clientId: verifiedOrder.clientId,
             eventName: verifiedOrder.title,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useClient } from '@/lib/contexts/ClientContext';
 import { InvitationAPI } from '@/lib/api/client';
 import { ClipboardList, Send, Plus, Download, Upload, Trash2, Settings, AlertTriangle, Link as LinkIcon, Camera, Loader2, Check, X, Search, Filter, MoreHorizontal, ChevronDown, RefreshCw, Edit3, Copy, MessageCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -13,11 +14,13 @@ interface Guest {
 }
 
 export default function KirimUndanganPage() {
+    const { selectedEvent } = useClient();
     const [guests, setGuests] = useState<Guest[]>([]);
     const [newGuest, setNewGuest] = useState({ name: '', phone: '' });
     const [template, setTemplate] = useState(
         'Halo {nama},\n\nKami mengundang Anda untuk hadir di acara spesial kami.\n\nSilakan buka undangan di:\n{link}\n\nTerima kasih!'
     );
+    // Slug comes from the selected event context (not stale localStorage client_user.slug)
     const [clientSlug, setClientSlug] = useState('');
     const [baseUrl, setBaseUrl] = useState('');
     const [selectedGuests, setSelectedGuests] = useState<Set<string>>(new Set());
@@ -48,15 +51,21 @@ export default function KirimUndanganPage() {
     const [showWarning, setShowWarning] = useState(true);
 
 
+    // Sync slug from selectedEvent context (source of truth)
+    useEffect(() => {
+        if (selectedEvent?.slug) {
+            setClientSlug(selectedEvent.slug);
+        }
+        setBaseUrl(window.location.origin);
+    }, [selectedEvent]);
+
     // Load client data and guests from database
     useEffect(() => {
         const loadData = async () => {
             const user = localStorage.getItem('client_user');
             if (user) {
                 const data = JSON.parse(user);
-                const slug = data.slug || '';
                 const id = data.id || '';
-                setClientSlug(slug);
                 setClientId(id);
 
                 if (id) {
@@ -106,6 +115,7 @@ export default function KirimUndanganPage() {
 
         loadData();
     }, []);
+
 
     // Track changes
     useEffect(() => {

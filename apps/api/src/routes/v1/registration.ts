@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Env } from '../../lib/types';
+import { getDb } from '../../db';
 import { weddingRegistrationRepo } from '../../repositories/weddingRegistrationRepository';
+import { InvitationRepository } from '../../repositories/invitationRepository';
 import { invitationCompiler } from '../../services-invitation/invitationCompilerService';
 import { clientAuthMiddleware } from '../../middleware/auth';
 import { RateLimiter } from '../../middleware/rateLimit';
@@ -176,6 +178,96 @@ router.put('/:slug', clientAuthMiddleware, async (c) => {
         return c.json({
             error: error.message || 'Failed to update wedding registration'
         }, 500);
+    }
+});
+
+/**
+ * GET /v1/registration/:slug
+ * Fetch wedding registration by slug
+ * Requires authentication
+ */
+router.get('/:slug', clientAuthMiddleware, async (c) => {
+    try {
+        const slug = c.req.param('slug');
+        const clientId = c.get('clientId') as string;
+
+        const registration = await weddingRegistrationRepo.findBySlug(c.env, slug);
+        if (!registration) {
+            return c.json({ error: 'Registration not found' }, 404);
+        }
+        if (registration.client_id !== clientId) {
+            return c.json({ error: 'Unauthorized' }, 403);
+        }
+
+        return c.json({ success: true, data: registration });
+    } catch (error: any) {
+        console.error('Error fetching wedding registration:', error);
+        return c.json({ error: error.message || 'Failed to fetch wedding registration' }, 500);
+    }
+});
+
+/**
+ * POST /v1/registration/:slug/publish
+ * Publish invitation (set isActive = true)
+ * Requires authentication and ownership
+ */
+router.post('/:slug/publish', clientAuthMiddleware, async (c) => {
+    try {
+        const slug = c.req.param('slug');
+        const clientId = c.get('clientId') as string;
+
+        const invitationRepo = new InvitationRepository(getDb(c.env), c.env);
+
+        const invitation = await invitationRepo.findBySlug(slug);
+        if (!invitation) {
+            return c.json({ error: 'Invitation not found' }, 404);
+        }
+        if (invitation.clientId && invitation.clientId !== clientId) {
+            return c.json({ error: 'Unauthorized' }, 403);
+        }
+
+        // Compile latest data before publishing
+        try {
+            await invitationCompiler.compileAndCache(c.env, slug);
+        } catch (compileError) {
+            console.error('Error compiling before publish:', compileError);
+        }
+
+        await invitationRepo.activate(invitation.id);
+
+        return c.json({ success: true, message: 'Invitation published successfully' });
+    } catch (error: any) {
+        console.error('Error publishing invitation:', error);
+        return c.json({ error: error.message || 'Failed to publish invitation' }, 500);
+    }
+});
+
+/**
+ * POST /v1/registration/:slug/unpublish
+ * Unpublish invitation (set isActive = false)
+ * Requires authentication and ownership
+ */
+router.post('/:slug/unpublish', clientAuthMiddleware, async (c) => {
+    try {
+        const slug = c.req.param('slug');
+        const clientId = c.get('clientId') as string;
+
+        const invitationRepo = new InvitationRepository(getDb(c.env), c.env);
+
+        const invitation = await invitationRepo.findBySlug(slug);
+        if (!invitation) {
+            return c.json({ error: 'Invitation not found' }, 404);
+        }
+        if (invitation.clientId && invitation.clientId !== clientId) {
+            return c.json({ error: 'Unauthorized' }, 403);
+        }
+
+        await invitationRepo.deactivate(invitation.id);
+
+        return c.json({ success: true, message: 'Invitation unpublished successfully' });
+    } catch (error: any) {
+        console.error('Error unpublishing invitation:', error);
+        return c.json({ error: error.message || 'Failed to unpublish invitation' }, 500);
     }
 });
 

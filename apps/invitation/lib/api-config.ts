@@ -82,6 +82,8 @@ export const API_ENDPOINTS = {
         create: `${API_BASE_URL}/v1/registration`,
         get: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}`,
         update: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}`,
+        publish: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}/publish`,
+        unpublish: (slug: string) => `${API_BASE_URL}/v1/registration/${slug}/unpublish`,
     },
 
     // Invitations

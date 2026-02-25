@@ -82,6 +82,47 @@ client.get('/profile', async (c) => {
 });
 
 /**
+ * GET /v1/client/invitations/:slug
+ * Get invitation status (isActive, activeUntil) for the authenticated client
+ */
+client.get('/invitations/:slug', async (c) => {
+    try {
+        const clientId = c.get('clientId') as string;
+        const slug = c.req.param('slug');
+        const db = getDb(c.env);
+
+        const [invitation] = await db
+            .select({
+                id: invitationPages.id,
+                slug: invitationPages.slug,
+                isActive: invitationPages.isActive,
+                activeUntil: invitationPages.activeUntil,
+                themeKey: invitationPages.themeKey,
+                verificationStatus: invitationPages.verificationStatus,
+                clientId: invitationPages.clientId,
+                createdAt: invitationPages.createdAt,
+                updatedAt: invitationPages.updatedAt,
+            })
+            .from(invitationPages)
+            .where(eq(invitationPages.slug, slug))
+            .limit(1);
+
+        if (!invitation) {
+            return c.json({ success: false, error: 'Invitation not found' }, 404);
+        }
+
+        if (invitation.clientId && invitation.clientId !== clientId) {
+            return c.json({ success: false, error: 'Unauthorized' }, 403);
+        }
+
+        return c.json({ success: true, data: invitation });
+    } catch (error) {
+        console.error('Error fetching invitation status:', error);
+        return c.json({ success: false, error: 'Internal server error' }, 500);
+    }
+});
+
+/**
  * PUT /v1/client/settings
  * Update client settings (email, password)
  */

@@ -153,7 +153,15 @@ export default function InvitePage() {
     return <InvitationError />;
   }
 
-  const theme = resolveTheme(clientDef.theme.key);
+  // Format theme key to match registry (e.g., "parallax-custom1" -> "parallax/parallax-custom1")
+  let themeKey = clientDef.theme.key as string;
+  if (themeKey && !themeKey.includes('/') && themeKey.startsWith('parallax-')) {
+    themeKey = `parallax/${themeKey}`;
+  } else if (themeKey && !themeKey.includes('/') && themeKey.startsWith('simple')) {
+    themeKey = `premium/${themeKey}`;
+  }
+
+  const theme = resolveTheme(themeKey as any);
   const ThemeRenderer = theme?.render;
 
   if (!ThemeRenderer) {

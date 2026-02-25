@@ -138,6 +138,8 @@ class WeddingRegistrationRepository {
         copy('groom_instagram', 'groomInstagram');
 
         copy('event1_date', 'event1Date');
+        // weddingDate mirrors event1_date (this column is NOT NULL — required for placeholder insert)
+        if (data['event1_date'] !== undefined && !dbData.weddingDate) dbData.weddingDate = data['event1_date'];
         copy('event2_same_date', 'event2SameDate');
         copy('event2_date', 'event2Date');
 

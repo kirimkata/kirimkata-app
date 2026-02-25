@@ -75,11 +75,37 @@ export class InvitationAPI {
         return res.json();
     }
 
-    static async updateRegistration(slug: string, data: any) {
+    static async updateRegistration(slug: string, data: any, token: string) {
         const res = await fetch(`${API_BASE_URL}/v1/registration/${slug}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    static async getRegistrationBySlug(slug: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/registration/${slug}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        return res.json();
+    }
+
+    static async publishRegistration(slug: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/registration/${slug}/publish`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        return res.json();
+    }
+
+    static async unpublishRegistration(slug: string, token: string) {
+        const res = await fetch(`${API_BASE_URL}/v1/registration/${slug}/unpublish`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
         });
         return res.json();
     }

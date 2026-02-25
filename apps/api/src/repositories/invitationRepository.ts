@@ -49,7 +49,7 @@ export class InvitationRepository {
                 customImages: data.customImages || null,
                 verificationStatus: 'verified', // Created from verified order
                 activeUntil: data.activeUntil,
-                isActive: true,
+                isActive: false, // Stays false until client explicitly publishes
             })
             .returning();
 
