@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../../lib/types';
 import { getDb } from '../../db';
 import { GuestbookAddonRepository } from '../../repositories/GuestbookAddonRepository';
-import { InvitationRepository } from '../../repositories/InvitationRepository';
+import { InvitationRepository } from '../../repositories/invitationRepository';
 import { clientAuthMiddleware, adminAuthMiddleware } from '../../middleware/auth';
 
 const app = new Hono<AppEnv>();

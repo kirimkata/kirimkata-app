@@ -71,7 +71,7 @@ function PaymentModal({ invoice, onClose, onSuccess, colors }: {
 
     return (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-            <div style={{ backgroundColor: colors.card, borderRadius: 16, width: 460, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: 16, width: 460, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
 
                 {/* Header */}
                 <div style={{ padding: '24px 28px 0' }}>

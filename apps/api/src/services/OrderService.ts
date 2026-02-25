@@ -4,7 +4,7 @@ import { OrderRepository } from '../repositories/OrderRepository';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { TemplateRepository } from '../repositories/TemplateRepository';
 import { AddonRepository } from '../repositories/AddonRepository';
-import { InvitationRepository } from '../repositories/InvitationRepository';
+import { InvitationRepository } from '../repositories/invitationRepository';
 import { guestbookEvents } from '../db/schema';
 
 export class OrderService {
@@ -128,7 +128,7 @@ export class OrderService {
         }
 
         // Check if order can still accept payment proof
-        if (order.paymentStatus !== 'unpaid' && order.paymentStatus !== 'rejected') {
+        if (order.paymentStatus !== 'pending' && order.paymentStatus !== 'unpaid' && order.paymentStatus !== 'rejected') {
             throw new Error(`Cannot upload payment proof. Order payment status is "${order.paymentStatus}"`);
         }
 

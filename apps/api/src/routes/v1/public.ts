@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../lib/types';
 import { getDb } from '../../db';
-import { InvitationRepository } from '../../repositories/InvitationRepository';
+import { InvitationRepository } from '../../repositories/invitationRepository';
 import { fetchFullInvitationContent } from '../../repositories/invitationContentRepository';
 
 const app = new Hono<{ Bindings: Env }>();
