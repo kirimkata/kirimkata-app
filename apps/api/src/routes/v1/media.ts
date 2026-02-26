@@ -195,18 +195,78 @@ media.get('/list', async (c) => {
 
         return c.json({
             success: true,
-            data: files.map(f => ({
+            files: files.map(f => ({
                 id: f.id,
-                url: f.fileUrl,
-                fileName: f.fileName,
-                fileType: f.fileType,
-                fileSize: f.fileSize,
-                uploadedAt: f.uploadedAt,
-                mimeType: f.mimeType
+                file_url: f.fileUrl,
+                file_name: f.fileName,
+                file_type: f.fileType,
+                file_size: f.fileSize,
+                uploaded_at: f.uploadedAt,
+                mime_type: f.mimeType
             }))
         });
     } catch (error: any) {
         console.error('List media error:', error);
+        return c.json({
+            error: 'Internal server error',
+            message: error.message
+        }, 500);
+    }
+});
+
+/**
+ * DELETE /v1/media/delete
+ * Delete file by fileId in request body (called by frontend)
+ */
+media.delete('/delete', async (c) => {
+    try {
+        const clientId = c.get('clientId') as string;
+        const body = await c.req.json();
+        const { fileId } = body;
+        const db = getDb(c.env);
+
+        const mediaId = parseInt(String(fileId), 10);
+        if (isNaN(mediaId)) {
+            return c.json({ error: 'Invalid media ID' }, 400);
+        }
+
+        // Find file first to get URL (for R2 delete)
+        const [file] = await db
+            .select()
+            .from(clientMedia)
+            .where(and(
+                eq(clientMedia.id, mediaId),
+                eq(clientMedia.clientId, clientId)
+            ))
+            .limit(1);
+
+        if (!file) {
+            return c.json({ error: 'File not found' }, 404);
+        }
+
+        // Delete from R2
+        let key = '';
+        try {
+            const urlObj = new URL(file.fileUrl);
+            key = urlObj.pathname.substring(1);
+        } catch (e) { }
+
+        if (key) {
+            await deleteFromR2(c.env.MEDIA_BUCKET, { path: key });
+        }
+
+        // Delete from DB
+        await db
+            .delete(clientMedia)
+            .where(eq(clientMedia.id, mediaId));
+
+        return c.json({
+            success: true,
+            message: 'File deleted successfully'
+        });
+
+    } catch (error: any) {
+        console.error('Delete media error:', error);
         return c.json({
             error: 'Internal server error',
             message: error.message
