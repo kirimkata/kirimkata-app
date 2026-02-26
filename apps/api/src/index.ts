@@ -32,6 +32,7 @@ import ordersRoutes from './routes/v1/orders';
 import invoicesRoutes from './routes/v1/invoices';
 import publicRoutes from './routes/v1/public';
 import invitationsGuestbookRoutes from './routes/v1/invitations-guestbook';
+import banksRoutes from './routes/v1/banks';
 
 // Create main Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -99,6 +100,9 @@ app.route('/v1/public', publicRoutes);
 
 // Guestbook addon routes
 app.route('/v1/invitations-guestbook', invitationsGuestbookRoutes);
+
+// Public catalog routes (no auth)
+app.route('/v1/banks', banksRoutes);
 
 // 404 handler
 app.notFound((c) => {

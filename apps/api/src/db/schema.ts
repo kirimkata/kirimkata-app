@@ -541,6 +541,24 @@ export const weddingGiftBankAccounts = pgTable("wedding_gift_bank_accounts", {
         }
     });
 
+// Global bank catalog — manage via DB, logo URLs stored in R2
+export const banks = pgTable("banks", {
+    id: serial("id").primaryKey().notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    code: varchar("code", { length: 20 }),          // e.g. 'BCA', 'BRI', 'BNI'
+    logoUrl: text("logo_url"),                       // R2 public URL, e.g. https://media.kirimkata.com/bank_logo/bca.png
+    displayOrder: integer("display_order").default(0).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+},
+    (table) => {
+        return {
+            idxBanksActive: index("idx_banks_active").on(table.isActive, table.displayOrder),
+            bankNameKey: unique("banks_name_key").on(table.name),
+        }
+    });
+
 export const invoices = pgTable("invoices", {
     id: uuid("id").defaultRandom().primaryKey().notNull(),
     invoiceNumber: varchar("invoice_number", { length: 50 }).notNull(),
