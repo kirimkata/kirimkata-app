@@ -64,16 +64,23 @@ export default function OrderDetailPage() {
         try {
             const token = localStorage.getItem('admin_token') || '';
 
-            // Load order
+            // API returns { order, template, invoice, invitation }
             const orderResponse = await InvitationAPI.getOrder(orderId, token);
             if (orderResponse.success) {
-                setOrder(orderResponse.data);
-            }
+                const { order: rawOrder, template, invoice: rawInvoice } = orderResponse.data;
 
-            // Load invoice
-            const invoiceResponse = await InvitationAPI.getInvoiceByOrder(orderId, token);
-            if (invoiceResponse.success) {
-                setInvoice(invoiceResponse.data);
+                // Map DB field names → interface field names
+                setOrder({
+                    ...rawOrder,
+                    basePrice: rawOrder.templatePrice,
+                    selectedAddons: rawOrder.addons || [],
+                    orderStatus: rawOrder.status,
+                    templateName: template?.name || 'Template',
+                });
+
+                if (rawInvoice) {
+                    setInvoice(rawInvoice);
+                }
             }
         } catch (err) {
             setError('Gagal memuat detail pesanan');
@@ -283,12 +290,12 @@ export default function OrderDetailPage() {
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span>{order.templateName || 'Template'}</span>
-                                <span>Rp {order.basePrice.toLocaleString('id-ID')}</span>
+                                <span>Rp {order.basePrice?.toLocaleString('id-ID') ?? '-'}</span>
                             </div>
                             {order.selectedAddons && order.selectedAddons.map((addon: any, i: number) => (
                                 <div key={i} className="flex justify-between">
                                     <span>{addon.name}</span>
-                                    <span>Rp {addon.price.toLocaleString('id-ID')}</span>
+                                    <span>Rp {addon.price?.toLocaleString('id-ID') ?? '-'}</span>
                                 </div>
                             ))}
                             <div className="border-t pt-2 flex justify-between font-bold">
