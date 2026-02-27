@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useClient } from '@/lib/contexts/ClientContext';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
 import { InvitationAPI } from '@/lib/api/client';
 import { Save, Globe, EyeOff, CheckCircle, AlertCircle, Loader, ChevronDown, ChevronUp } from 'lucide-react';
 import { FormField, TextInput, SelectInput, Button, useToast } from '@/components/ui';
+import { useFormValidation } from '@/hooks/useFormValidation';
 
 type SectionKey = 'mempelai' | 'event1' | 'event2' | 'streaming';
 
@@ -122,15 +123,6 @@ export default function DataPernikahanPage() {
 
     const slug = selectedEvent?.slug;
 
-    // Derived: label acara berdasarkan event_type
-    const labels = EVENT_LABELS[form.event_type] || EVENT_LABELS.custom;
-    const event1Label = form.event_type === 'custom' && form.custom_event1_label
-        ? form.custom_event1_label
-        : labels.event1;
-    const event2Label = form.event_type === 'custom' && form.custom_event2_label
-        ? form.custom_event2_label
-        : labels.event2;
-
     const fetchRegistration = useCallback(async () => {
         if (!slug) return;
         const token = localStorage.getItem('client_token');
@@ -209,14 +201,50 @@ export default function DataPernikahanPage() {
         fetchRegistration();
     }, [fetchRegistration]);
 
+    // ── Derived labels (needed in validation rules) ──────────────
+    const labels = EVENT_LABELS[form.event_type] || EVENT_LABELS.custom;
+    const event1Label = form.event_type === 'custom' && form.custom_event1_label
+        ? form.custom_event1_label
+        : labels.event1;
+    const event2Label = form.event_type === 'custom' && form.custom_event2_label
+        ? form.custom_event2_label
+        : labels.event2;
+
+    // ── Validation rules ─────────────────────────────────────────
+    const validationRules = useMemo(() => [
+        { field: 'bride_name' as const, label: 'Nama panggilan pengantin wanita' },
+        { field: 'bride_full_name' as const, label: 'Nama lengkap pengantin wanita' },
+        { field: 'groom_name' as const, label: 'Nama panggilan pengantin pria' },
+        { field: 'groom_full_name' as const, label: 'Nama lengkap pengantin pria' },
+        { field: 'event1_date' as const, label: `Tanggal ${event1Label}` },
+        { field: 'event1_time' as const, label: `Waktu mulai ${event1Label}` },
+    ], [event1Label]);
+
+    const { errors: formErrors, validate, clearError } = useFormValidation(validationRules, form);
+
     const handleChange = (field: string, value: any) => {
         setForm(prev => ({ ...prev, [field]: value }));
+        // Auto-clear error when user starts fixing the field
+        clearError(field as keyof typeof form);
     };
 
     const handleSave = async () => {
         if (!slug) return;
         const token = localStorage.getItem('client_token');
         if (!token) return;
+
+        // Run validation — open sections with errors automatically
+        const ok = validate();
+        if (!ok) {
+            const needsMempelai = !form.bride_name.trim() || !form.bride_full_name.trim() || !form.groom_name.trim() || !form.groom_full_name.trim();
+            const needsEvent1 = !form.event1_date || !form.event1_time;
+            setOpenSections(prev => ({
+                ...prev,
+                mempelai: prev.mempelai || needsMempelai,
+                event1: prev.event1 || needsEvent1,
+            }));
+            return;
+        }
 
         setSaving(true);
         setSaveStatus('idle');
@@ -392,8 +420,12 @@ export default function DataPernikahanPage() {
 
                         <div style={{ fontWeight: 700, fontSize: '13px', color: colors.textSecondary, marginBottom: '12px', letterSpacing: '0.05em' }}>PENGANTIN WANITA</div>
                         <div style={{ ...grid2, marginBottom: '16px' }}>
-                            <F label="Nama Panggilan *"><TextInput value={form.bride_name} onChange={e => handleChange('bride_name', e.target.value)} placeholder="e.g. Sarah" /></F>
-                            <F label="Nama Lengkap *"><TextInput value={form.bride_full_name} onChange={e => handleChange('bride_full_name', e.target.value)} placeholder="e.g. Sarah Amelia" /></F>
+                            <FormField label="Nama Panggilan" required error={formErrors.bride_name}>
+                                <TextInput error={!!formErrors.bride_name} value={form.bride_name} onChange={e => handleChange('bride_name', e.target.value)} placeholder="e.g. Sarah" />
+                            </FormField>
+                            <FormField label="Nama Lengkap" required error={formErrors.bride_full_name}>
+                                <TextInput error={!!formErrors.bride_full_name} value={form.bride_full_name} onChange={e => handleChange('bride_full_name', e.target.value)} placeholder="e.g. Sarah Amelia" />
+                            </FormField>
                             <F label="Nama Ayah"><TextInput value={form.bride_father_name} onChange={e => handleChange('bride_father_name', e.target.value)} placeholder="Opsional" /></F>
                             <F label="Nama Ibu"><TextInput value={form.bride_mother_name} onChange={e => handleChange('bride_mother_name', e.target.value)} placeholder="Opsional" /></F>
                             <F label="Instagram"><TextInput value={form.bride_instagram} onChange={e => handleChange('bride_instagram', e.target.value)} placeholder="@username" /></F>
@@ -401,8 +433,12 @@ export default function DataPernikahanPage() {
 
                         <div style={{ fontWeight: 700, fontSize: '13px', color: colors.textSecondary, marginBottom: '12px', letterSpacing: '0.05em' }}>PENGANTIN PRIA</div>
                         <div style={grid2}>
-                            <F label="Nama Panggilan *"><TextInput value={form.groom_name} onChange={e => handleChange('groom_name', e.target.value)} placeholder="e.g. Budi" /></F>
-                            <F label="Nama Lengkap *"><TextInput value={form.groom_full_name} onChange={e => handleChange('groom_full_name', e.target.value)} placeholder="e.g. Budi Santoso" /></F>
+                            <FormField label="Nama Panggilan" required error={formErrors.groom_name}>
+                                <TextInput error={!!formErrors.groom_name} value={form.groom_name} onChange={e => handleChange('groom_name', e.target.value)} placeholder="e.g. Budi" />
+                            </FormField>
+                            <FormField label="Nama Lengkap" required error={formErrors.groom_full_name}>
+                                <TextInput error={!!formErrors.groom_full_name} value={form.groom_full_name} onChange={e => handleChange('groom_full_name', e.target.value)} placeholder="e.g. Budi Santoso" />
+                            </FormField>
                             <F label="Nama Ayah"><TextInput value={form.groom_father_name} onChange={e => handleChange('groom_father_name', e.target.value)} placeholder="Opsional" /></F>
                             <F label="Nama Ibu"><TextInput value={form.groom_mother_name} onChange={e => handleChange('groom_mother_name', e.target.value)} placeholder="Opsional" /></F>
                             <F label="Instagram"><TextInput value={form.groom_instagram} onChange={e => handleChange('groom_instagram', e.target.value)} placeholder="@username" /></F>
@@ -423,8 +459,12 @@ export default function DataPernikahanPage() {
                 {openSections.event1 && (
                     <div style={{ padding: '20px', borderTop: `1px solid ${colors.border}` }}>
                         <div style={{ ...grid2, marginBottom: '16px' }}>
-                            <F label={`Tanggal ${event1Label} *`}><TextInput type="date" value={form.event1_date} onChange={e => handleChange('event1_date', e.target.value)} /></F>
-                            <F label="Waktu Mulai *"><TextInput type="time" value={form.event1_time} onChange={e => handleChange('event1_time', e.target.value)} /></F>
+                            <FormField label={`Tanggal ${event1Label}`} required error={formErrors.event1_date}>
+                                <TextInput type="date" error={!!formErrors.event1_date} value={form.event1_date} onChange={e => handleChange('event1_date', e.target.value)} />
+                            </FormField>
+                            <FormField label="Waktu Mulai" required error={formErrors.event1_time}>
+                                <TextInput type="time" error={!!formErrors.event1_time} value={form.event1_time} onChange={e => handleChange('event1_time', e.target.value)} />
+                            </FormField>
                             <F label="Waktu Selesai"><TextInput type="time" value={form.event1_end_time} onChange={e => handleChange('event1_end_time', e.target.value)} /></F>
                             <F label="Nama Gedung/Venue"><TextInput value={form.event1_venue_name} onChange={e => handleChange('event1_venue_name', e.target.value)} placeholder="e.g. Masjid Al-Ikhlas" /></F>
                         </div>

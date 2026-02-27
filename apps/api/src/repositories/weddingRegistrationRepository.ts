@@ -222,7 +222,7 @@ class WeddingRegistrationRepository {
         const dbUpdates = this.mapToDb(updates as any);
 
         // Add updated_at
-        dbUpdates.updatedAt = new Date(); // Drizzle usually needs Date object or string depending on driver
+        dbUpdates.updatedAt = new Date().toISOString();
 
         const [result] = await db
             .update(weddingRegistrations)
